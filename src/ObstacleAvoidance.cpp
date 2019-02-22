@@ -19,21 +19,38 @@ float specific_radius(State state_robot, State center_point, State reference_poi
 {
     // First step: compute state_surface which is the point on the surface of the obstacle that is on the segment between state_robot and reference_point
     State state_surf;
-    // TODO
-    // Second step: compute the gamma distance of the surface point
-    flot gamma_surf = gamma( state_surf, center_point, reference_point, obs, p);
+
+    // Equation of the line that goes through state_robot and reference_point is y=a*x+b
+    float a_line = (state_robot(1,0) - reference_point(1,0))/(state_robot(0,0) - reference_point(0,0)); // a = deltaY / deltaX
+    float b_line = state_robot(1,0) - a_line * state_robot(0,0);
+
+    // Creating parameters vectors for the ellipse
+    // params = [ x_c, y_c, phi, a1, a2, p1, p2, a_line, b_line]
+    Eigen::Matrix<float, 9, 1> params_ellipse;
+    params_ellipse << obs, a_line, b_line;
+
+    // Find the surface point that is also on the line
+    state_surf = findSurfacePointEllipse(params_ellipse);
+
+    // Compute the gamma distance of the surface point
+    float gamma_surf = gamma( state_surf, center_point, reference_point, obs, p, true);
     return 1.0;
 }
 
-float gamma(State state_robot, State center_point, State reference_point, Obstacle obs, int p)
+float gamma(State state_robot, State center_point, State reference_point, Obstacle obs, int p, bool is_radius)
 {
-    float radius = specific_radius(state_robot, center_point, reference_point, obs, p);
+    float radius = 1;
+    if (!is_radius)
+    {
+        float radius = specific_radius(state_robot, center_point, reference_point, obs, p);
+    }
+
     float sum = 0;
     for (int i=0; i < 2; i++)
     {
         // Here only the first and second components (x and y) has a weight for the gamma distance
         // The third component is the angle. How can you define the angle of an obstacle? Doesn't really make sense so we just use x and y.
-        sum += std::pow( (state_robot(i,0) - center_point(i,0)) / radius, 2*p);
+        sum += std::pow( (state_robot(i,0) - center_point(i,0)) / radius, 2);
     }
     return sum;
 }

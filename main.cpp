@@ -1,16 +1,18 @@
 #include <iostream>
+#include <stdio.h>
 #include <string>
 #include <Eigen> // For Linear Algebra
 #include <array>
 
-// INCLUDE CLASSES
-#include "Obstacle.h"
+// Global variables
+#define PI 3.1415;
+
+// INCLUDE HEADERS
 #include "Attractor.h"
 #include "ObstacleAvoidance.h"
+#include "SolverFunctions.h"
 
 using namespace std;
-
-double PI(3.1415);
 
 int main()
 {
@@ -28,6 +30,14 @@ int main()
 
     cout << "Colum: " << s1 << endl;
     cout << "Norm: "  << s1.norm() << endl;
+
+    /*Eigen::Matrix<float,9,1> test;
+    test << s1, s2, s1;
+    cout << "Test:" << endl << test << endl;*/
+
+    Eigen::Matrix<float,9,1> params_ellipse;
+    params_ellipse << 1,2,3,4,5,6,7,8,9;
+    findSurfacePointEllipse(params_ellipse);
     /*Obstacle obs1({{1.0,1.0}},{{1.0,1.0}},{{10.0,-8.0}},-40/180*PI,1.0,{{0.0, 0.0}},0.0,1.0,0.0);
     obs1.disp_params();
 
