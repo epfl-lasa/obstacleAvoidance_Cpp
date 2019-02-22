@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 #include <string>
 #include <Eigen> // For Linear Algebra
@@ -70,5 +71,40 @@ int main()
     s4.disp_params();
     s4 = s4 - s1;
     s4.disp_params();*/
+
+    ofstream myfile;
+    myfile.open("trajectory.txt");
+    try
+    {
+
+        State state_robot;
+        State state_attractor;
+        State center_point;
+        State reference_point;
+        Obstacle obs;
+        int p = 1;
+
+        state_robot     << -2, 0, 0;
+        state_attractor << 2, 0, 0;
+        center_point    << 0, 0, 0;
+        reference_point << 0, 0, 0;
+        obs << 0, 0, 0, 1, 1, 1, 1;
+        int N_steps = 20;
+        float time_step = 0.01;
+
+        for (int i=0; i<N_steps; i++)
+        {
+            myfile << state_robot(0,0) << "," << state_robot(1,0) << "," << state_robot(2,0) << "\n";
+            cout << "State robot: " << std::endl << state_robot << endl;
+            State next_eps = next_step_single_obstacle(state_robot, state_attractor, center_point, reference_point, obs, p);
+            cout << "Next velocity: " << std::endl << next_eps << endl;
+            state_robot += next_eps * time_step;
+        }
+    }
+    catch (int e)
+    {
+        cout << "An exception occurred. Exception Nr. " << e << '\n';
+    }
+    myfile.close();
     return 0;
 }

@@ -36,7 +36,7 @@ struct hybrd_functor : Functor<double>
     hybrd_functor(Matrix<float,9,1> params) : Functor<double>(1,1) { this->m_params = params;}
     int operator()(const VectorXd &x, VectorXd &fvec) const
     {
-        cout << "Param=" << this->m_params << endl;
+        // cout << "Param=" << this->m_params << endl;
         double temp, temp1, temp2;
         const VectorXd::Index n = x.size();
 
@@ -76,11 +76,12 @@ Eigen::Matrix<float, 3, 1> findSurfacePointEllipse(Matrix<float,9,1> params)
 
   if (info == 1)
   {
-      cout << "Solver success! X=" << x << endl;
+      // cout << "Solver success! X=" << x << endl;
   }
   else
   {
       cout << "Solver failure." << endl;
+      throw 42;
   }
 
   Eigen::Matrix<float, 3, 1> state_on_surface;

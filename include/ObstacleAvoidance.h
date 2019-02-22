@@ -16,7 +16,7 @@ State f_epsilon(State state_robot, State state_attractor); // compute attractor 
 
 float specific_radius(State state_robot, State center_point, State reference_point, Obstacle obs, int p); // compute specific radius
 
-float gamma(State state_robot, State center_point, State reference_point, Obstacle obs, int p, bool is_radius=false); // compute gamma(epsilon) for an obstacle
+float gamma(State state_robot, State center_point, State reference_point, Obstacle obs, int p, bool is_radius); // compute gamma(epsilon) for an obstacle
 
 float lambda_r(State state_robot, State center_point, State reference_point, Obstacle obs, int p); // for D(epsilon) matrix
 

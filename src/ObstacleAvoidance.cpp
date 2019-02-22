@@ -1,12 +1,13 @@
 /*
-Implementation on C++ by Pierre-Alexandre Léziart
+Implementation on C++ by Pierre-Alexandre LÃ©ziart
 Mail: TODO
 Contains functions for obstacle avoidance algorithm
 */
 
 // TODO : Add constant reference for functions in order to reduce computational cost
 // TODO : Replace distance by .norm() of Eigen in "r_epsilon" function
-
+// TODO : Center point and reference point should be part of the Obstacle
+// TODO : Solver may give the wrong solution (two solutions), add checking step
 #include "ObstacleAvoidance.h"
 
 State f_epsilon(State state_robot, State state_attractor)
@@ -34,10 +35,10 @@ float specific_radius(State state_robot, State center_point, State reference_poi
 
     // Compute the gamma distance of the surface point
     float gamma_surf = gamma( state_surf, center_point, reference_point, obs, p, true);
-    return 1.0;
+    return gamma_surf;
 }
 
-float gamma(State state_robot, State center_point, State reference_point, Obstacle obs, int p, bool is_radius)
+float gamma(State state_robot, State center_point, State reference_point, Obstacle obs, int p, bool is_radius=false)
 {
     float radius = 1;
     if (!is_radius)
@@ -126,11 +127,31 @@ Eigen::Matrix<float, number_states, number_states-1> gram_schmidt(State gradient
     Eigen::Matrix<float, number_states, number_states-1> initial_basis = Eigen::Matrix<float, number_states, number_states-1>::Zero();
 
     // Warning: the first coordinate of gradient_vector has to be non-zero
-    for (int i=0; i < (number_states-1); i++)
+    if (gradient_vector(0,0) != 0)
     {
-        initial_basis(0,i)   =   gradient_vector(i+1,0);
-        initial_basis(i+1,i) = - gradient_vector(  0,0);
+       for (int i=0; i < (number_states-1); i++)
+        {
+            initial_basis(0,i)   =   gradient_vector(i+1,0);
+            initial_basis(i+1,i) = - gradient_vector(  0,0);
+        }
     }
+    else
+    {
+        for (int i=0; i < (number_states-1); i++)
+        {
+            if (i==0)
+            {
+                initial_basis(0,0)  = - gradient_vector(  1,0);
+                initial_basis(1,0)  =   gradient_vector(  0,0);
+            }
+            else
+            {
+                initial_basis(1,i)   =   gradient_vector(i+1,0);
+                initial_basis(i+1,i) = - gradient_vector(  1,0);
+            }
+        }
+    }
+
 
     // Then I applied Gram-Schmidt on the initial basis to get an orthonormal basis
     Eigen::Matrix<float, number_states, number_states-1> ortho_basis = Eigen::Matrix<float, number_states, number_states-1>::Zero();
@@ -183,17 +204,24 @@ State next_step_single_obstacle(State state_robot, State state_attractor, State 
 {
     // Compute attractor function
     State f_eps = f_epsilon( state_robot, state_attractor);
+    std::cout << "f_eps=" << f_eps << std::endl;
 
     // Several steps to get D(epsilon) matrix
     float lamb_r = lambda_r( state_robot, center_point, reference_point, obs, p); // optimization -> include gamma as argument of lambda_r and lambda_e
     float lamb_e = lambda_e( state_robot, center_point, reference_point, obs, p);
     Eigen::Matrix<float, number_states, number_states> D_eps = D_epsilon( lamb_r, lamb_e);
+    std::cout << "lambda r=" << lamb_r << std::endl;
+    std::cout << "lambda e=" << lamb_e << std::endl;
 
     // Several steps to get E(epsilon) matrix
     State r_eps_vector = r_epsilon( state_robot, reference_point);
     State gradient_vector = gradient( state_robot, center_point, reference_point, obs, p);
     Eigen::Matrix<float, number_states, number_states-1> ortho_basis = gram_schmidt( gradient_vector);
     Eigen::Matrix<float, number_states, number_states> E_eps = E_epsilon( r_eps_vector, ortho_basis);
+    std::cout << "r_eps_vector=" << std::endl << r_eps_vector << std::endl;
+    std::cout << "gradient_vector=" << std::endl << gradient_vector << std::endl;
+    std::cout << "ortho_basis=" << std::endl << ortho_basis << std::endl;
+    // std::cout << "E_epsilon=" << E_eps << std::endl;
 
     // Compute M(epsilon)
     Eigen::Matrix<float, number_states, number_states> M_eps = M_epsilon( D_eps, E_eps);
