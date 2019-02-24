@@ -30,14 +30,14 @@ struct Functor
 
 struct hybrd_functor : Functor<double>
 {
-    Matrix<float,9,1> m_params;
+    Matrix<float,11,1> m_params;
     //hybrd_functor(void) : Functor<double>(9,9) {}
     //hybrd_functor(void) : Functor<double>(1,1) {}
-    hybrd_functor(Matrix<float,9,1> params) : Functor<double>(1,1) { this->m_params = params;}
+    hybrd_functor(Matrix<float,11,1> params) : Functor<double>(1,1) { this->m_params = params;}
     int operator()(const VectorXd &x, VectorXd &fvec) const
     {
-        // cout << "Param=" << this->m_params << endl;
-        double temp, temp1, temp2;
+        //cout << "Params = " << (this->m_params).transpose() << endl;
+        //double temp, temp1, temp2;
         const VectorXd::Index n = x.size();
 
         assert(fvec.size()==n);
@@ -52,13 +52,16 @@ struct hybrd_functor : Functor<double>
 
             //fvec[k] = 1 * x[k] - 2;
 
-            fvec[k] = std::pow(x[k]/1,2*1) + std::pow((1*x[k]+0)/1,2*1) - 1;
+            // fvec[k] = std::pow(x[k]/1,2*1) + std::pow((1*x[k]+0)/1,2*1) - 1;
+
+            double y = m_params(7,0) * x[k] + m_params(8,0);
+            fvec[k] = (std::pow( (x[k]-m_params(0,0))*std::cos(m_params(2,0)) + (y-m_params(1,0))*std::sin(m_params(2,0)) / pow(m_params(3,0),2), 2 * m_params(5,0))) + (std::pow( (x[k]-m_params(0,0))*std::sin(m_params(2,0)) - (y-m_params(1,0))*std::cos(m_params(2,0)) / pow(m_params(4,0),2), 2 * m_params(6,0))) - 1;
         }
         return 0;
     }
 };
 
-Eigen::Matrix<float, 3, 1> findSurfacePointEllipse(Matrix<float,9,1> params)
+Eigen::Matrix<float, 3, 1> findSurfacePointEllipse(Matrix<float,11,1> params)
 {
   //float param_test = 4.65;
 
@@ -67,7 +70,7 @@ Eigen::Matrix<float, 3, 1> findSurfacePointEllipse(Matrix<float,9,1> params)
   VectorXd x(n);
 
   /* the following starting values provide a rough solution. */
-  x.setConstant(n, -1.);
+  x.setConstant(n, params(9,0)); // start search from robot position
 
   // do the computation
   hybrd_functor functor(params);

@@ -12,6 +12,6 @@
 // tolerance for checking number of iterations
 #define LM_EVAL_COUNT_TOL 4/3
 
-Eigen::Matrix<float, 3, 1> findSurfacePointEllipse(Eigen::Matrix<float,9,1> params_ellipse);
+Eigen::Matrix<float, 3, 1> findSurfacePointEllipse(Eigen::Matrix<float,11,1> params_ellipse);
 
 #endif // SOLVERFUNCTIONS_H_INCLUDED
