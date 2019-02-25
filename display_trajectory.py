@@ -58,12 +58,21 @@ for file in glob.glob("*.txt"):
     
     
 ### GIF GENERATION
-"""
-data_obstacles = np.loadtxt(open("obstacles_trajectory.txt", "rb"), delimiter=",");
+
+data_obstacles = np.loadtxt(open("obstacles_trajectory.txt", "rb"), delimiter=",")
 data_obstacles[:,0] = np.round(data_obstacles[:,0],2)
 
+flag = True 
 names = glob.glob("./t*.txt")
-data_point = np.loadtxt(open(names[1], "rb"), delimiter=",");
+for name in names:
+    entry = np.loadtxt(open(name, "rb"), delimiter=",")
+    if flag: 
+        data_point = entry
+        flag = False
+    else: 
+        data_point = np.vstack((data_point, entry))
+    
+#data_point = np.loadtxt(open(names[1], "rb"), delimiter=",")
 data_point[:,0] = np.round(data_point[:,0],2)
 
 timestamps = np.unique(np.hstack((data_point[:,0], data_obstacles[:,0])))
@@ -91,8 +100,8 @@ for time_entry in timestamps:
         fig.savefig("img_gif/temp.png")
         plt.close()
         images.append(imageio.imread("img_gif/temp.png"))
-imageio.mimsave('moving_robot.gif', images, duration = 0.2)
-"""
+imageio.mimsave('moving_robot.gif', images, duration = 0.1)
+
 
 """
 # Save figures to a given directory
