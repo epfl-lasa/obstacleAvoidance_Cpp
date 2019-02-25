@@ -366,8 +366,8 @@ float weighted_magnitude(Eigen::MatrixXf const& mat_weights, Eigen::MatrixXf con
     for (int i=0; i < number_obstacles; i++)
     {
         mag += mat_weights(0,i) * mat_magnitudes(0,i);
-    return mag;
     }
+    return mag;
 }
 
 State n_bar_2D(Eigen::MatrixXf const& mat_norm_velocities, Eigen::MatrixXf const& mat_weights)

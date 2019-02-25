@@ -13,7 +13,7 @@
 using namespace std;
 
 // Global variables
-#define PI 3.1415;
+float PI = 3.1415;
 
 int test_functions();
 
@@ -116,7 +116,7 @@ int main()
 
             state_robot     << -2, k, 0;
             state_attractor <<  4, 2, 0;
-            obs1 << 0, 0, 0, 1, 1, 1, 1, 0, 0, 0; // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+            obs1 << 0, 0, (45*PI/180), 0.6, 1, 1, 1, 0, 2, 0; // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
             obs2 << 2, 2, 0, 1, 1, 1, 1, 0, 0, 0; // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
 
             Eigen::MatrixXf mat_obs(10,2);
@@ -146,13 +146,13 @@ int main()
                 State next_eps = one_step_2D( state_robot, state_attractor, mat_obs);
                 //cout << "Next velocity: " << std::endl << next_eps << endl;
                 state_robot += next_eps * time_step;
-                //update_obstacles( mat_obs, time_step); // update [x_c, y_c, phi] of all obstacles
+                update_obstacles( mat_obs, time_step); // update [x_c, y_c, phi] of all obstacles
                 time_stamp += time_step;
             }
             flag_obstacles = false; // We need to write the trajectory of the obstacles only once
             myfile_obstacles.close();
-            cout << "Final position: " << state_robot(0,0) << "," << state_robot(1,0) << endl;
-            cout << "Final step: " << N_steps << endl;
+            //cout << "Final position: " << state_robot(0,0) << "," << state_robot(1,0) << endl;
+            //cout << "Final step: " << N_steps << endl;
         }
         catch (int e)
         {
