@@ -243,9 +243,14 @@ Eigen::Matrix<float, number_states, number_states> M_epsilon(Eigen::Matrix<float
     return M_eps;
 }
 
-State epsilon_dot(Eigen::Matrix<float, number_states, number_states> const& M_eps, State const& f_eps)
+State epsilon_dot(Eigen::Matrix<float, number_states, number_states> const& M_eps, State const& f_eps, State const& state_robot, Obstacle const& obs)
 {
-    State eps_dot = M_eps * f_eps;
+    State eps_tilde = state_robot - obs.block(0,0,3,1);
+    State eps_dot_L; eps_dot_L << obs(7,0), obs(8,0), 0; // [v_x, v_y,     0]
+    State eps_dot_R; eps_dot_R << 0, 0, obs(9,0);       // [  0,   0, w_rot]
+    State eps_tilde_dot = eps_dot_L + eps_dot_R.cwiseProduct(eps_tilde);
+    State eps_dot = M_eps * (f_eps - eps_tilde_dot) + eps_tilde_dot;
+    //State eps_dot = M_eps * f_eps;
     return eps_dot;
 }
 
@@ -283,7 +288,7 @@ State next_step_single_obstacle(State const& state_robot, State const& state_att
     Eigen::Matrix<float, number_states, number_states> M_eps = M_epsilon( D_eps, E_eps);
 
     // Compute epsilon_dot
-    State velocity_next = epsilon_dot( M_eps, f_eps);
+    State velocity_next = epsilon_dot( M_eps, f_eps, state_robot, obs);
 
     return velocity_next;
 }
@@ -361,8 +366,8 @@ float weighted_magnitude(Eigen::MatrixXf const& mat_weights, Eigen::MatrixXf con
     for (int i=0; i < number_obstacles; i++)
     {
         mag += mat_weights(0,i) * mat_magnitudes(0,i);
-    }
     return mag;
+    }
 }
 
 State n_bar_2D(Eigen::MatrixXf const& mat_norm_velocities, Eigen::MatrixXf const& mat_weights)
@@ -402,7 +407,7 @@ State one_step_2D(State const& state_robot, State const& state_attractor, Eigen:
     //std::cout << "6" << std::endl;
     State weighted_direction;
     weighted_direction = n_bar_2D( mat_norm_velocities, mat_weights);
-    //std::cout << "7" << std::endl;
+
     return (weighted_mag * weighted_direction);
 }
 
@@ -453,4 +458,11 @@ Eigen::MatrixXf n_bar_matrix(Eigen::MatrixXf const& mat_kappa_bar, Eigen::Matrix
     // FINISH MATRIX
 
     return mat_n_bar;
+}
+
+void update_obstacles(Eigen::MatrixXf & mat_obs, float const& time_step)
+{
+    const int number_obstacles = mat_obs.cols();
+
+    mat_obs.block(0,0,3,number_obstacles) = mat_obs.block(0,0,3,number_obstacles) + time_step * mat_obs.block(7,0,3,number_obstacles);
 }

@@ -11,7 +11,7 @@
 
 const int number_states = 3;
 using State = Eigen::Matrix<float, number_states, 1>;
-using Obstacle = Eigen::Matrix<float, 7, 1>; // [x_c, y_c, phi, a1, a2, p1, p2]
+using Obstacle = Eigen::Matrix<float, 10, 1>; // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
 
 State f_epsilon(State const& state_robot, State const& state_attractor); // compute attractor function
 
@@ -41,7 +41,7 @@ Eigen::Matrix<float, number_states, number_states> E_epsilon(State const& r_eps_
 
 Eigen::Matrix<float, number_states, number_states> M_epsilon(Eigen::Matrix<float, number_states, number_states> const& D_eps, Eigen::Matrix<float, number_states, number_states> const& E_eps); // create M(epsilon) matrix
 
-State epsilon_dot(Eigen::Matrix<float, number_states, number_states> const& M_eps, State const& f_eps); // compute epsilon_dot with M(epsilon) and f(epsilon)
+State epsilon_dot(Eigen::Matrix<float, number_states, number_states> const& M_eps, State const& f_eps, State const& state_robot, Obstacle const& obs); // compute epsilon_dot with M(epsilon) and f(epsilon)
 
 State next_step_single_obstacle(State const& state_robot, State const& state_attractor, Obstacle const& obs); // use all previous functions to compute the next velocity state
 
@@ -63,5 +63,9 @@ Eigen::Matrix<float, number_states, number_states> R_matrix(State const& f_eps);
 Eigen::MatrixXf kappa_matrix(Eigen::MatrixXf const& mat_n_hat); // compute the Kappa matrix
 
 Eigen::MatrixXf n_bar_matrix(Eigen::MatrixXf const& mat_kappa_bar, Eigen::Matrix<float, number_states, number_states> const& R_mat); // compute n_bar with matrices R and kappa
+
+// Other functions
+
+void update_obstacles(Eigen::MatrixXf & mat_obs, float const& time_step);
 
 #endif // OBSTACLEAVOIDANCE_H_INCLUDED
