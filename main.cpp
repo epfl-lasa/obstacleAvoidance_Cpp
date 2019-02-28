@@ -100,29 +100,49 @@ int main()
     ofstream myfile_obstacles;
     myfile_obstacles.open("obstacles_trajectory.txt");
     bool flag_obstacles = true;
-
+    bool flag_quiver = false; // Set to false to disable Quiver computation
     int num_file = 0;
     cout << "-- Starting solver --" << endl;
-    for (float k=-2; k <= 4; k+=0.2)
+
+    for (float y_k=-2; y_k <= 8; y_k+=0.2)
     {
         float time_stamp = 0.0;
-        myfile.open("trajectory_" + std::to_string(k) + ".txt");
+        myfile.open("1dot3trajectory_" + std::to_string(y_k) + ".txt");
         try
         {
 
             State state_robot;
             State state_attractor;
-            Obstacle obs1; Obstacle obs2;
+            Obstacle obs1, obs2, obs3, obs4, obs5;
 
-            state_robot     << -2, k, 0;
-            state_attractor <<  4, 2, 0;
-            obs1 << 0, 0, (45*PI/180), 0.6, 1, 1, 1, 0, 2, 0; // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
-            obs2 << 2, 2, 0, 1, 1, 1, 1, 0, 0, 0; // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
-
-            Eigen::MatrixXf mat_obs(10,2);
+            state_robot     << -2, y_k, 0;
+            state_attractor <<  8, 4, 0;
+            obs1 << 0, 0, (45*PI/180), 0.6, 1, 1, 1, 0, 2, (-60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+            obs2 << 2, 2, 0, 1, 1, 1, 1, 0, 0, (60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+            obs3 << 6, 6, 0, 1, 1, 1, 1, 0, 0, 0;
+            obs4 << 4, 5, 0, 0.3, 1, 1, 1, 0, -2, (60*PI/180);
+            obs5 << 8, -2, 0, 1, 0.7, 1, 1, -0.5, 2, (60*PI/180);
+            Eigen::MatrixXf mat_obs(10,5);
             mat_obs.col(0) = obs1;
             mat_obs.col(1) = obs2;
+            mat_obs.col(2) = obs3;
+            mat_obs.col(3) = obs4;
+            mat_obs.col(4) = obs5;
 
+            Eigen::Matrix<float, 5, 1> limits_quiver;
+            limits_quiver << -2, 5, -2, 5, 0.1;
+
+
+            if (flag_quiver)
+            {
+                Eigen::Matrix<float, 2, 4> mat_points;
+                mat_points.row(0) << 2, 2, 3, 3;
+                mat_points.row(1) << 2, 3, 2, 3;
+
+                compute_quiver(limits_quiver, state_attractor, mat_obs);
+                compute_quiver_polygon(limits_quiver, state_attractor, mat_points);
+                flag_quiver = false;
+            }
             int N_steps = 500;
             float time_step = 0.01;
 
