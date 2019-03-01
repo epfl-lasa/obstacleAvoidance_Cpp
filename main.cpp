@@ -107,7 +107,7 @@ int main()
     for (float y_k=-2; y_k <= 8; y_k+=0.2)
     {
         float time_stamp = 0.0;
-        myfile.open("1dot3trajectory_" + std::to_string(y_k) + ".txt");
+        myfile.open("trajectory_" + std::to_string(y_k) + ".txt"); //each starting point has its own file
         try
         {
 
@@ -115,19 +115,28 @@ int main()
             State state_attractor;
             Obstacle obs1, obs2, obs3, obs4, obs5;
 
-            state_robot     << -2, y_k, 0;
+            /*state_robot     << -2, y_k, 0;
             state_attractor <<  8, 4, 0;
             obs1 << 0, 0, (45*PI/180), 0.6, 1, 1, 1, 0, 2, (-60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
             obs2 << 2, 2, 0, 1, 1, 1, 1, 0, 0, (60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
             obs3 << 6, 6, 0, 1, 1, 1, 1, 0, 0, 0;
             obs4 << 4, 5, 0, 0.3, 1, 1, 1, 0, -2, (60*PI/180);
             obs5 << 8, -2, 0, 1, 0.7, 1, 1, -0.5, 2, (60*PI/180);
+
             Eigen::MatrixXf mat_obs(10,5);
             mat_obs.col(0) = obs1;
             mat_obs.col(1) = obs2;
             mat_obs.col(2) = obs3;
             mat_obs.col(3) = obs4;
-            mat_obs.col(4) = obs5;
+            mat_obs.col(4) = obs5;*/
+
+            state_robot     << 0, 0, 0;
+            state_attractor << 10,0,0;
+            Eigen::MatrixXf mat_obs(10,4); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+            mat_obs.col(0) << -4, 7, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(1) << -3, 4, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(2) <<  7, -2, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(3) <<  4, 0.5, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
 
             Eigen::Matrix<float, 5, 1> limits_quiver;
             limits_quiver << -2, 5, -2, 5, 0.1;
@@ -186,6 +195,7 @@ int main()
     return 0;
 }
 
+// Lots of stuff that I used to test the functions when I was developing them, to be deleted for the final version
 int test_functions()
 {
     State state_robot;

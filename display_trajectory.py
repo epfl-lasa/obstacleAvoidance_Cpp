@@ -34,6 +34,7 @@ def disp1(): # Display the whole trajectory of a bunch of points on a single pic
     
     circle1 = plt.Circle((0, 0), 1, color='b')
     circle2 = plt.Circle((2, 2), 1, color='b')
+    circle3 = plt.Circle((4, 0.5), 1, color='b')
     #fig, ax = plt.subplots() # note we must use plt.subplots, not plt.subplot
     # (or if you have an existing figure)
     fig = plt.gcf()
@@ -46,7 +47,7 @@ def disp1(): # Display the whole trajectory of a bunch of points on a single pic
     ax.add_artist(ellipse)
     
     #ax.add_artist(circle1)
-    ax.add_artist(circle2)
+    ax.add_artist(circle3)
     #plt.axis('scaled')
     ax.set_xlim(-2, 8)
     ax.set_ylim(-2, 8)
@@ -199,7 +200,7 @@ def disp5():
     
     plt.show()
             
-disp2()
+disp1()
 
 """
 # Save figures to a given directory
