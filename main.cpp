@@ -5,15 +5,15 @@
 #include <Eigen> // For Linear Algebra
 #include <array>
 
-// Global variables
-#define PI 3.1415;
-
 // INCLUDE HEADERS
-#include "Attractor.h"
+//#include "Attractor.h"
 #include "ObstacleAvoidance.h"
 //#include "SolverFunctions.h"
 
 using namespace std;
+
+// Global variables
+float PI = 3.1415;
 
 int test_functions();
 
@@ -22,6 +22,9 @@ int main()
 
     cout << "Hello world!" << endl;
 
+    /*Eigen::Matrix<float, 3, 1> mat1; mat1 << 1, 2, 3;
+    Eigen::Matrix<float, 3, 1> mat2; mat2 << 1, 2, 4;
+    cout << mat1.cwiseProduct(mat2) << endl;*/
     /*Eigen::MatrixXf mat(3,4);
     mat.col(0) << 1, 1, 1;
     mat.col(1) << 2, 2, 2;
@@ -92,40 +95,93 @@ int main()
 
     // ------------ TRAJECTORY GENERATION
 
+
     ofstream myfile;
+    ofstream myfile_obstacles;
+    myfile_obstacles.open("obstacles_trajectory.txt");
+    bool flag_obstacles = true;
+    bool flag_quiver = false; // Set to false to disable Quiver computation
     int num_file = 0;
     cout << "-- Starting solver --" << endl;
-    for (float k=-2; k <= 4; k+=0.2)
+
+    for (float y_k=-2; y_k <= 8; y_k+=0.2)
     {
-        myfile.open("trajectory_" + std::to_string(k) + ".txt");
+        float time_stamp = 0.0;
+        myfile.open("trajectory_" + std::to_string(y_k) + ".txt"); //each starting point has its own file
         try
         {
 
             State state_robot;
             State state_attractor;
-            Obstacle obs1; Obstacle obs2;
+            Obstacle obs1, obs2, obs3, obs4, obs5;
 
-            state_robot     << -2, k, 0;
-            state_attractor <<  4, 2, 0;
-            obs1 << 0, 0, 0, 1, 1, 1, 1; // [x_c, y_c, phi, a1, a2, p1, p2]
-            obs2 << 2, 2, 0, 1, 1, 1, 1; // [x_c, y_c, phi, a1, a2, p1, p2]
+            /*state_robot     << -2, y_k, 0;
+            state_attractor <<  8, 4, 0;
+            obs1 << 0, 0, (45*PI/180), 0.6, 1, 1, 1, 0, 2, (-60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+            obs2 << 2, 2, 0, 1, 1, 1, 1, 0, 0, (60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+            obs3 << 6, 6, 0, 1, 1, 1, 1, 0, 0, 0;
+            obs4 << 4, 5, 0, 0.3, 1, 1, 1, 0, -2, (60*PI/180);
+            obs5 << 8, -2, 0, 1, 0.7, 1, 1, -0.5, 2, (60*PI/180);
 
-            Eigen::MatrixXf mat_obs(7,2);
+            Eigen::MatrixXf mat_obs(10,5);
             mat_obs.col(0) = obs1;
             mat_obs.col(1) = obs2;
+            mat_obs.col(2) = obs3;
+            mat_obs.col(3) = obs4;
+            mat_obs.col(4) = obs5;*/
 
+            state_robot     << 0, 0, 0;
+            state_attractor << 10,0,0;
+            Eigen::MatrixXf mat_obs(10,4); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+            mat_obs.col(0) << -4, 7, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(1) << -3, 4, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(2) <<  7, -2, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(3) <<  4, 0.5, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+
+            Eigen::Matrix<float, 5, 1> limits_quiver;
+            limits_quiver << -2, 5, -2, 5, 0.1;
+
+
+            if (flag_quiver)
+            {
+                Eigen::Matrix<float, 2, 4> mat_points;
+                mat_points.row(0) << 2, 2, 3, 3;
+                mat_points.row(1) << 2, 3, 2, 3;
+
+                compute_quiver(limits_quiver, state_attractor, mat_obs);
+                compute_quiver_polygon(limits_quiver, state_attractor, mat_points);
+                flag_quiver = false;
+            }
             int N_steps = 500;
             float time_step = 0.01;
 
             for (int i=0; i<N_steps; i++)
             {
-                myfile << state_robot(0,0) << "," << state_robot(1,0) << "," << state_robot(2,0) << "\n";
+                if (flag_obstacles)
+                {
+                    for (int j=0; j<mat_obs.cols(); j++) // We want to save all [x_c, y_c, phi, a1, a2, p1, p2]
+                    {
+                        myfile_obstacles << time_stamp;
+                        for (int n_row=0; n_row < 7; n_row++)
+                        {
+                            myfile_obstacles << "," << mat_obs(n_row,j);
+                        }
+                        myfile_obstacles << "\n";
+                    }
+                }
+                myfile << time_stamp << "," << state_robot(0,0) << "," << state_robot(1,0) << "," << state_robot(2,0) << "\n";
                 //cout << "State robot: " << std::endl << state_robot << endl;
                 //State next_eps = next_step_single_obstacle(state_robot, state_attractor, obs);
                 State next_eps = one_step_2D( state_robot, state_attractor, mat_obs);
                 //cout << "Next velocity: " << std::endl << next_eps << endl;
                 state_robot += next_eps * time_step;
+                update_obstacles( mat_obs, time_step); // update [x_c, y_c, phi] of all obstacles
+                time_stamp += time_step;
             }
+            flag_obstacles = false; // We need to write the trajectory of the obstacles only once
+            myfile_obstacles.close();
+            //cout << "Final position: " << state_robot(0,0) << "," << state_robot(1,0) << endl;
+            //cout << "Final step: " << N_steps << endl;
         }
         catch (int e)
         {
@@ -139,6 +195,7 @@ int main()
     return 0;
 }
 
+// Lots of stuff that I used to test the functions when I was developing them, to be deleted for the final version
 int test_functions()
 {
     State state_robot;
@@ -147,7 +204,7 @@ int test_functions()
 
     state_robot     << -2, 0, 0;
     state_attractor << 2, 0, 0;
-    obs << 0, 0, 0, 1, 1, 1, 1; // [x_c, y_c, phi, a1, a2, p1, p2]
+    obs << 0, 0, 0, 1, 1, 1, 1, 0, 0, 0; // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
 
     // TEST F_EPSILON
     /* State f_eps = f_epsilon( state_robot, state_attractor);
@@ -178,7 +235,7 @@ int test_functions()
     std::cout << "specific radius = " << radius << std::endl;*/
 
     // TEST GAMMA
-    float res_gamma = 0.0;
+    /*float res_gamma = 0.0;
 
     state_robot     << -2, 0, 0;
     res_gamma = gamma(state_robot, obs);
@@ -225,7 +282,7 @@ int test_functions()
     std::cout << "M_epsilon=" << std::endl << M_eps << std::endl;
     State f_eps = f_epsilon( state_robot, state_attractor);
     State velocity_next = epsilon_dot( M_eps, f_eps);
-    std::cout << "epsilon_dot=" << std::endl << velocity_next << std::endl;
+    std::cout << "epsilon_dot=" << std::endl << velocity_next << std::endl;*/
 
     return 0;
 }
