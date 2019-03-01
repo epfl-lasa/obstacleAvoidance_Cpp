@@ -9,4 +9,5 @@ Use the Eigen library version 3.3.7 for Linear Algebra
 
 Link: http://eigen.tuxfamily.org/index.php?title=Main_Page
 
+Developed with ROS Kinetic Kame and Ubuntu 16.04 LTS
 
