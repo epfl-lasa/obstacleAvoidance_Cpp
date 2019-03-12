@@ -125,7 +125,9 @@ def disp2(): # Create an animated gif displaying the movement of points/obstacle
      
 def disp3(): # vector field to display velocity according to the position of the robot
     names = glob.glob("./quiver*.txt")
-    #names = glob.glob("./test_qui*.txt")
+    names = glob.glob("./test_qui*.txt")
+    names = glob.glob("./MultiplicationData/quiver_mul*.txt")
+    names = glob.glob("./quiver_data_bor*.txt")
     for name in names:
         entry = np.loadtxt(open(name, "rb"), delimiter=",")
         X = entry[:,0]
@@ -136,8 +138,14 @@ def disp3(): # vector field to display velocity according to the position of the
     
     fig, ax = plt.subplots()
     q = ax.quiver(X, Y, U, V, M)
+    #ellipse = mpatches.Rectangle([2,2], 1,1)
+    #ax.add_artist(ellipse)
+    ellipse = mpatches.Ellipse([17,6], 0.2, 0.2)
+    ax.add_artist(ellipse)
+    ax.set_xlim(0, 20)
+    ax.set_ylim(0, 20)
     plt.show()
-
+    
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
@@ -199,8 +207,157 @@ def disp5():
     fig.colorbar(surf, shrink=0.5, aspect=5)
     
     plt.show()
+
+def disp6(): # vector field to display velocity according to the position of the robot
+    names = glob.glob("./quiver_data_bor*.txt")
+    names_pt = glob.glob("./quiver_points_bor*.txt")
+    for name in names:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        X = entry[:,0]
+        Y = entry[:,1]
+        U = entry[:,2]
+        V = entry[:,3]
+        M = np.hypot(U, V)
+        
+    fig, ax = plt.subplots()
+    q = ax.quiver(X, Y, U, V, M)
+    
+    ellipse = mpatches.Ellipse([17,6], 0.2, 0.2)
+    ax.add_artist(ellipse)
+    
+    ellipse = mpatches.Rectangle([3.5,4.5], 1, 1)
+    ax.add_artist(ellipse)
+    
+    for name in names_pt:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        X = (entry[:,0]).transpose()
+        Y = (entry[:,1]).transpose()
+        plt.plot(X,Y,'ko')
+        
+    ax.set_xlim(0, 20)
+    ax.set_ylim(0, 14)
+    plt.show()
+
+def disp7(): # Create an animated gif displaying the movement of points/obstacles over time FOR BORDER
+    names_pt = glob.glob("./quiver_points_bor*.txt")
+    names_obs = glob.glob("./Trajectories/obs_data.txt")
+    
+    flag = True 
+    names = glob.glob("./Trajectories/trajecto*.txt")
+    for name in names:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        if flag: 
+            data_point = entry
+            flag = False
+        else: 
+            data_point = np.vstack((data_point, entry))
+    data_point[:,0] = np.round(data_point[:,0],2)
             
-disp1()
+    timestamps = np.unique(data_point[:,0])
+    
+    images = []
+    for time_entry in timestamps:
+        print( time_entry, "/", max(timestamps))
+        if True:# (np.remainder(time_entry,0.05)==0):
+            fig = plt.figure()
+            ax = fig.gca()
+            
+            # Plot the points on the border
+            for name in names_pt:
+                entry = np.loadtxt(open(name, "rb"), delimiter=",")
+                X = (entry[:,0]).transpose()
+                Y = (entry[:,1]).transpose()
+                plt.plot(X,Y,'ko')
+            
+            for name_obs in names_obs:
+                obstacles = np.loadtxt(open(name_obs, "rb"), delimiter=",")
+                for i_row in range(0,obstacles.shape[0]):
+                    ellipse = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1)
+                    ax.add_artist(ellipse)
+            
+            # Plot the position of the robot for that timestamp
+            robot = data_point[data_point[:,0] == time_entry];
+            for i_row in range(0,robot.shape[0]):
+                plt.plot( robot[i_row,1], robot[i_row,2], 'ro', LineWidth=2)
+                
+            ellipse = mpatches.Ellipse([17,6], 0.5, 0.5, color='g')
+            ax.add_artist(ellipse)
+    
+            ax.set_xlim(0, 20)
+            ax.set_ylim(0, 14)
+            plt.title("Timestamp : " + str(time_entry) + " s")
+            fig.savefig("img_gif/temp.png")
+            plt.close()
+            images.append(imageio.imread("img_gif/temp.png"))
+    imageio.mimsave('moving_robot.gif', images, duration = 0.1)
+
+                  
+def disp8(): # SHOW BORDER OF GROWING OBSTACLE
+    #names_pt = glob.glob("./Obstacles/obs*.txt")
+    #names_pt.sort()
+    names_border = glob.glob("./Obstacles/several_bor*.txt")
+    names_border.sort()
+    names_obs = glob.glob("./Obstacles/growing_obs_80.txt")
+    n_max = 80
+    images = []
+    
+    for nobs in range(1,n_max):
+        print(str(nobs) + "/" + str(n_max))
+        fig = plt.figure()
+        ax = fig.gca()
+            
+        """names_pts = names_pt[nobs-2]
+        points_border = np.loadtxt(open(names_pts, "rb"), delimiter=",")
+        #for i_row in range(0,points_border.shape[0]):
+        plt.plot( points_border[:,0].transpose(), points_border[:,1].transpose(), 'ko', LineWidth=2)"""
+    
+        
+        for name_obs in names_obs:
+            obstacles = np.loadtxt(open(name_obs, "rb"), delimiter=",")
+            for i_row in range(0,nobs):
+                rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1)
+                ax.add_artist(rectangle)
+                
+        name_bor = names_border[nobs-1]
+    #for name_bor in names_border:
+        borders = np.loadtxt(open(name_bor, "rb"), delimiter=",")
+        for i_row in range(0,borders.shape[0]):
+            if borders[i_row,2] == 1:
+                if borders[i_row,3] == 0:
+                    plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1], borders[i_row,1]], color="k", LineWidth=2)
+                else:
+                    plt.plot([borders[i_row,0], borders[i_row,0]], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="k", LineWidth=2)
+            elif borders[i_row,2] == 2:
+                if borders[i_row,4] == 0:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],1, 1, 0, 0, 90, LineWidth=2)
+                elif borders[i_row,4] == 1:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],1, 1, 0, 90, 180, LineWidth=2)
+                elif borders[i_row,4] == 2:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],1, 1, 0, 180, 270, LineWidth=2)
+                elif borders[i_row,4] == 3:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],1, 1, 0, 270, 360, LineWidth=2)
+                ax.add_artist(arc)
+            elif borders[i_row,2] == 3:
+                if borders[i_row,4] == 0:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],1, 1, 0, 0, 90, LineWidth=2)
+                elif borders[i_row,4] == 1:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],1, 1, 0, 90, 180, LineWidth=2)
+                elif borders[i_row,4] == 2:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],1, 1, 0, 180, 270, LineWidth=2)
+                elif borders[i_row,4] == 3:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],1, 1, 0, 270, 360, LineWidth=2)
+                ax.add_artist(arc)
+
+        ax.set_xlim(0, 20)
+        ax.set_ylim(0, 20)
+        plt.title("Size : " + str(nobs))
+        fig.savefig("img_gif/temp.png")
+        fig.savefig("img_gif/step_"+str(nobs)+".png")
+        plt.close()
+        images.append(imageio.imread("img_gif/temp.png"))
+    imageio.mimsave('growing_obstacle.gif', images, duration = 0.5)
+
+disp8()
 
 """
 # Save figures to a given directory

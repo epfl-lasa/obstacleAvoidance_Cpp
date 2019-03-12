@@ -65,6 +65,8 @@ State n_bar_2D(Eigen::MatrixXf const& mat_norm_velocities, Eigen::MatrixXf const
 
 State one_step_2D(State const& state_robot, State const& state_attractor, Eigen::MatrixXf const& mat_obs); // compute one step of the simulation taking into account all the obstacles
 
+State direct_multiplication_2D(State const& state_robot, State const& state_attractor, Eigen::MatrixXf const& mat_obs); // direct multiplication of the deformation matrices of all obstacles
+
 // Functions R_matrix, kappa_matrix and n_bar_matrix can be found in the paper (d-dimensional case)
 // However, as we limited ourselves to the 2D case, I did not finished the d-dimensional implementation (need to finish n_bar_matrix)
 Eigen::Matrix<float, number_states, number_states> R_matrix(State const& f_eps); // compute the R matrix to align the initial DS with the first axis (not used)
@@ -78,6 +80,8 @@ Eigen::MatrixXf n_bar_matrix(Eigen::MatrixXf const& mat_kappa_bar, Eigen::Matrix
 void update_obstacles(Eigen::MatrixXf & mat_obs, float const& time_step); // update the position of all obstacles based on their linear and angular speeds
 
 void compute_quiver(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, Eigen::MatrixXf const& mat_obs); // compute data to plot a quiver graph with matplotlib
+
+void compute_quiver_multiplication(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, Eigen::MatrixXf const& mat_obs); // quiver for direct_multiplication_2D
 
 State speed_limiter(State const& input_speed); // limit the norm of the linear and angular speeds that are sent to the real robot
 

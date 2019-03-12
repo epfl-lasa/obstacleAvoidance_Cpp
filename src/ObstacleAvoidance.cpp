@@ -534,6 +534,46 @@ State one_step_2D(State const& state_robot, State const& state_attractor, Eigen:
     return speed_limiter(cmd_velocity);
 }
 
+State direct_multiplication_2D(State const& state_robot, State const& state_attractor, Eigen::MatrixXf const& mat_obs)
+{
+    // Compute all the steps to get the velocity command considering several obstacles
+    const int number_obstacles = mat_obs.cols();
+
+    // Compute attractor function
+    State velocity_next = f_epsilon( state_robot, state_attractor);
+
+    for (int i_obs=0; i_obs < number_obstacles; i_obs++)
+    {
+        Obstacle obs = mat_obs.col(i_obs);
+
+        // Several steps to get D(epsilon) matrix
+        float lamb_r = lambda_r( state_robot, obs, limit_dist); // optimization -> include gamma as argument of lambda_r and lambda_e (TODO?)
+        float lamb_e = lambda_e( state_robot, obs, limit_dist);
+        Eigen::Matrix<float, number_states, number_states> D_eps = D_epsilon( lamb_r, lamb_e);
+
+        // Several steps to get E(epsilon) matrix
+        State r_eps_vector = r_epsilon( state_robot, obs);
+
+        // Remove tail effect (see the paper for a clean explanation)
+        /*State tail_vector = (state_attractor-state_robot);
+        if (r_eps_vector.dot(tail_vector.colwise().normalized()) > 0.3) // can be between 0 and 1, I chose > 0 because with thin ellipse I had some issues
+        {
+            return f_eps;
+        }*/
+
+        State gradient_vector = gradient( state_robot, obs);
+        Eigen::Matrix<float, number_states, number_states-1> ortho_basis = gram_schmidt( gradient_vector);
+        Eigen::Matrix<float, number_states, number_states> E_eps = E_epsilon( r_eps_vector, ortho_basis);
+
+        // Compute M(epsilon)
+        Eigen::Matrix<float, number_states, number_states> M_eps = M_epsilon( D_eps, E_eps);
+
+        // Compute epsilon_dot
+        velocity_next = epsilon_dot( M_eps, velocity_next, state_robot, obs);
+    }
+    return velocity_next;
+}
+
 // 3 functions to use the weighting method in a d-dimensional case
 // See the reference paper to understand them, I basically just implemented the formulas by playing a bit with matrices
 
@@ -630,6 +670,42 @@ void compute_quiver(Eigen::Matrix<float, 5, 1> const& limits, State const& state
     myfile.close();
     std::cout << "-- Quiver file closed --" << std::endl;
 }
+
+void compute_quiver_multiplication(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, Eigen::MatrixXf const& mat_obs)
+{
+    // Compute the velocity command at the initial time for all points of a [x,y] grid
+    // Save the result in a txt file and then use a Python script to plot the vector field (quiver) with matplotlib
+    const int number_obstacles = mat_obs.cols();
+    bool flag = false;
+
+    std::ofstream myfile;
+    myfile.open("./MultiplicationData/quiver_multiplication_data.txt");
+    std::cout << "-- Quiver file opened --" << std::endl;
+    for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
+    {
+        for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
+        {
+            //std::cout << x << " & " << y << std::endl;
+            State state_robot; state_robot << x, y, 0; // the robot is set on the point of the grid
+            flag = false;
+            for (int i=0; i < number_obstacles; i++)
+            {
+                if (gamma(state_robot, mat_obs.col(i)) < 0.99)
+                {
+                    flag = true; // if the point/robot is inside an obstacle (distance < 1) then it makes no sense to compute its velocity command
+                }
+            }
+            if (!flag) // if not inside an obstacle
+            {
+                State next_eps = direct_multiplication_2D( state_robot, state_attractor, mat_obs); // compute velocity command
+                myfile << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+            }
+        }
+    }
+    myfile.close();
+    std::cout << "-- Quiver file closed --" << std::endl;
+}
+
 
 State speed_limiter(State const& input_speed)
 {

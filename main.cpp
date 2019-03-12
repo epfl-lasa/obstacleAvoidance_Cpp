@@ -8,6 +8,7 @@
 // INCLUDE HEADERS
 //#include "Attractor.h"
 #include "ObstacleAvoidance.h"
+#include "ObstacleReconstruction.h"
 //#include "SolverFunctions.h"
 
 using namespace std;
@@ -17,10 +18,207 @@ float PI = 3.1415;
 
 int test_functions();
 
+
+
+void trajectories_border()
+{
+    ofstream myfile;
+    ofstream myobs;
+    cout << "-- Starting solver --" << endl;
+
+    Blob obst(23,2);
+
+    obst.row(0) << 6, 4;
+    obst.row(1) << 7, 4;
+    obst.row(2) << 8, 4;
+    obst.row(3) << 9, 4;
+    obst.row(4) << 6, 5;
+    obst.row(5) << 9, 5;
+    obst.row(6) << 6, 6;
+    obst.row(7) << 8, 6;
+    obst.row(8) << 9, 6;
+    obst.row(9) << 6, 7;
+    obst.row(10) << 8, 7;
+    obst.row(11) << 10, 5;
+    obst.row(12) << 11, 5;
+    obst.row(13) << 8, 8;
+    obst.row(14) << 8, 9;
+    obst.row(15) << 8, 10;
+    obst.row(16) << 11, 6;
+    obst.row(17) << 11, 7;
+    obst.row(18) << 12, 7;
+    obst.row(19) << 13, 8;
+    obst.row(20) <<  5, 6;
+    obst.row(21) <<  5, 7;
+    obst.row(22) <<  4, 8;
+
+    myobs.open("./Trajectories/obs_data.txt"); //each starting point has its own file
+    for (int i=0; i<obst.rows(); i++)
+    {
+        myobs << obst(i,0) << "," << obst(i,1) << "\n";
+    }
+    myobs.close();
+
+    Point center_blob = get_center(obst);
+    Border border_out;
+    border_out = compute_border( obst, center_blob);
+
+    State state_robot;
+    State state_attractor;
+
+
+    state_attractor << 17,6, 0;
+
+    Eigen::Matrix<float, 5, 1> limits_quiver;
+    limits_quiver << 0, 20, 0, 20, 0.1;
+
+    int N_steps = 2;
+    float time_step = 0.01;
+
+
+    for (float y_k=-2; y_k <= 8; y_k+=0.2)
+    {
+        float time_stamp = 0.0;
+        myfile.open("./Trajectories/trajectory_" + std::to_string(y_k) + ".txt"); //each starting point has its own file
+        try
+        {
+            state_robot     << 0, y_k, 0;
+
+            for (int i=0; i<N_steps; i++)
+            {
+                myfile << time_stamp << "," << state_robot(0,0) << "," << state_robot(1,0) << "," << state_robot(2,0) << "\n";
+                State next_eps = next_step_single_obstacle_border( state_robot, state_attractor, border_out);
+                state_robot += next_eps * time_step;
+                time_stamp += time_step;
+            }
+        }
+        catch (int e)
+        {
+            cout << "An exception occurred. Exception Nr. " << e << '\n';
+        }
+        myfile.close();
+
+    }
+    cout << "-- Completed --" << endl;
+    cout << "-- Trajectory files closed --" << endl;
+}
+
 int main()
 {
+    //growing_obstacle();
+    //trajectories_border();
+    growing_several_obstacle();
+    if (false)
+    {
+        Grid occupancy_grid(6,10);
+        occupancy_grid.row(0) << 0,0,0,0,0,0,0,0,0,0;
+        occupancy_grid.row(1) << 0,0,1,1,0,0,0,0,0,0;
+        occupancy_grid.row(2) << 0,0,1,1,0,0,0,0,0,0;
+        occupancy_grid.row(3) << 0,0,0,0,0,0,0,0,0,0;
+        occupancy_grid.row(4) << 0,0,0,0,0,1,1,1,0,0;
+        occupancy_grid.row(5) << 0,0,0,0,0,0,0,0,0,0;
 
-    cout << "Hello world!" << endl;
+        std::vector<Border> storage;
+        storage = detect_borders( occupancy_grid );
+        for (int iter=0; iter<storage.size(); iter++)
+        {
+            cout << "Obstacle " << iter << ":"<< endl;
+            cout << storage[iter] << endl;
+        }
+
+    }
+
+    if (false)
+    {
+        Blob obst(23,2);
+        Blob res;
+        obst.row(0) << 6, 4;
+        obst.row(1) << 7, 4;
+        obst.row(2) << 8, 4;
+        obst.row(3) << 9, 4;
+        obst.row(4) << 6, 5;
+        obst.row(5) << 9, 5;
+        obst.row(6) << 6, 6;
+        obst.row(7) << 8, 6;
+        obst.row(8) << 9, 6;
+        obst.row(9) << 6, 7;
+        obst.row(10) << 8, 7;
+        obst.row(11) << 10, 5;
+        obst.row(12) << 11, 5;
+        obst.row(13) << 8, 8;
+        obst.row(14) << 8, 9;
+        obst.row(15) << 8, 10;
+        obst.row(16) << 11, 6;
+        obst.row(17) << 11, 7;
+        obst.row(18) << 12, 7;
+        obst.row(19) << 13, 8;
+        obst.row(20) <<  5, 6;
+        obst.row(21) <<  5, 7;
+        obst.row(22) <<  4, 8;
+
+
+        /*res = fill_gaps(obst);
+        cout << "With gaps:" << endl;
+        cout << obst << endl;
+        cout << "Without gaps:" << endl;
+        cout << res << endl;*/
+
+        //float margin = 1;
+        Point center_blob = get_random(obst);
+        Border border_out;
+        border_out = compute_border( obst, center_blob);
+
+        /*Point pt_test;
+        pt_test.row(0) << 8, 6;
+        cout << check_direction(res, pt_test, 3) << endl;*/
+        /*cout << border_out.rows() << endl;
+        for (int i=0; i<border_out.rows();i++)
+        {
+            cout << border_out.row(i) << endl;
+        }*/
+
+        display_border(obst, border_out);
+
+        Eigen::Matrix<float,1,2>  robot; robot << 2,8;//3.51,6.51;
+        Eigen::MatrixXf closest(1,6);
+        closest = find_closest_point(robot, border_out);
+        cout << "Closest is: " << closest << endl;
+
+        Eigen::Matrix<float, 4, 1> gamma_ref;
+        gamma_ref = gamma_and_ref_vector( robot, closest);
+        cout << "GammaRefVec is: " << gamma_ref.transpose() << endl;
+
+        State state_attractor; state_attractor << 17,6,0;
+
+        State my_robot; my_robot << robot(0,0), robot(0,1), 0;
+        State next_eps = next_step_single_obstacle_border( my_robot, state_attractor, border_out);
+        cout << "Velocity command is: " << next_eps.transpose() << endl;
+
+        Eigen::Matrix<float, 5, 1> limits_quiver;
+        limits_quiver << 0, 20, 0, 20, 0.1;
+        compute_quiver_border(limits_quiver, state_attractor, obst);
+        //expand_obstacle(obst, 2);
+
+        /*robot << 8, 6;//5.5, 5.5;
+        closest << 7, 7, 3, 0.7, 1, 4;
+        cout << (gamma_and_ref_vector(robot, closest)) << endl;
+
+        robot << 8, 8;//5.5, 5.5;
+        closest << 7, 7, 3, 0.7, 2, 4;
+        cout << (gamma_and_ref_vector(robot, closest)) << endl;
+
+        robot << 6, 8;//5.5, 5.5;
+        closest << 7, 7, 3, 0.7, 3, 4;
+        cout << (gamma_and_ref_vector(robot, closest)) << endl;
+
+        robot << 6, 6;//5.5, 5.5;
+        closest << 7, 7, 3, 0.7, 0, 4;
+        cout << (gamma_and_ref_vector(robot, closest)) << endl;*/
+
+    }
+
+    return 0;
+    cout << "Hello world!!!!" << endl;
 
     /*Eigen::Matrix<float, 3, 1> mat1; mat1 << 1, 2, 3;
     Eigen::Matrix<float, 3, 1> mat2; mat2 << 1, 2, 4;
@@ -100,14 +298,14 @@ int main()
     ofstream myfile_obstacles;
     myfile_obstacles.open("obstacles_trajectory.txt");
     bool flag_obstacles = true;
-    bool flag_quiver = false; // Set to false to disable Quiver computation
+    bool flag_quiver = true; // Set to false to disable Quiver computation
     int num_file = 0;
     cout << "-- Starting solver --" << endl;
 
     for (float y_k=-2; y_k <= 8; y_k+=0.2)
     {
         float time_stamp = 0.0;
-        myfile.open("trajectory_" + std::to_string(y_k) + ".txt"); //each starting point has its own file
+        myfile.open("./Trajectories/trajectory_" + std::to_string(y_k) + ".txt"); //each starting point has its own file
         try
         {
 
@@ -131,15 +329,15 @@ int main()
             mat_obs.col(4) = obs5;*/
 
             state_robot     << 0, 0, 0;
-            state_attractor << 10,0,0;
+            state_attractor << 5.9,4.9,0;
             Eigen::MatrixXf mat_obs(10,4); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
             mat_obs.col(0) << -4, 7, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
-            mat_obs.col(1) << -3, 4, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
-            mat_obs.col(2) <<  7, -2, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(1) <<  2, 2, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
+            mat_obs.col(2) <<  10, -2, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
             mat_obs.col(3) <<  4, 0.5, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
 
             Eigen::Matrix<float, 5, 1> limits_quiver;
-            limits_quiver << -2, 5, -2, 5, 0.1;
+            limits_quiver << -2, 6, -2, 5, 0.1;
 
 
             if (flag_quiver)
@@ -148,8 +346,9 @@ int main()
                 mat_points.row(0) << 2, 2, 3, 3;
                 mat_points.row(1) << 2, 3, 2, 3;
 
-                compute_quiver(limits_quiver, state_attractor, mat_obs);
-                compute_quiver_polygon(limits_quiver, state_attractor, mat_points);
+                //compute_quiver(limits_quiver, state_attractor, mat_obs);
+                compute_quiver_multiplication(limits_quiver, state_attractor, mat_obs);
+                //compute_quiver_polygon(limits_quiver, state_attractor, mat_points);
                 flag_quiver = false;
             }
             int N_steps = 500;
