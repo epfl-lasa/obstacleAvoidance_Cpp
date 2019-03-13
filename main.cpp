@@ -107,8 +107,8 @@ int main()
 {
     //growing_obstacle();
     //trajectories_border();
-    growing_several_obstacle();
-    if (false)
+    //growing_several_obstacle();
+    if (true)
     {
         Grid occupancy_grid(6,10);
         occupancy_grid.row(0) << 0,0,0,0,0,0,0,0,0,0;
@@ -128,7 +128,7 @@ int main()
 
     }
 
-    if (false)
+    if (true)
     {
         Blob obst(23,2);
         Blob res;

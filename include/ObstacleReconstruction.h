@@ -45,6 +45,8 @@ void remove_end_duplicate(Border & border); // Function to remove the few duplic
 Blob expand_obstacle(Blob const& obstacle, int const& n_cells); // expand an obstacle by a given number of cells
 // idea: border detection -> fill the border -> border detection -> fill the border -> ...   n_cells times
 
+Grid expand_occupancy_grid(Grid const& grid, int const& n_cells);
+
 Eigen::Matrix<float, 1, 6> find_closest_point(Eigen::Matrix<float,1,2>  const& robot, Border const& border); // return [x, y, type, charac_1, charac_2, distance_to_robot^2]
 
 Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest); // return the Gamma distance of a point knowing its closest border cell
@@ -57,6 +59,8 @@ Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& s
 
 State next_step_single_obstacle_border(State const& state_robot, State const& state_attractor, Border const& border); // compute the velocity command of the robot
 // based on its relative position to the border of a single obstacle
+
+State next_step_several_obstacles_border( State const& state_robot, State const& state_attractor, std::vector<Border> const& borders);
 
 Eigen::Matrix<float, 1, 2> get_projection_on_border(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest, float const& angle); // project a point on the border of an obstacle
 // for a given point and knowing the closest border cell (position and line/arc of circle), one can project the point onto the border

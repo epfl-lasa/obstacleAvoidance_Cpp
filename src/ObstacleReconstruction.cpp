@@ -437,7 +437,7 @@ Blob expand_obstacle(Blob const& obstacle, int const& n_cells)
 
     for (int i_expand=0; i_expand<n_cells; i_expand++)
     {
-        Point center_blob = get_center(expanded_obs);
+        Point center_blob = get_random(expanded_obs);
         Border expanded_border = compute_border( expanded_obs, center_blob);
 
         int N = expanded_obs.rows();
@@ -449,9 +449,34 @@ Blob expand_obstacle(Blob const& obstacle, int const& n_cells)
     }
 
     Border placeholder_border;
-    display_border(expanded_obs, placeholder_border);
+    //display_border(expanded_obs, placeholder_border);
     return expanded_obs;
 }
+
+Grid expand_occupancy_grid(Grid const& grid, int const& n_cells)
+{
+    Grid occupancy_res = grid;
+
+    for (int n=0; n<n_cells; n++)
+    {
+        Grid occupancy_temp = occupancy_res;
+        for (int i=1; i<(grid.rows()-1); i++)
+        {
+           for (int j=1; j<(grid.cols()-1); j++)
+           {
+               if (occupancy_temp(i,j) == 100)
+               {
+                   occupancy_res(i+1,j) = 100;
+                   occupancy_res(i-1,j) = 100;
+                   occupancy_res(i,j+1) = 100;
+                   occupancy_res(i,j-1) = 100;
+               }
+           }
+        }
+    }
+    return occupancy_res;
+}
+////obstacle = expand_obstacle( obstacle, 2); // security margin
 
 Eigen::Matrix<float, 1, 6> find_closest_point(Eigen::Matrix<float,1,2> const& robot, Border const& border)
 {
@@ -479,7 +504,7 @@ Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot,
    float angle = 0;
    if (data_closest(0,2)==1)
    {
-       output.block(1,0,2,1) = data_closest.block(0,3,1,2).transpose();
+       output.block(1,0,2,1) = data_closest.block(0,3,1,2).transpose(); // assign x,y
    }
    else if ((data_closest(0,2)==2)||(data_closest(0,2)==3))
    {
@@ -489,16 +514,38 @@ Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot,
             case 2: angle = std::atan2(robot(0,1)-(data_closest(0,1)+0.5), robot(0,0)-(data_closest(0,0)+0.5)); break;
             case 3: angle = std::atan2(robot(0,1)-(data_closest(0,1)+0.5), robot(0,0)-(data_closest(0,0)-0.5)); break;
       }
-        output.block(1,0,2,1) << std::cos(angle), std::sin(angle);
+        output.block(1,0,2,1) << std::cos(angle), std::sin(angle); // assign x,y
    }
    else
    {
         throw std::invalid_argument("Should not happen. Closest border cell has no type." );
    }
-   output(3,0) = 0;
+   output(3,0) = 0; // assign phi
 
    Eigen::Matrix<float, 1, 2> projected;
    projected = get_projection_on_border( robot, data_closest, angle);
+
+   // Checking if the robot is inside the obstacle (it can cross the boundary due to discretization)
+   State normal_vec;
+   switch (static_cast<int>(data_closest(0,2)))
+   {
+    case 1:
+        normal_vec << data_closest(0,3), data_closest(0,4), 0; break;
+    case 2:
+        normal_vec << output(1,0), output(2,0), 0; break;
+    case 3:
+        normal_vec << output(1,0), output(2,0), 0; break;
+    }
+
+    State robot_vec; robot_vec << (robot(0,0)-projected(0,0)),(robot(0,1)-projected(0,1)),0;
+    if (normal_vec.dot(robot_vec.colwise().normalized()) < 0) // if true it means the robot is inside obstacle
+    {
+        output(0,0) = 1; // we set gamma to 1 to trick the controller into thinking the robot is on the border
+        return output;
+    }
+    // End checking if robot is inside the obstacle
+
+
    //std::cout << "Projected: " << projected << std::endl;
    mypoints << projected(0,0)  << "," << projected(0,1) << "\n";
    output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + distance^2
@@ -615,6 +662,63 @@ State next_step_single_obstacle_border(State const& state_robot, State const& st
     State velocity_next = M_eps * f_eps; // non moving obstacle
 
     return velocity_next;
+}
+
+State next_step_several_obstacles_border( State const& state_robot, State const& state_attractor, std::vector<Border> const& borders)
+{
+    // Compute all the steps for a single step and a single obstacle
+    Eigen::Matrix<float, 1, 2> robot = state_robot.block(0,0,2,1).transpose();
+    Eigen::MatrixXf closest(1,6);
+    Eigen::Matrix<float, 4, 1> gamma_ref;
+    State cmd_velocity;
+    float lamb_r = 0;
+    float lamb_e = 0;
+    Eigen::Matrix<float, number_states, number_states> D_eps;
+    State r_eps_vector;
+    Eigen::Matrix<float, number_states, number_states-1> ortho_basis;
+    Eigen::Matrix<float, number_states, number_states> E_eps;
+    Eigen::Matrix<float, number_states, number_states> M_eps;
+
+    // Compute attractor function
+    cmd_velocity = state_attractor - state_robot;
+
+    for (int iter=0; iter< borders.size(); iter++)
+    {
+        std::cout << "Obstacle " << iter << std::endl;
+        //std::cout << storage[iter] << std::endl;
+
+        closest = find_closest_point(robot, borders[iter]);
+        gamma_ref = gamma_and_ref_vector( robot, closest);
+        std::cout << " Distance: " << gamma_ref(0,0) << std::endl;
+
+        //f_eps = 4 * f_eps.normalized();
+
+        // Several steps to get D(epsilon) matrix
+        lamb_r = 1 - (1/gamma_ref(0,0));//lambda_r( state_robot, obs, limit_dist); // optimization -> include gamma as argument of lambda_r and lambda_e (TODO?)
+        lamb_e = 1 + (1/gamma_ref(0,0));//lambda_e( state_robot, obs, limit_dist);
+         D_eps = D_epsilon( lamb_r, lamb_e);
+
+        // Several steps to get E(epsilon) matrix
+        r_eps_vector = gamma_ref.block(1,0,3,1);
+
+        // Remove tail effect (see the paper for a clean explanation)
+        /*State tail_vector = (state_attractor-state_robot);
+        if (r_eps_vector.dot(tail_vector.colwise().normalized()) > 0.3) // can be between 0 and 1, I chose > 0 because with thin ellipse I had some issues
+        {
+            return f_eps;
+        }*/
+
+        State gradient_vector; gradient_vector <<  r_eps_vector(0,0), r_eps_vector(1,0), 0; //2 * std::sqrt(closest(0,5)) * r_eps_vector(0,0), 2 * std::sqrt(closest(0,5)) * r_eps_vector(1,0), 0;
+
+        Eigen::Matrix<float, number_states, number_states-1> ortho_basis = gram_schmidt( gradient_vector);
+        Eigen::Matrix<float, number_states, number_states> E_eps = E_epsilon( r_eps_vector, ortho_basis);
+        Eigen::Matrix<float, number_states, number_states> M_eps = M_epsilon( D_eps, E_eps);
+        cmd_velocity = M_eps * cmd_velocity; // non moving obstacle
+    }
+    // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
+    cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+
+    return speed_limiter(cmd_velocity);
 }
 
 Eigen::Matrix<float, 1, 2> get_projection_on_border(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest, float const& angle)
@@ -787,8 +891,8 @@ void growing_several_obstacle()
         do {
             r_x = rand() % 18 + 1;
             r_y = rand() % 18 + 1;
-        } while (occupancy_grid(r_x, r_y)==1);
-        occupancy_grid(r_x, r_y) = 1;
+        } while (occupancy_grid(r_x, r_y)==100);
+        occupancy_grid(r_x, r_y) = 100;
         obst(n_obs, 0) = r_x;
         obst(n_obs, 1) = r_y;
         n_obs +=1;
@@ -848,7 +952,7 @@ std::vector<Border> detect_borders( Grid const& occupancy_grid )
         {
             //std::cout << "Cursor at point (" << cursor_row << "," << cursor_col << ")" << std::endl;
             //if ( (cursor_row==1)&&(cursor_col==1) ) { std::cout << occupancy_grid << std::endl;}
-            if (occupancy_grid(cursor_row, cursor_col)==1) // if the cell is occupied -> it may be new obstacle
+            if (occupancy_grid(cursor_row, cursor_col)==100) // if the cell is occupied -> it may be new obstacle
             {
                 //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << " PASS - " << std::endl;}
 
@@ -959,15 +1063,15 @@ void explore_obstacle( Blob & obstacle, Grid & occupancy_grid, int const& row, i
     occupancy_grid(row,col) = 0;
 
     // 4 cardinal directions
-    if (((row+1) < occupancy_grid.rows()) && (occupancy_grid(row+1, col)==1)) {explore_obstacle( obstacle, occupancy_grid, row+1, col  );}
-    if (((row-1) >= 0                   ) && (occupancy_grid(row-1, col)==1)) {explore_obstacle( obstacle, occupancy_grid, row-1, col  );}
-    if (((col+1) < occupancy_grid.cols()) && (occupancy_grid(row, col+1)==1)) {explore_obstacle( obstacle, occupancy_grid, row  , col+1);}
-    if (((col-1) >= 0                   ) && (occupancy_grid(row, col-1)==1)) {explore_obstacle( obstacle, occupancy_grid, row  , col-1);}
+    if (((row+1) < occupancy_grid.rows()) && (occupancy_grid(row+1, col)==100)) {explore_obstacle( obstacle, occupancy_grid, row+1, col  );}
+    if (((row-1) >= 0                   ) && (occupancy_grid(row-1, col)==100)) {explore_obstacle( obstacle, occupancy_grid, row-1, col  );}
+    if (((col+1) < occupancy_grid.cols()) && (occupancy_grid(row, col+1)==100)) {explore_obstacle( obstacle, occupancy_grid, row  , col+1);}
+    if (((col-1) >= 0                   ) && (occupancy_grid(row, col-1)==100)) {explore_obstacle( obstacle, occupancy_grid, row  , col-1);}
 
     // 4 corners
-    if (((row+1) < occupancy_grid.rows()) && ((col+1) < occupancy_grid.cols()) && (occupancy_grid(row+1, col+1)==1)) {explore_obstacle( obstacle, occupancy_grid, row+1, col+1);}
-    if (((row+1) < occupancy_grid.rows()) && ((col-1) >= 0                   ) && (occupancy_grid(row+1, col-1)==1)) {explore_obstacle( obstacle, occupancy_grid, row+1, col-1);}
-    if (((row-1) >= 0                   ) && ((col+1) < occupancy_grid.cols()) && (occupancy_grid(row-1, col+1)==1)) {explore_obstacle( obstacle, occupancy_grid, row-1, col+1);}
-    if (((row-1) >= 0                   ) && ((col-1) >= 0                   ) && (occupancy_grid(row-1, col-1)==1)) {explore_obstacle( obstacle, occupancy_grid, row-1, col-1);}
+    if (((row+1) < occupancy_grid.rows()) && ((col+1) < occupancy_grid.cols()) && (occupancy_grid(row+1, col+1)==100)) {explore_obstacle( obstacle, occupancy_grid, row+1, col+1);}
+    if (((row+1) < occupancy_grid.rows()) && ((col-1) >= 0                   ) && (occupancy_grid(row+1, col-1)==100)) {explore_obstacle( obstacle, occupancy_grid, row+1, col-1);}
+    if (((row-1) >= 0                   ) && ((col+1) < occupancy_grid.cols()) && (occupancy_grid(row-1, col+1)==100)) {explore_obstacle( obstacle, occupancy_grid, row-1, col+1);}
+    if (((row-1) >= 0                   ) && ((col-1) >= 0                   ) && (occupancy_grid(row-1, col-1)==100)) {explore_obstacle( obstacle, occupancy_grid, row-1, col-1);}
 
 }

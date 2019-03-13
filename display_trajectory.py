@@ -357,7 +357,7 @@ def disp8(): # SHOW BORDER OF GROWING OBSTACLE
         images.append(imageio.imread("img_gif/temp.png"))
     imageio.mimsave('growing_obstacle.gif', images, duration = 0.5)
 
-disp8()
+disp6()
 
 """
 # Save figures to a given directory
