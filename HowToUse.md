@@ -48,7 +48,7 @@ In rviz:
 
 ---
 
-When everything is set, open a new terminal then run:
+Once everything has been set, open a new terminal then run:
 
 * rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
 
