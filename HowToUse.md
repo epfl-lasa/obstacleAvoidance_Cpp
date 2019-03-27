@@ -10,12 +10,16 @@ Download the library from http://eigen.tuxfamily.org/index.php?title=Main_Page
 Put library folder (which contains bench, blas, cmake, debug, demos...) into your ~/Documents folder   
 Rename the library folder "eigen3"
 
+Install Ridgeback packages:  
+* sudo apt-get install ros-indigo-ridgeback-simulator ros-indigo-ridgeback-desktop
+
+
 Now you have to compile ROS packages with:  
-cd ~/catkin_make  
+* cd ~/catkin_make  
 catkin_make  
 
 Install gmapping with:  
-sudo apt-get install ros-kinetic-slam-gmapping
+* sudo apt-get install ros-kinetic-slam-gmapping
 
 ---
 
