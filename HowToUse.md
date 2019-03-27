@@ -14,6 +14,9 @@ Now you have to compile ROS packages with:
 cd ~/catkin_make
 catkin_make
 
+Install gmapping with:
+sudo apt-get install ros-kinetic-slam-gmapping
+
 For each one of the following lines, open a terminal and run the command in it
 
 ==
