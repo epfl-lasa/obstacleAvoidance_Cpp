@@ -17,6 +17,7 @@ Install Ridgeback packages:
 Now you have to compile ROS packages with:  
 * cd ~/catkin_make  
 catkin_make  
+source ./devel/setup.bash
 
 Install gmapping with:  
 * sudo apt-get install ros-kinetic-slam-gmapping
