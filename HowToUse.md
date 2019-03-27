@@ -19,22 +19,23 @@ sudo apt-get install ros-kinetic-slam-gmapping
 
 For each one of the following lines, open a terminal and run the command in it
 
-==
-roscore
-==
-cd ~/Documents/Gazebo_worlds
+* roscore
+
+* cd ~/Documents/Gazebo_worlds  
 RIDGEBACK_REAR_HOKUYO_LASER="1" roslaunch my_ridgeback.launch
-==
-cd ~/Documents/PointCloudFiltering
+
+* cd ~/Documents/PointCloudFiltering  
 roslaunch filter_for_static.launch
-==
-rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static
-==
-rosrun gmapping slam_gmapping scan:=/scan _delta:=0.3 _map_update_interval:=1.0
-==
-rosrun process_occupancy_grid process_occupancy_grid_node
-==
-rviz
+
+* rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static
+
+* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.3 _map_update_interval:=1.0
+
+* rosrun process_occupancy_grid process_occupancy_grid_node
+
+* rviz
+
+---
 
 In rviz:
 Set the global fixed frame to "map"
