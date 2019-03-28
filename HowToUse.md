@@ -22,6 +22,9 @@ source ./devel/setup.bash
 Install gmapping with:  
 * sudo apt-get install ros-kinetic-slam-gmapping
 
+Install jsk_rviz_plugins to be able to display the velocity command in rviz:
+* sudo apt-get install ros-kinetic-jsk-rviz-plugins
+
 ---
 
 For each one of the following lines, open a terminal and run the command in it
@@ -40,11 +43,11 @@ roslaunch filter_for_static.launch
 
 * rosrun process_occupancy_grid process_occupancy_grid_node
 
-* rviz
+* rosrun rviz rviz ~/Documents/Gazebo_worlds/config_rviz.rviz
 
 ---
 
-In rviz:  
+In rviz (already done in the config_rviz.rviz file):  
 * Set the global fixed frame to "map"
 * Add a Map object and set it to the "map" topic
 * Add a RobotModel object, the Ridgeback should appear
