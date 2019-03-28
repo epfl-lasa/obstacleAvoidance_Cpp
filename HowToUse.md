@@ -43,6 +43,8 @@ roslaunch filter_for_static.launch
 
 * rosrun process_occupancy_grid process_occupancy_grid_node
 
+* rosrun process_occupancy_grid cmd_vel_listener 
+
 * rosrun rviz rviz ~/Documents/Gazebo_worlds/config_rviz.rviz
 
 ---
@@ -60,3 +62,4 @@ Once everything has been set, open a new terminal then run:
 
 * rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
 
+This topic triggers the callback function that computes the velocity command. It is set at 10 Hz but you can change it if you want. For instance "-r 1" to get 1 Hz.
