@@ -10,8 +10,8 @@
 // know the position of the surface point that is on the [P0, P1] segment
 
 const int number_states = 3;   // States are [x, y, phi]
-const int method_weights = 1;  // 1 to consider all the obstacles, 2 to consider only the obstacles within the limit_dist range
-const float limit_dist = -1;   // limit distance for method_weights=2, set it to -1 if you use method_weights=1
+const int method_weights = 2;  // 1 to consider all the obstacles, 2 to consider only the obstacles within the limit_dist range
+const float limit_dist = 50;   // limit distance for method_weights=2, set it to -1 if you use method_weights=1
 
 using State = Eigen::Matrix<float, number_states, 1>; // State is an alias to represent a column vector with three components
 using Obstacle = Eigen::Matrix<float, 10, 1>; // Obstacle is an alias to represent ellipses [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]

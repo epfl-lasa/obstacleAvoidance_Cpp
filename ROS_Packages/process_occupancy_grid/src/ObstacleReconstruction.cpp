@@ -500,16 +500,63 @@ Blob expand_obstacle(Blob const& obstacle, int const& n_cells)
     return expanded_obs;
 }
 
-Grid expand_occupancy_grid(Grid const& grid, int const& n_cells)
+int ID_data = 0;
+long counter_frame = 0;
+
+Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& state_robot, float const& limit_range, float const& size_of_cells)
 {
+    // Only the cells in a given range around the robot has to been processed, the rest is discarded
+
+
+    float offset = std::sqrt(limit_dist-1);//limit_range / size_of_cells;
+    int x_min = static_cast<int>(std::round(state_robot(0,0)-offset));
+    int x_max = static_cast<int>(std::round(state_robot(0,0)+offset));
+    int y_min = static_cast<int>(std::round(state_robot(1,0)-offset));
+    int y_max = static_cast<int>(std::round(state_robot(1,0)+offset));
+
+    /*std::cout << " OFFSET: " << offset << std::endl;
+    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+
+    bool flag_occupied = false;
+    do {
+        flag_occupied = false;
+        if ( (grid.block(x_min, y_min, 1, y_max-y_min+1)).maxCoeff() > 1) // there is at least one occupied block on the bottom border (value 100)
+        {
+            flag_occupied = true;
+            x_min -= 1;
+        }
+        if ( (grid.block(x_max, y_min, 1, y_max-y_min+1)).maxCoeff() > 1) // there is at least one occupied block on the top border (value 100)
+        {
+            flag_occupied = true;
+            x_max += 1;
+        }
+        if ( (grid.block(x_min, y_min, x_max-x_min+1, 1)).maxCoeff() > 1) // there is at least one occupied block on the left border (value 100)
+        {
+            flag_occupied = true;
+            y_min -= 1;
+        }
+        if ( (grid.block(x_min, y_max, x_max-x_min+1, 1)).maxCoeff() > 1) // there is at least one occupied block on the right border (value 100)
+        {
+            flag_occupied = true;
+            y_max += 1;
+        }
+    } while (flag_occupied);
+
+    */
+    std::cout << x_min << " , " << x_max << " , " << y_min << " , " << y_max << std::endl;
+
+
+    // Select only the box around the robot
+    //Grid occupancy_res = grid.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1);
     Grid occupancy_res = grid;
+    //std::cout << "After expansion of box: " << std::endl << occupancy_res << std::endl;
 
     for (int n=0; n<n_cells; n++)
     {
         Grid occupancy_temp = occupancy_res;
-        for (int i=1; i<(grid.rows()-1); i++)
+        for (int i=1; i<(occupancy_res.rows()-1); i++)
         {
-           for (int j=1; j<(grid.cols()-1); j++)
+           for (int j=1; j<(occupancy_res.cols()-1); j++)
            {
                if (occupancy_temp(i,j) == 100)
                {
@@ -521,7 +568,176 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells)
            }
         }
     }
-    return occupancy_res;
+    //std::cout << "After expansion of box: " << std::endl << occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) << std::endl;
+
+    // Output is an empty grid with the obstacle inside the limit distance
+    Grid output = Grid::Zero(grid.rows(), grid.cols());
+    output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1);;
+
+    // Detect all obstacles that have at least one cell in the square around the robot
+    // For instance if one half of an obstacle is within the limit distance we also want
+    // to take into account the part that is outside the limit square
+
+    Grid temp_grid = occupancy_res;
+    std::vector<Blob> all_detected = detect_blobs( temp_grid);
+    std::vector<Blob> inside_square;
+    for (int i_blob=0; i_blob < all_detected.size(); i_blob++)
+    {
+        bool flag = true;
+        for (int i_cell=0; (flag)&&(i_cell < (all_detected[i_blob]).rows()); i_cell++)
+        {
+            int x = (all_detected[i_blob])(i_cell,0);
+            int y = (all_detected[i_blob])(i_cell,1);
+            if ((x >= x_min) && (x <= x_max) && (y >= y_min) && (y <= y_max))
+            {
+                inside_square.push_back(all_detected[i_blob]);
+                flag = false;
+            }
+        }
+    }
+
+
+
+
+    // Add obstacles inside square to occupancy grid (maybe it could be optimized by only doing it for
+    // those are not already completely inside the square)
+
+    std::cout << all_detected.size() << " obstacles detected in total" << std::endl;
+    std::cout << inside_square.size() << " obstacles partly inside the square" << std::endl;
+
+    for (int i_blob=0; i_blob < inside_square.size(); i_blob++)
+    {
+        for (int i_cell=0; i_cell < (inside_square[i_blob]).rows(); i_cell++)
+        {
+            int x = (inside_square[i_blob])(i_cell,0);
+            int y = (inside_square[i_blob])(i_cell,1);
+            if (!((x >= x_min) && (x <= x_max) && (y >= y_min) && (y <= y_max))) // if outside the square
+            {
+                output(x,y) = 100;
+                //std::cout << "Add (" << x << "," << y << ") | ";
+            }
+        }
+        std::cout << std::endl;
+    }
+
+    // Fill the holes in obstacles
+    PointFill origin;
+    origin.x = static_cast<int>(std::round(state_robot(0,0)));//-x_min;
+    origin.y = static_cast<int>(std::round(state_robot(1,0)));//-y_min;
+    std::cout << "Origin: (" << origin.x << " , " << origin.y << std::endl;
+    float mysign = 1;
+    float mycount = 1;
+    while (output(origin.x, origin.y) == 100)
+    {
+        /*origin.x += mycount * mysign;
+        mycount += 1;
+        mysign *= -1;*/
+
+        if (output( static_cast<int>(origin.x+mycount), origin.y) != 100)
+        {
+            origin.x = static_cast<int>(origin.x+mycount);
+            break;
+        }
+        else if (output( static_cast<int>(origin.x-mycount), origin.y) != 100)
+        {
+            origin.x = static_cast<int>(origin.x-mycount);
+            break;
+        }
+        else if (output(origin.x, static_cast<int>(origin.y+mycount)) != 100)
+        {
+            origin.y = static_cast<int>(origin.y+mycount);
+            break;
+        }
+        else if (output(origin.x, static_cast<int>(origin.y-mycount)) != 100)
+        {
+            origin.y = static_cast<int>(origin.y-mycount);
+            break;
+        }
+        mycount += 1;
+    }
+
+    //TODO: Only do fillgrid for the square that include all obstacles partly inside the limit
+
+    //std::cout << "Before fillGrid: " << std::endl << occupancy_res << std::endl;
+    fillGrid(origin, output);
+    //std::cout << "After fillGrid: " << std::endl << occupancy_res << std::endl;
+
+    // Output only the content of the box centered on the robot
+    // The rest of the occupancy grid is discarded
+    //Grid output = Grid::Zero(grid.rows(), grid.cols());
+    //output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res;
+
+
+
+    // For display
+    if (std::remainder(counter_frame, 30) < 0.1)
+    {
+        std::ofstream myrobotpos;
+        if (ID_data==-1)
+        {
+            // Should not happen
+        }
+        else if (ID_data < 10)
+        {
+            myrobotpos.open("./StreamData/stream_posrobot_00" + std::to_string(ID_data) + ".txt");
+        }
+        else if (ID_data < 100)
+        {
+            myrobotpos.open("./StreamData/stream_posrobot_0" + std::to_string(ID_data) + ".txt");
+        }
+        else
+        {
+            myrobotpos.open("./StreamData/stream_posrobot_" + std::to_string(ID_data) + ".txt");
+        }
+        myrobotpos << state_robot(0,0) << "," << state_robot(1,0) << "\n";
+        myrobotpos.close();
+
+
+        Eigen::Matrix<float, 5, 1> limits;
+        limits << 327.02, 377.02, 291.02, 341.02, 0.5;
+
+        State state_attractor; state_attractor << 373, 296.33334, 0;
+
+        compute_stream_border( limits, state_attractor, inside_square, ID_data);
+
+        std::vector<Border> storage;
+        storage = detect_borders( output);
+
+        std::ofstream myobs;
+        if (ID_data==-1)
+        {
+            // Should not happen
+        }
+        else if (ID_data < 10)
+        {
+            myobs.open("./StreamData/stream_obs_00" + std::to_string(ID_data) + ".txt");
+        }
+        else if (ID_data < 100)
+        {
+            myobs.open("./StreamData/stream_obs_0" + std::to_string(ID_data) + ".txt");
+        }
+        else
+        {
+            myobs.open("./StreamData/stream_obs_" + std::to_string(ID_data) + ".txt");
+        }
+
+        for (int iter=0; iter<storage.size(); iter++)
+        {
+            Border border_out = storage[iter];
+            for (int i=0; i<border_out.rows(); i++)
+            {
+                myobs << border_out(i,0) << "," << border_out(i,1) << "," << border_out(i,2) << "," << border_out(i,3) << "," << border_out(i,4) << "\n";
+            }
+        }
+        myobs.close();
+
+
+        ID_data += 1;
+    }
+    counter_frame += 1;
+
+
+    return output;
 }
 ////obstacle = expand_obstacle( obstacle, 2); // security margin of n cells
 
@@ -654,6 +870,7 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
                 Eigen::Matrix<float, 4, 1> output = next_step_special( state_robot, state_attractor, border_out); // compute special velocity with transform in circle space
                 State next_eps = output.block(0,0,3,1);
                 myfile << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+
             }
         }
     }
@@ -661,7 +878,7 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
     std::cout << "-- Quiver file closed --" << std::endl;
 }
 
-void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles)
+void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles, int const& ID)
 {
     // Compute the velocity command at the initial time for all points of a [x,y] grid
     // Save the result in a txt file and then use a Python script to plot the vector field (quiver) with matplotlib
@@ -672,9 +889,27 @@ void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const
     std::vector<Blob> filled_obstacles;
 
     std::ofstream myfile;
-    myfile.open("stream_data_border.txt");
+    if (ID==-1)
+    {
+        myfile.open("stream_data_border.txt");
+        mypoints.open("stream_points_border.txt");
+    }
+    else if (ID < 10)
+    {
+        myfile.open("./StreamData/stream_data_border_00" + std::to_string(ID) + ".txt");
+        mypoints.open("./StreamData/stream_points_border_00" + std::to_string(ID) + ".txt");
+    }
+    else if (ID < 100)
+    {
+        myfile.open("./StreamData/stream_data_border_0" + std::to_string(ID) + ".txt");
+        mypoints.open("./StreamData/stream_points_border_0" + std::to_string(ID) + ".txt");
+    }
+    else
+    {
+        myfile.open("./StreamData/stream_data_border_" + std::to_string(ID) + ".txt");
+        mypoints.open("./StreamData/stream_points_border_" + std::to_string(ID) + ".txt");
+    }
 
-    mypoints.open("stream_points_border.txt");
     std::cout << "-- Stream file opened --" << std::endl;
 
     for (int i_obs=0; i_obs<obstacles.size(); i_obs++)
@@ -708,7 +943,7 @@ void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const
             if (!flag) // if not inside an obstacle
             {
                 //State next_eps = next_step_single_obstacle_border( state_robot, state_attractor, border_out); // compute velocity command
-                State next_eps = next_step_special_weighted( state_robot, state_attractor, borders); // compute special velocity with transform in circle space
+                State next_eps = next_step_special_weighted( state_robot, state_attractor, borders, size_cell); // compute special velocity with transform in circle space
                 myfile << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
             }
             else
@@ -720,6 +955,7 @@ void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const
     myfile.close();
     std::cout << "-- Stream file closed --" << std::endl;
 }
+
 
 Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& size_side_cell)
 {
@@ -1068,6 +1304,8 @@ void growing_several_obstacle()
 
 std::vector<Border> detect_borders( Grid & occupancy_grid )
 {
+
+
     std::vector<Border> detected_borders;
     //int cursor_x = 0;
     //int cursor_y = 0;
@@ -1108,7 +1346,7 @@ std::vector<Border> detect_borders( Grid & occupancy_grid )
                     Grid temp_grid = occupancy_grid;
                     Blob obstacle;
                     explore_obstacle( obstacle, temp_grid, cursor_row, cursor_col);
-                    std::cout << "New obstacle!" << std::endl;
+                    //std::cout << "New obstacle!" << std::endl;
                     //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << obstacle << std::endl;}
                     if (obstacle.rows()>1)
                     {
@@ -1195,7 +1433,7 @@ std::vector<Blob> detect_blobs( Grid & occupancy_grid )
                     Grid temp_grid = occupancy_grid;
                     Blob obstacle;
                     explore_obstacle( obstacle, temp_grid, cursor_row, cursor_col);
-                    std::cout << "New obstacle!" << std::endl;
+                    //std::cout << "New obstacle!" << std::endl;
                     //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << obstacle << std::endl;}
                     if (obstacle.rows()>1)
                     {
@@ -1323,18 +1561,19 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
             if (mat_dist(0,i) > limit_distance) // obstacle too far so it is not considered (0 weight)
             {
                 mat_prod(0,i) = 0;
-                //std::cout << i << " is out of range | ";
+                std::cout << i << " is out of range | ";
             }
             else if (mat_dist(0,i) > 1.01)
             {
                 // Weight is infinity if the robot touches the surface of the obstacle and is 0 if the robot is at the limit distance
                 // I used minus the natural log to get the +infinity with a shift to get 0 at the limit distance -log((x-1)/(xlim-1))
                 mat_prod(0,i) = - std::log((mat_dist(0,i)-1)/(limit_distance-1));
-                //std::cout << i << " is in the range | ";
+                std::cout << i << " is in the range | ";
             }
             else
             {
                 mat_prod(0,i) = 100000; // very high number (problem with infinity when the distance is almost 1)
+                std::cout << i << " is in contact with the robot | ";
             }
         }
         //std::cout << std::endl;
@@ -1368,7 +1607,7 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
     return mat_weights;
 }
 
-State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders)
+State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells)
 {
     // Compute all the steps to get the velocity command considering several obstacles
     const int number_obstacles = borders.size();
@@ -1399,13 +1638,23 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     // Relative weights of the obstacles depending on their distance from the robot
     Eigen::MatrixXf mat_weights(1, number_obstacles); // "1 x number_of_obstacles"
     mat_weights = weights_special( state_robot, mat_gamma, method_weights, limit_dist);
+    //std::cout << "Gammas : " << mat_gamma   << std::endl;
+    //std::cout << "Weights: " << mat_weights << std::endl;
 
     // Special case if all obstacles are too far away from the robot so none of them is considered
-    if (mat_weights.maxCoeff() == 0)
+    if ((mat_weights.size()==0) || (mat_weights.maxCoeff() == 0))
     {
         // No obstacle in range so the robot just goes toward the attractor
         State cmd_velocity = state_attractor - state_robot;
         cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+
+        // Decrease speed when the robot get close to the attractor
+        float distance_stop = 0.25;
+        float distance_start_decreasing = 1 / size_of_cells; // numerical value is in meters, converted into the cell world
+        float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2));
+        //std::cout << "Distance to attractor:   " << distance_to_attractor << std::endl;
+        cmd_velocity.block(0,0,3,1) *= std::min(std::max(static_cast<float>(0.0),distance_to_attractor-distance_stop)/(distance_start_decreasing-distance_stop), static_cast<float>(1.0));
+
         return speed_limiter(cmd_velocity);
     }
 
@@ -1437,8 +1686,25 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         std::cout << "mat_weights:    " << mat_weights << std::endl;
         std::cout << "weighted_mag:   " << weighted_mag << std::endl;
         std::cout << "weighted_direction:   " << weighted_direction << std::endl;
+        std::cout << "Min Gamma: " << mat_gamma.minCoeff() << std::endl;
+        std::cout << "Limit: " << limit_dist << std::endl;
+
     }
 
+    // Trying a new way to apply the effect of obstacles (smoother transition from no obstacle in range to 1 obstacle in range)
+    /*State cmd_to_attractor = state_attractor - state_robot;
+    cmd_to_attractor(2,0) = std::atan2(cmd_to_attractor(1,0),cmd_to_attractor(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    float coeff = (mat_gamma.minCoeff() - limit_dist)/(1 - limit_dist);
+    cmd_velocity = (1 - coeff) * cmd_to_attractor + coeff * cmd_velocity;
+    std::cout << "Coefficient: " << coeff << std::endl;
+   */
+
+    // Decrease speed when the robot get close to the attractor
+    float distance_stop = 0.25;
+    float distance_start_decreasing = 1 / size_of_cells; // numerical value is in meters, converted into the cell world
+    float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2));
+    //std::cout << "Distance to attractor:   " << distance_to_attractor << std::endl;
+    cmd_velocity.block(0,0,2,1) *= std::min(std::max(static_cast<float>(0.0),distance_to_attractor-distance_stop)/(distance_start_decreasing-distance_stop), static_cast<float>(1.0));
 
     return speed_limiter(cmd_velocity);
 }
@@ -1570,7 +1836,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         }
 
         // Compute attractor function
-        f_eps = attractor_circle_frame - robot_circle_frame;
+        f_eps = (attractor_circle_frame - robot_circle_frame);
 
         // Several steps to get D(epsilon) matrix
         lamb_r = 1 - (1/gamma_circle_frame);
@@ -1637,7 +1903,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         }
 
     //Eigen::Matrix<float, 1, 1> norm = velocity_shape_space.colwise().norm();
-    velocity_shape_space = velocity_shape_space / std::sqrt(std::pow(velocity_shape_space(0,0),2)+std::pow(velocity_shape_space(1,0),2));
+    //velocity_shape_space = velocity_shape_space / std::sqrt(std::pow(velocity_shape_space(0,0),2)+std::pow(velocity_shape_space(1,0),2));
 
     Eigen::Matrix<float, 4, 1> output;
     output.block(0,0,3,1) = velocity_shape_space;
@@ -2081,3 +2347,57 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    return output;
 }
 
+//
+void fillGrid(PointFill orig, Grid & occupancy_grid)
+{
+    //std::cout << "Pass fillGrid" << std::endl;
+
+    int width  = occupancy_grid.cols();
+    int height = occupancy_grid.rows();
+
+    // DECLARE TEMP GRID, FULL OF 100
+    Grid temp_grid = Grid::Ones(height,width) * 100;
+
+    std::cout << " PASS 1 " << std::endl;
+    std::cout << " height " << height << std::endl;
+    std::cout << " width "  << width  << std::endl;
+
+    std::queue<PointFill> q;
+    q.push(orig);
+
+    // the main flood loop
+    while(!q.empty())
+    {
+        PointFill pnt = q.front();
+        q.pop();
+
+        // grab adjacent points
+        PointFill adj[4];
+        adj[0].x = pnt.x;   adj[0].y = pnt.y-1;   // up
+        adj[1].x = pnt.x+1; adj[1].y = pnt.y;     // right
+        adj[2].x = pnt.x;   adj[2].y = pnt.y+1;   // down
+        adj[3].x = pnt.x-1; adj[3].y = pnt.y;     // left
+
+        for(int i = 0; i < 4; i++)
+        {
+            //std::cout << "Processing (" << adj[i].x << " , " << adj[i].y << ")"; // <<  std::endl;
+
+            // don't forget boundaries!
+            if(adj[i].x < 0 || adj[i].x >= height ||
+            adj[i].y < 0 || adj[i].y >= width)
+            {
+                continue;
+            }
+
+            // if adjacent point meets some criteria, then set
+            // its value and include it in the queue
+            if((temp_grid(adj[i].x,adj[i].y)!=0) && (occupancy_grid(adj[i].x,adj[i].y)!=100))
+            {
+                temp_grid(adj[i].x,adj[i].y) = 0;
+                q.push(adj[i]);
+            }
+        }
+    }
+    //std::cout << std::endl;
+    occupancy_grid = occupancy_grid.cwiseMax(temp_grid); // add temporary grid (occupied space)
+}

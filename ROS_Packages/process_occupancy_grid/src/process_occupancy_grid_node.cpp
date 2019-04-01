@@ -74,55 +74,12 @@ public:
     Eigen::Map<Eigen::MatrixXi> eig_test( int_vector.data(), srv_map.response.map.info.height, srv_map.response.map.info.width);
     //std::cout << "Size after cast: " << eig_test.rows() << " " << eig_test.cols() << std::endl;
 
+    
 
     float size_cell = 0.3;
 
-    // Once the occupancy grid has been reshaped, c++ algorithms can be used
 
-    // Expand obstacles to get a security margin
-    Eigen::MatrixXi eig_expanded = expand_occupancy_grid( eig_test, static_cast<int>(std::floor(1/size_cell)));
-
-    
-
-    // Detect expanded obstacles
-    std::vector<Border> storage;
-    storage = detect_borders( eig_expanded );
-   
-    // Storage temp
-    Eigen::MatrixXi eig_blob = expand_occupancy_grid( eig_test, static_cast<int>(std::floor(1/size_cell)));
-    std::vector<Blob> storage_blobs;
-    storage_blobs = detect_blobs( eig_blob);
-
-    /*std::ofstream myblobs;
-    std::cout << storage_blobs.size() << " blobs have been detected." << std::endl;
-    for (int iter=0; iter < storage_blobs.size(); iter++)
-    { 
-        myblobs.open("./gazebo_obstacle_" + std::to_string(iter) + ".txt"); //each starting point has its own file
-        Blob blob = storage_blobs[iter];
-	for (int k=0; k < blob.rows(); k++)
-        {
-             myblobs << "obst" << iter << ".row(" << k << ") << " << blob(k,0) << " , " << blob(k,1) << "; \n"; 
-        }
-        myblobs.close();
-    }*/
-    
-    /*for (int iter=0; iter < storage.size(); iter++)
-    {
-        std::cout << "Obstacle " << iter << ":"<< std::endl;
-        std::cout << storage[iter] << std::endl;
-    }*/
-    std::cout << storage.size() << " obstacles have been detected." << std::endl;
-
-    /*eig_expanded(315,312) = 42;
-    eig_expanded(319,343) = 42;
-    eig_expanded(340,334) = 42;
-    eig_expanded(349,329) = 42;
-    std::cout << eig_expanded.block(340,310,41,41) << std::endl;*/
-
-    /*std::ofstream mypoints;
-    mypoints.open("expanded_map.txt");
-    mypoints << eig_expanded; 
-    mypoints.close();*/
+    // PROCESSING POSITION OF THE ROBOT //
 
     // NO NEED SINCE THE MAP IS USED AS THE REFERENCE FRAME
     // Retrieving Resolution and Pose of the map in the world frame
@@ -144,8 +101,8 @@ public:
     catch (tf::TransformException &ex) {
       ROS_ERROR("%s",ex.what());
     }
-    std::cout << "Translation X: " << transform_.getOrigin().getX() << std::endl;
-    std::cout << "Translation Y: " << transform_.getOrigin().getY() << std::endl;
+    //std::cout << "Translation X: " << transform_.getOrigin().getX() << std::endl;
+    //std::cout << "Translation Y: " << transform_.getOrigin().getY() << std::endl;
     // State of the robot
     tfScalar yaw, pitch, roll;
     tf::Matrix3x3 mat(transform_.getRotation());
@@ -156,12 +113,105 @@ public:
                                       yaw;
     ROS_INFO("Robot %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
+	
+    // PROCESSING POSITION OF THE ATTRACTOR //
+
+    float start_cell_x = (-1 * std::round(srv_map.response.map.info.origin.position.x / size_cell));
+    float start_cell_y = (-1 * std::round(srv_map.response.map.info.origin.position.y / size_cell));
+
+    float position_goal_world_frame_x =  12;//23.6;//42;//15;
+    float position_goal_world_frame_y = -11; //5;//-7.3;//0;
+
+    float target_cell_x = start_cell_x + (std::round(position_goal_world_frame_x) / size_cell);
+    float target_cell_y = start_cell_y + (std::round(position_goal_world_frame_y) / size_cell);
+
+    //ROS_INFO("Starting cell %f %f",start_cell_x, start_cell_y); 
+    //ROS_INFO("Target cell %f %f",target_cell_x, target_cell_y); 
+    // Once the occupancy grid has been reshaped, c++ algorithms can be used
+
+    // Expand obstacles to get a security margin
+    Eigen::MatrixXi eig_expanded = expand_occupancy_grid( eig_test, static_cast<int>(std::ceil(0.5/size_cell)), state_robot, 10, size_cell);
+
+    std::ofstream mypoints;
+    mypoints.open("expanded_mapo.txt");
+    for (int i_row =0; i_row < eig_expanded.rows(); i_row++)
+    {
+        for (int i_col =0; i_col < eig_expanded.cols(); i_col++)
+        {
+            mypoints << eig_expanded(i_row, i_col);
+            if ((i_col+1) < eig_expanded.cols())
+            {
+                mypoints << " , ";
+            }
+        }
+        mypoints << "\n";
+    }
+    mypoints.close();
+
+    // Detect expanded obstacles
+    std::vector<Border> storage;
+    storage = detect_borders( eig_expanded );
+   
+    // Storage temp  // static_cast<int>(std::floor(1.2/size_cell))
+    /*Eigen::MatrixXi eig_blob = expand_occupancy_grid( eig_test, static_cast<int>(std::floor(0.5/size_cell)), state_robot, 10, size_cell);
+    std::vector<Blob> storage_blobs;
+    storage_blobs = detect_blobs( eig_blob);
+
+    std::ofstream myblobs;
+    std::cout << storage_blobs.size() << " blobs have been detected." << std::endl;*/
+    
+    /*for (int iter=0; iter < storage_blobs.size(); iter++)
+    { 
+        std::cout << "Iterator: " << iter << std::endl;
+        myblobs.open("./gazebo_obstacle_" + std::to_string(iter) + ".txt"); //each starting point has its own file
+	std::cout << "Obstacle " << iter << " opened." << std::endl;
+        Blob blob = storage_blobs[iter];
+	for (int k=0; k < blob.rows(); k++)
+        {
+             myblobs << "obst" << iter << ".row(" << k << ") << " << blob(k,0) << " , " << blob(k,1) << "; \n"; 
+        }
+        myblobs.close();
+    }*/
+    
+    /*for (int iter=0; iter < storage.size(); iter++)
+    {
+        std::cout << "Obstacle " << iter << ":"<< std::endl;
+        std::cout << storage[iter] << std::endl;
+    }*/
+
+    std::ofstream myobstacles;
+    std::cout << storage.size() << " obstacles have been detected." << std::endl;
+    int sizou = storage.size();
+    for (int iter=0; iter < storage.size(); iter++)
+    { 
+        std::cout << "Iterator: " << iter << std::endl;
+        myobstacles.open("./gazebo_obstacle_debug" + std::to_string(sizou) + "_" + std::to_string(iter) + ".txt"); //each starting point has its own file
+	std::cout << "Obstacle " << iter << " opened." << std::endl;
+        Border blob = storage[iter];
+	for (int k=0; k < blob.rows(); k++)
+        {
+             myobstacles << "obst" << iter << ".row(" << k << ") << " << blob(k,0) << " , " << blob(k,1) << "; \n"; 
+        }
+        myobstacles.close();
+    }
+
+
+    /*eig_expanded(315,312) = 42;
+    eig_expanded(319,343) = 42;
+    eig_expanded(340,334) = 42;
+    eig_expanded(349,329) = 42;
+    std::cout << eig_expanded.block(340,310,41,41) << std::endl;*/
+
+    
+
+    
+
     // Map display centered on the robot
     /*std::cout << eig_test.block(static_cast<int>(std::floor(x_pose - transform_.getOrigin().getX()/size_cell)-20), static_cast<int>(std::floor(y_pose - transform_.getOrigin().getY()/size_cell)-20),41,41) << std::endl;*/
 
     // Set state of the attractor
-    State state_attractor; state_attractor << 380,331,0;
-
+    State state_attractor; state_attractor << target_cell_x,target_cell_y,0;
+    ROS_INFO("Attractor %f %f %f", target_cell_x, target_cell_y, 0.0);
     // Compute velocity command based on the detected obstacles
     //State next_eps = next_step_several_obstacles_border( state_robot, state_attractor, storage);
 
@@ -190,9 +240,9 @@ public:
 
     State next_eps = next_step_special( state_robot, state_attractor, storage[closest_i]); // only consider closest obstacle*/
 
-    State next_eps = next_step_special_weighted( state_robot, state_attractor, storage); // consider all obstacles
+    State next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell); // consider all obstacles
     next_eps(2,0) = std::atan2(next_eps(1,0),next_eps(0,0)) - state_robot(2,0);
-    next_eps = speed_limiter(next_eps);
+    
     ROS_INFO("VelCmd in map frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
     //next_eps << 0,0,0;
 
@@ -207,21 +257,29 @@ public:
     
     tf::Stamped<tf::Vector3> vec3_stamped_transformed(vec3_transformed, ros::Time(0), "base_link");
 
-    listener_.transformVector( "base_link", vec3_stamped, vec3_stamped_transformed);
-    ROS_INFO("VelCmd in base_link frame: %f %f %f", vec3_stamped_transformed.x(), vec3_stamped_transformed.y(), next_eps(2,0));
+    if ( listener_.canTransform("base_link", "map", ros::Time(0)))
+    {
+            listener_.transformVector( "base_link", vec3_stamped, vec3_stamped_transformed);
+    
+	    ROS_INFO("VelCmd in base_link frame: %f %f %f", vec3_stamped_transformed.x(), vec3_stamped_transformed.y(), next_eps(2,0));
 
-    // Creating velocity message
-    float scaling = 4;
-    geometry_msgs::Twist output;
-    output.linear.x = scaling * vec3_stamped_transformed.x();
-    output.linear.y = scaling * vec3_stamped_transformed.y();
-    output.linear.z = 0.0;
-    output.angular.x = 0.0;
-    output.angular.y = 0.0;
-    output.angular.z = scaling * next_eps(2,0);
+	    // Creating velocity message
+	    float scaling = 1;
+	    geometry_msgs::Twist output;
+	    output.linear.x = scaling * vec3_stamped_transformed.x();
+	    output.linear.y = scaling * vec3_stamped_transformed.y();
+	    output.linear.z = 0.0;
+	    output.angular.x = 0.0;
+	    output.angular.y = 0.0;
+	    output.angular.z = scaling * next_eps(2,0);
 
-    //ROS_INFO("VelCmd : %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
-    pub_.publish(output);
+	    //ROS_INFO("VelCmd : %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
+	    pub_.publish(output);
+    }
+    else
+    {
+            ROS_ERROR("Cannot tramsform velocity vector from map to base_link");
+    }
   }
 
 void callback_for_people(const geometry_msgs::PoseArray& people)

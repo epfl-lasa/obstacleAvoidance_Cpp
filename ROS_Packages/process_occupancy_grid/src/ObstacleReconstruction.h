@@ -6,6 +6,13 @@
 #include <eigen3/Eigen/Dense> // For Linear Algebra
 #include <cmath> // Basic math functions
 #include <string>
+#include <queue>
+
+// OpenCV functions
+/*#include "opencv2/opencv.hpp"
+#include "opencv2/core/core.hpp"
+#include <opencv2/core/eigen.hpp>*/
+
 
 typedef Eigen::Matrix<float, Eigen::Dynamic, 5> MatrixX5f;
 
@@ -14,6 +21,13 @@ using Border = MatrixX5f;  // [x, y, type, charac_1, charac_2;]
 using Point  = Eigen::Matrix<int, 1, 2>;
 using Grid   = Eigen::MatrixXi;
 using State  = Eigen::Matrix<float, 3, 1>; // State is an alias to represent a column vector with three components
+
+
+struct PointFill
+{
+    int x;
+    int y;
+};
 
 
 Point get_center(Blob const& blob); // get the center cell of a blob of cells
@@ -49,7 +63,7 @@ void remove_end_duplicate(Border & border); // Function to remove the few duplic
 Blob expand_obstacle(Blob const& obstacle, int const& n_cells); // expand an obstacle by a given number of cells
 // idea: border detection -> fill the border -> border detection -> fill the border -> ...   n_cells times
 
-Grid expand_occupancy_grid(Grid const& grid, int const& n_cells); //
+Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& state_robot, float const& limit_range, float const& size_of_cells);
 
 Eigen::Matrix<float, 1, 6> find_closest_point(Eigen::Matrix<float,1,2>  const& robot, Border const& border); // return [x, y, type, charac_1, charac_2, distance_to_robot^2]
 
@@ -60,7 +74,7 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
 // used with Python for visualization purpose (Quiver function of Matlab)
 
 // Just like compute_quiver but with a small variation to be able to plot a "streamplot" with Matplotlib
-void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles);
+void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles, int const& ID=-1);
 
 Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& size_side_cell); // for a given point it returns the center of the closest cell of the grid
 
@@ -91,7 +105,7 @@ void explore_obstacle( Blob & obstacle, Grid & occupancy_grid, int const& row, i
 // TEST FOR NEW OBSTACLE AVOIDANCE METHOD
 Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance);
 
-State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders);
+State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells);
 
 Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State const& state_attractor, Border const& border); // compute the next step with the special method for a single obstacle
 // output is velocity_command stacked with gamma
@@ -103,5 +117,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
 float get_max_gamma_distance(Eigen::Matrix<float, 1, 2> const& proj_robot, Eigen::Matrix<float,1,2> const& normal, Border const& border); // maximum gamma distance that can be reached following the normal
 
 Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, float const& distance_tot, float const& gamma_robot, float const& gamma_max, float const& gamma_attractor, float const& gamma_max_attractor, int direction);
+
+void fillGrid(PointFill orig, Grid & occupancy_grid); // fill the holes in the occupied blobs of an occupancy grid
 
 #endif // OBSTACLERECONSTRUCTION_H_INCLUDED
