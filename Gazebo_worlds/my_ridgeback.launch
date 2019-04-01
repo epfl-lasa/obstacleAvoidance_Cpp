@@ -2,7 +2,9 @@
   <arg name="use_sim_time" default="true" />
   <arg name="gui" default="true" />
   <arg name="headless" default="false" />
-  <arg name="world_name" default="/home/leziart/Documents/Gazebo_worlds/box_of_walls.world" /> 
+  <!-- <arg name="world_name" default="/home/leziart/Documents/Gazebo_worlds/box_of_walls.world" /> -->
+
+  <arg name="world_name" default="/home/leziart/Documents/Gazebo_worlds/willowgarage_custom.world" /> 
   <!-- <arg name="world_name" default="$(find ridgeback_gazebo)/worlds/ridgeback_race.world" /> -->
 
   <!-- Configuration of Ridgeback which you would like to simulate.
@@ -56,5 +58,8 @@
         args="-urdf -model ridgeback -param robot_description -x 0 -y 0 -z 0.1" />
   <!--<node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
         args="-sdf -model ridgeback -file /Users/mikepurvis/ridgeback_ws/ridgeback.sdf -x 0 -y 0 -z 0.1" /> -->
+
+  <!--<node name="urdf_spawner_bis" pkg="gazebo_ros" type="spawn_model"
+        args="-sdf -model kinect_ros -file /home/leziart/catkin_ws/src/process_depth_img/kinect_ros/model.sdf -x 0.2 -y 0 -z 1.8" />-->
 
 </launch>

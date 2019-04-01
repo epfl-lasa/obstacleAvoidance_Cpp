@@ -11,6 +11,7 @@
 #include "ObstacleReconstruction.h"
 //#include "SolverFunctions.h"
 
+
 using namespace std;
 
 // Global variables
@@ -19,6 +20,24 @@ float PI = 3.1415;
 int test_functions();
 void plot_stream_gazebo();
 
+void test_fill_holes()
+{
+    Grid occupancy = Grid::Zero(16,16);
+    occupancy.row(4) << 0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0;
+    occupancy.row(5) << 0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(6) << 0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,1,1,1,0,0,0,1,1,0,0,0,0;
+    occupancy.row(8) << 0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0;
+    occupancy *= 100;
+    State state_robot; state_robot << 8, 8, 0;
+    Grid output = expand_occupancy_grid( occupancy, 1, state_robot, 1, 1);
+
+    cout << output << endl;
+
+
+
+}
 
 void trajectories_border()
 {
@@ -105,6 +124,7 @@ void trajectories_border()
 
 int main()
 {
+    //test_fill_holes();
     //growing_obstacle();
     //trajectories_border();
     //growing_several_obstacle();
@@ -132,10 +152,10 @@ int main()
 
 
 
-        Grid expanded_grid = expand_occupancy_grid( occupancy_grid, 1);
+        /*Grid expanded_grid = expand_occupancy_grid( occupancy_grid, 1);
         cout << "Grid expanded by 1 cell." << endl;
         cout << expanded_grid << endl;
-        expanded_grid = expand_occupancy_grid( occupancy_grid, 2);
+        expanded_grid = expand_occupancy_grid( occupancy_grid, 2, );
         cout << "Grid expanded by 2 cell." << endl;
         cout << expanded_grid << endl;
         cout << "- END -"<< endl;
@@ -147,10 +167,10 @@ int main()
             cout << "Obstacle " << iter << ":"<< endl;
             cout << storage[iter] << endl;
 
-        }
+        }*/
     }
 
-    if (true)
+    if (false)
     {
         /*Blob obst(23,2);
         Blob res;
@@ -299,6 +319,9 @@ int main()
         Border border_other_out = compute_border( other_obst, center_other_blob);
         display_border(other_obst, border_other_out);
 
+
+        float size_cell = 1;
+
         closest = find_closest_point(robot, border_other_out);
         cout << "Closest is: " << closest << endl;
         gamma_ref = gamma_and_ref_vector( robot, closest);
@@ -308,7 +331,7 @@ int main()
         closest_attract = find_closest_point(temp, border_other_out);
         cout << "Closest attractor is : " << closest_attract << endl;
         std::vector<Border> borders_test; borders_test.push_back(border_other_out);
-        cout << "Next step weighted is : " << endl << next_step_special_weighted(my_robot, state_attractor, borders_test) << endl;
+        cout << "Next step weighted is : " << endl << next_step_special_weighted(my_robot, state_attractor, borders_test, size_cell) << endl;
         //cout << "Velocity command is: " << next_eps.transpose() << endl;
 
 
@@ -320,7 +343,7 @@ int main()
         std::vector<Border> borders;
         borders.push_back(border_out); borders.push_back(border_other_out); borders.push_back(compute_border( other_obst_bis, get_random(other_obst_bis)));
         //next_step_special(my_robot, state_attractor, border_out);
-        cout << "Next step weighted is : " << endl <<  next_step_special_weighted(my_robot, state_attractor, borders) << endl;
+        cout << "Next step weighted is : " << endl <<  next_step_special_weighted(my_robot, state_attractor, borders, size_cell) << endl;
 
         Eigen::Matrix<float, 5, 1> limits_quiver;
         limits_quiver << -9.02, 25.02, -9.02, 25.02, 0.2;

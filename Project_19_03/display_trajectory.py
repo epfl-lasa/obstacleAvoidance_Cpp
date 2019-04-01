@@ -437,11 +437,218 @@ def disp9():
     ax.set_xlim(2.5, 15.5)
     ax.set_ylim(1, 12)
     plt.show()
+
+import time
+def disp10(): # plot a streamplot for each position of the robot along a trajectory to show the effect of udapting the occupancy map
+    names = glob.glob("/home/leziart/catkin_ws/StreamData/stream_data_bor*.txt")
+    names.sort()
+    
+    positions = glob.glob("/home/leziart/catkin_ws/StreamData/stream_pos*.txt")
+    positions.sort()
+    
+    names_bor = glob.glob("/home/leziart/catkin_ws/StreamData/stream_obs*.txt")
+    names_bor.sort()
+    
+    images = []
+    ntot = len(names)
+    ncur = 0
+    for name in names:
+        
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+        
+        fig, ax = plt.subplots()
+        
+        
+       
+        
+        borders = np.loadtxt(open(names_bor[ncur], "rb"), delimiter=",")
+        for i_row in range(0,borders.shape[0]):
+            if borders[i_row,2] == 1:
+                if borders[i_row,3] == 0:
+                    plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1], borders[i_row,1]], color="k", LineWidth=2)
+                else:
+                    plt.plot([borders[i_row,0], borders[i_row,0]], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="k", LineWidth=2)
+            elif borders[i_row,2] == 2:
+                if borders[i_row,4] == 0:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],1, 1, 0, 0, 90, LineWidth=2)
+                elif borders[i_row,4] == 1:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],1, 1, 0, 90, 180, LineWidth=2)
+                elif borders[i_row,4] == 2:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],1, 1, 0, 180, 270, LineWidth=2)
+                elif borders[i_row,4] == 3:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],1, 1, 0, 270, 360, LineWidth=2)
+                ax.add_artist(arc)
+            elif borders[i_row,2] == 3:
+                if borders[i_row,4] == 0:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],1, 1, 0, 0, 90, LineWidth=2)
+                elif borders[i_row,4] == 1:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],1, 1, 0, 90, 180, LineWidth=2)
+                elif borders[i_row,4] == 2:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],1, 1, 0, 180, 270, LineWidth=2)
+                elif borders[i_row,4] == 3:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],1, 1, 0, 270, 360, LineWidth=2)
+                ax.add_artist(arc)
+        
+        
+        ellipse1 = mpatches.Ellipse([373,296.33], 1, 1, facecolor="orangered")
+        ax.add_patch(ellipse1)
+        
+        posrobot = np.loadtxt(open(positions[ncur], "rb"), delimiter=",")
+        ellipse2 = mpatches.Ellipse([posrobot[0],posrobot[1]], 1, 1, facecolor="forestgreen")
+        ax.add_patch(ellipse2)
+        q = ax.streamplot(X, Y, U, V, density=2)
+        ax.set_xlim(327, 377)
+        ax.set_ylim(291, 341)
+        manager = plt.get_current_fig_manager()
+        manager.window.showMaximized()
+        plt.show()
+        time.sleep(0.1)
+        plt.title("Step " + str(ncur))
+        fig.savefig("img_gif/temp.png", dpi=200)
+        plt.close()
+        images.append(imageio.imread("img_gif/temp.png"))
+        
+        print(str(ncur) + "/" + str(ntot))
+        ncur += 1
+        
+        
+       
+        
+    imageio.mimsave('moving_stream.gif', images, duration = 0.25)
+
+
+def disp_debug():
+    names1 = glob.glob("/home/leziart/catkin_ws/gazebo_obstacle_debug1_*.txt")
+    names2 = glob.glob("/home/leziart/catkin_ws/gazebo_obstacle_debug3_*.txt")
+    
+    min_x = 1000
+    max_x = -1000
+    min_y = 1000
+    max_y = -1000
+    
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', "yellowgreen", "slategray", "orange", "maroon"]
+    
+    fig = plt.figure()
+    ax = fig.gca()
+    i_color = 0
+    for name1 in names1:
+        obs1  = (open(name1, "r")).readlines()
+        for i_row in range(0,len(obs1)):
+            line = obs1[i_row]
+            if len(line)==28 :
+                x = int(line[16:19])
+                y = int(line[21:25])
+            elif len(line)==29:
+                x = int(line[17:20])
+                y = int(line[22:26])
+            else:
+                x = int(line[18:21])
+                y = int(line[23:27])
+            rectangle = mpatches.Rectangle((x-0.5,y-0.5), 1, 1, color=colors[i_color])
+            if (x < min_x): min_x = x
+            if (x > max_x): max_x = x
+            if (y < min_y): min_y = y
+            if (y > max_y): max_y = y
+            ax.add_patch(rectangle)
+        i_color += 1
+        
+    name = glob.glob("/home/leziart/catkin_ws/expanded_mapo.txt")
+    obstacles = np.loadtxt(open(name[0], "rb"), delimiter=",")
+    for i_row in range(0,obstacles.shape[0]):
+        if (i_row%10 == 0): print(i_row)
+        
+        for i_col in range(0,obstacles.shape[1]):
+            if (obstacles[i_row, i_col]==100):
+                rectangle = mpatches.Rectangle([i_row-0.5,i_col-0.5], 1, 1, color='k')
+                ax.add_patch(rectangle)
+        
+    ax.set_xlim(min_x - 1, max_x + 1)
+    ax.set_ylim(min_y - 1, max_y + 1)
+    plt.show()
+    
+    fig = plt.figure()
+    ax = fig.gca()
+    i_color = 0
+    for name2 in names2:
+        obs2  = (open(name2, "r")).readlines()
+        for i_row in range(0,len(obs2)):
+            line = obs2[i_row]
+            if len(line)==28 :
+                x = int(line[16:19])
+                y = int(line[21:25])
+            elif len(line)==29:
+                x = int(line[17:20])
+                y = int(line[22:26])
+            else:
+                x = int(line[18:21])
+                y = int(line[23:27])
+            rectangle = mpatches.Rectangle((x-0.5,y-0.5), 1, 1, color=colors[i_color])
+            if (x < min_x): min_x = x
+            if (x > max_x): max_x = x
+            if (y < min_y): min_y = y
+            if (y > max_y): max_y = y
+            ax.add_patch(rectangle)
+        i_color += 1
+    """
+    for i_row in range(0,len(obs3)):
+        line = obs3[i_row]
+        if len(line)==28 :
+            rectangle = mpatches.Rectangle((int(line[16:19])-0.5,int(line[21:25])-0.5), 1, 1, color='red')
+        else:
+            rectangle = mpatches.Rectangle((int(line[17:20])-0.5,int(line[22:26])-0.5), 1, 1, color='red')
+        print(rectangle)
+        ax.add_patch(rectangle)
+    """
+    name = glob.glob("/home/leziart/catkin_ws/expanded_mapo.txt")
+    obstacles = np.loadtxt(open(name[0], "rb"), delimiter=",")
+    for i_row in range(0,obstacles.shape[0]):
+        if (i_row%10 == 0): print(i_row)
+        
+        for i_col in range(0,obstacles.shape[1]):
+            if (obstacles[i_row, i_col]==100):
+                rectangle = mpatches.Rectangle([i_row-0.5,i_col-0.5], 1, 1, color='k')
+                ax.add_patch(rectangle)
+                
+    ax.set_xlim(min_x - 1, max_x + 1)
+    ax.set_ylim(min_y - 1, max_y + 1)
+    plt.show()
+
+def disp_debug_occupancy():
+    name = glob.glob("/home/leziart/catkin_ws/expanded_mapo.txt")
+    fig = plt.figure()
+    ax = fig.gca()
+    obstacles = np.loadtxt(open(name[0], "rb"), delimiter=",")
+    for i_row in range(0,obstacles.shape[0]):
+        if (i_row%10 == 0): print(i_row)
+        
+        for i_col in range(0,obstacles.shape[1]):
+            if (obstacles[i_row, i_col]==100):
+                rectangle = mpatches.Rectangle([i_row-0.5,i_col-0.5], 1, 1)
+                ax.add_patch(rectangle)
+    
+    x_min, x_max, y_min, y_max = 322 , 336 , 328 , 342
+
+
+
+
+    rectangle = mpatches.Rectangle([x_min-0.5, y_min-0.5], x_max-x_min+1, y_max-y_min+1, fill=False)            
+    ax.add_patch(rectangle)
+    
+    ax.set_xlim(-1, obstacles.shape[0] + 1)
+    ax.set_ylim(-1, obstacles.shape[1] + 1)
+    plt.show()
     
 #disp9()
 #disp6()
-disp6bis()
-
+#disp6bis()
+#disp_debug()
+#disp_debug_occupancy()
+disp10()
 """
 # Save figures to a given directory
 for time_entry in timestamps:
