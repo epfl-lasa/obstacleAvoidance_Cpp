@@ -1,0 +1,27 @@
+// Idea: for each callback, we shift the layer one step toward "the past", then fill the first layer with the new occupancy grid, than sum along all layers
+// All cells above a given value can be considered as occupied by a static object because they have been occupied during the N last steps
+
+// Flag to initialize eig_map_
+    flag_map = true;
+
+// Initialization of eig_map_
+	/*if (flag_map == true)
+	{
+		for (int i=0; i < num_layers; i++)
+		{
+			eig_map_.row(i) = MatrixXi8_layer::Zero(1, srv_map.response.map.info.height*srv_map.response.map.info.width);
+		}
+		flag_map = false; 
+	}*/
+
+/*// Aging all current layers 0 -> 1 -> 2 -> 3 -> ...
+	for (int i_layer=num_layers; i_layer > 1; i_layer--)
+	{
+		eig_map_.row(i_layer).swap(eig_map_.row(i_layer-1));
+	} 
+	// Filling the first layer with the new occupancy grid
+	eig_map_.row(0) = eig_layer;
+        // Sum of all layers
+        MatrixXi8_layer sum_layers = eig_map_.colwise().sum();*/
+
+	// Check if above treshold then apply probability. For instance if maximal value then 100 but if just the treshold maybe just 50.
