@@ -56,7 +56,7 @@ namespace pointcloud_to_laserscan
 
     private_nh_.param<std::string>("target_frame", target_frame_, "");
     private_nh_.param<double>("transform_tolerance", tolerance_, 0.01);
-    private_nh_.param<double>("min_height", min_height_, 0.0);
+    private_nh_.param<double>("min_height", min_height_, -1.2); // 1.2 meter is the heigth of the velodyne sensor on the Ridgeback
     private_nh_.param<double>("max_height", max_height_, 1.0);
 
     private_nh_.param<double>("angle_min", angle_min_, -M_PI );
