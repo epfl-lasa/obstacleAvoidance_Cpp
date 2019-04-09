@@ -14,53 +14,68 @@ using namespace std;
 
 const int limit_age = 10;
 const int limit_dist = 100;
-/* Set the parameters (standard deviations) */
-        n_states = 4;
-        sigma_1 = 5;
-        sigma_2 = 5;
-        sigma_vx =  25;
-        sigma_vy =  25;
-        sigma_0 = 50;
-        h = 0.1;
+
+/* Initialization */
+int n_states = 4;
+float x_box, y_box, x_prev, y_prev, x_pred, y_pred;
+float sigma_1, sigma_2, sigma_vx, sigma_vy, sigma_0, h, vx_box, vy_box;
+Eigen::VectorXf Z;
+Eigen::MatrixXf A(n_states, n_states);
+Eigen::MatrixXf H(n_states, n_states);
+Eigen::MatrixXf Q(n_states, n_states);
+Eigen::MatrixXf R(n_states, n_states);
+Eigen::VectorXf X0(n_states);
+Eigen::MatrixXf P0(n_states, n_states);
+
+void init_parameters_kalman()
+{
+	/* Set the parameters (standard deviations) */
+	sigma_1 = 5;
+	sigma_2 = 5;
+	sigma_vx =  25;
+	sigma_vy =  25;
+	sigma_0 = 50;
+	h = 0.1;
 
         /* Set Matrix and Vector for Kalman Filter: */
-        Eigen::MatrixXf A(n_states, n_states);
+        
         A << 1, 0, h, 0,
         0, 1, 0, h,
         0, 0, 1, 0,
         0, 0, 0, 1;
 
-        Eigen::MatrixXf H(n_states, n_states);
+        
         H << 1, 0, 0, 0,
              0, 1, 0, 0,
              0, 0, 1, 0,
              0, 0, 0, 1;
 
-        Eigen::MatrixXf Q(n_states, n_states);
+        
         Q << h*sigma_vx,          0,        0,        0,
              0, h*sigma_vy,        0,        0,
              0,          0, sigma_vx,        0,
              0,          0,        0, sigma_vy;
 
-        Eigen::MatrixXf R(n_states, n_states);
+        
         R << sigma_1,       0,         0,         0,
              0, sigma_2,         0,         0,
              0,       0, sigma_1/h,         0,
              0,       0,         0, sigma_2/h;
-        Eigen::VectorXf X0(n_states);
+        
         X0 << 100,150,0,0;
-        Eigen::MatrixXf P0(n_states, n_states);
+        
         P0 << 0, 0,       0,       0,
               0, 0,       0,       0,
               0, 0, sigma_0,       0,
               0, 0,       0, sigma_0;
 
+}
 
 // DECLARATION STUCTURE TRACKED_PERSON
 struct tracked_person
 {
    int age; // number of steps since this person was updated
-   std::vector<float> info(4); // [x, y, height, width] vector of the bounding box
+   float info[4]; // [x, y, height, width] vector of the bounding box
    KalmanFilter filter_person;
 
    tracked_person(float x, float y, float h, float w);  
@@ -86,6 +101,9 @@ class SubscribeAndPublish
 public:
     SubscribeAndPublish()
     {
+	// Initialization of Kalman parameters
+	init_parameters_kalman();
+
         //Topic you want to publish
         pub_ = n_.advertise<object_msgs::ObjectsInBoxes>("/filtered_boxes", 10);
 
@@ -133,9 +151,9 @@ public:
         for (int i=0; i < tracked_people.size(); i++)
         {
             (tracked_people[i]).age += 1;
-            if ((tracked_people[i]).age) > limit_age) 
+            if (((tracked_people[i]).age) > limit_age) 
 		{
-		     tracked_people.erase(i); // remove the person from the list
+		     tracked_people.erase(tracked_people.begin() + i); // remove the person from the list
 		     i -= 1; // go on step back since an element has been removed
 		}
         }
@@ -147,7 +165,7 @@ public:
         // - if a tracked people has no associated tracked people (there are all out of the limit range), a new tracked_people is created
         if (only_people.size() != 0)
         {
-        std::vector<int> index_match(only_people.size(), "-1");
+        std::vector<int> index_match(only_people.size(), -1);
         // Find closest bounding box for each tracked people
         for (int i=0; i < only_people.size(); i++) 
         {
@@ -157,7 +175,7 @@ public:
              float d_min = limit_dist + 1;
              for (int j=0; j < tracked_people.size(); j++) 
              {
-		float d = std::sqrt(std::pow(x - (tracked_people[j]).info[0],2)+std::pow(y - (tracked_people[j]).info[1],2))
+		float d = std::sqrt(std::pow(x - (tracked_people[j]).info[0],2)+std::pow(y - (tracked_people[j]).info[1],2));
                 if ( (d<limit_dist) && (d<d_min))
 		{
 			j_min = j;
@@ -188,7 +206,7 @@ public:
                         tracked_people.push_back(new_person);
 		}
         }
-	}
+	
 
 	// FEED MEASUREMENTS TO FILTERS
 
@@ -204,29 +222,29 @@ public:
             y_prev = y_box;
 	
 	    // Prediction Step
-            (tracked_people[index_match[i]]).predict()    
+            ((tracked_people[index_match[i]]).filter_person).predict();
 
 	    // Correction Step
-            (tracked_people[index_match[i]]).correct( Z ); 
-            x_pred = ((tracked_people[index_match[i]]).X)[0];
-            y_pred = ((tracked_people[index_match[i]]).X)[1];
+            ((tracked_people[index_match[i]]).filter_person).correct( Z ); 
+            x_pred = (((tracked_people[index_match[i]]).filter_person).X)[0];
+            y_pred = (((tracked_people[index_match[i]]).filter_person).X)[1];
 
 	    // Update output
             (only_people[i]).roi.x_offset = static_cast<int>(std::round(x_pred));
             (only_people[i]).roi.y_offset = static_cast<int>(std::round(y_pred));
 	}
-
-        // DISPLAY DETECTED PEOPLE (for information purpose)
-
-        if (only_people.size() == 0)
+	// DISPLAY DETECTED PEOPLE (for information purpose)
+	for (int iter=0; iter < only_people.size(); iter++)
+        {
+            ((tracked_people[index_match[iter]]).filter_person).predict();
+            ROS_INFO("Predicted box at position: %f %f", (((tracked_people[index_match[iter]]).filter_person).X)[0], (((tracked_people[index_match[iter]]).filter_person).X)[1]);
+        }
+        }
+        else
         {
             ROS_INFO("No one has been detected.");
 	}
-        for (int iter=0; iter < only_people.size(); iter++)
-        {
-            (tracked_people[index_match[iter]]).predict()
-            ROS_INFO("Predicted box at position: %f %f", ((tracked_people[index_match[iter]]).X)[0], ((tracked_people[index_match[iter]]).X)[1]);
-        }
+        
 
         /*if (only_people.size() == 0)
         {
@@ -275,10 +293,6 @@ private:
     ros::Publisher pub_;  // To publish filtered boxes
     ros::Subscriber sub_; // To listen to raw boxes
 
-    int n_states;
-    float x_box, y_box, x_prev, y_prev, x_pred, y_pred;
-    float sigma_1, sigma_2, sigma_vx, sigma_vy, sigma_0, h, vx_box, vy_box;
-    Eigen::VectorXf Z;
     KalmanFilter filter1;
     std::vector<tracked_person> tracked_people;
 
