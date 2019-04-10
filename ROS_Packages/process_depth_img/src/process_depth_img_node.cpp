@@ -17,14 +17,18 @@
 #include <message_filters/sync_policies/approximate_time.h>
 
 // Subscribed messages
-#include "darknet_ros_msgs/BoundingBoxes.h"
+#include "object_msgs/ObjectsInBoxes.h"
 
 // Eigen library and the header that contains my functions
 #include <eigen3/Eigen/Core>
-//#include "ObstacleReconstruction.h"
-//#include "ObstacleAvoidance.h"
+
+#include <fstream>  // To write data into files
 
 using namespace message_filters;
+
+bool flag_write = true;
+std::ofstream myfile;
+
 
 /*
 class SubscribeAndPublish
@@ -97,7 +101,7 @@ private:
 
 ros::Publisher pub_;
 
-void callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr& boxes, const sensor_msgs::PointCloud2::ConstPtr& pc2)
+void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_msgs::PointCloud2::ConstPtr& pc2)
 {
     ROS_INFO("Callback triggered");
     // PointCloud2 3D data is stored in the "data" field of pc2
@@ -105,7 +109,7 @@ void callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr& boxes, const sens
 
 
     // Number of detected people in the field of view of the camera
-    std::cout << "Nb boxes: " << boxes->bounding_boxes.size() << std::endl;
+    std::cout << "Nb boxes: " << (boxes->objects_vector).size() << std::endl;
 
     geometry_msgs::PoseArray people;
     people.header.stamp = ros::Time::now();
@@ -115,12 +119,40 @@ void callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr& boxes, const sens
     q.setRPY(0, 0, 0);
     pose_person.orientation = tf::createQuaternionMsgFromRollPitchYaw(0,0,0); 
 
-    for (int i_box=0; i_box<boxes->bounding_boxes.size(); i_box++)
+    for (int i_box=0; i_box < (boxes->objects_vector).size(); i_box++)
     {
 
         // Position of the pixel at the center of the bouding box (in the picture)
-        int x = static_cast<int>(std::floor(boxes->bounding_boxes[0].xmin + boxes->bounding_boxes[0].xmax)/2);
-        int y = static_cast<int>(std::floor(boxes->bounding_boxes[0].ymin + boxes->bounding_boxes[0].ymax)/2);
+        int x = static_cast<int>(std::floor( (boxes->objects_vector[0]).roi.x_offset + (boxes->objects_vector[0]).roi.width/2));
+        int y = static_cast<int>(std::floor( (boxes->objects_vector[0]).roi.y_offset + (boxes->objects_vector[0]).roi.height /2));
+        ROS_INFO("Center of box at position (%i,%i)", x, y);
+
+	if (flag_write)
+	{
+		flag_write = false;
+		myfile.open("data_process_depth_img.txt");
+		for (int i= (boxes->objects_vector[0]).roi.x_offset ; i < ((boxes->objects_vector[0]).roi.x_offset + (boxes->objects_vector[0]).roi.width); i++)
+		{
+			for (int j= (boxes->objects_vector[0]).roi.y_offset ; j < ((boxes->objects_vector[0]).roi.y_offset + (boxes->objects_vector[0]).roi.height); j++)
+			{
+				float X_tempo = 0;
+				float Y_tempo = 0;
+				float Z_tempo = 0;
+				int arrayPoso = (j) * pc2->row_step + (i) * pc2->point_step;	
+				// about the pixel at position (x,y) in the picture
+				int arrayPosoX = arrayPoso + pc2->fields[0].offset;
+				int arrayPosoY = arrayPoso + pc2->fields[1].offset;
+				int arrayPosoZ = arrayPoso + pc2->fields[2].offset;
+				memcpy(&X_tempo, &pc2->data[arrayPosoX], sizeof(float));
+				memcpy(&Y_tempo, &pc2->data[arrayPosoY], sizeof(float));
+				memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
+				
+				myfile << i << "," << j << "," << Z_tempo << "\n";	
+			}
+		}
+		myfile.close();		
+	}
+
 
         // Mean of the depth over 9 points
         float X_pos = 0 ;
@@ -138,7 +170,8 @@ void callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr& boxes, const sens
                 // Position of the information (X,Y,Z) in the world frame
                 // See the documentation of sensor_msgs/PointCloud2 to understand the offsets and steps
                 int arrayPosition = (y+j) * pc2->row_step + (x+i) * pc2->point_step;
-                // Array Position is the start of a 32 bytes long sequence that contains X, Y, Z and RGB data
+                // Array Position is the start of a 32 bytes long sequence that contains X, Y, Z and RGB data        
+                
                 // about the pixel at position (x,y) in the picture
                 int arrayPosX = arrayPosition + pc2->fields[0].offset;
                 int arrayPosY = arrayPosition + pc2->fields[1].offset;
@@ -146,7 +179,7 @@ void callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr& boxes, const sens
                 memcpy(&X_temp, &pc2->data[arrayPosX], sizeof(float));
                 memcpy(&Y_temp, &pc2->data[arrayPosY], sizeof(float));
                 memcpy(&Z_temp, &pc2->data[arrayPosZ], sizeof(float));
-               
+                
                 // Need to check if X,Y,Z are not NaN in case the considered pixel was not considered for this
                 // frame (it can happen, the resulting depth cloud has lots of holes)
                 if (!(X_pos != X_pos)) // (f != f) is true only when f is NaN
@@ -161,6 +194,8 @@ void callback(const darknet_ros_msgs::BoundingBoxes::ConstPtr& boxes, const sens
                 }
             }
         }
+        
+
         X_pos /= num_points;
         Y_pos /= num_points;
         Z_pos /= num_points; // dividing by the number of points
@@ -194,6 +229,8 @@ void tfCallback(const sensor_msgs::PointCloud2::ConstPtr& pc2)
 
 int main(int argc, char **argv)
 {
+    ROS_INFO("Starting node");
+    
     //Initiate ROS
     ros::init(argc, argv, "process_depth_img_node");
 
@@ -201,18 +238,18 @@ int main(int argc, char **argv)
     //SubscribeAndPublish SAPObject;
 
     ros::NodeHandle n_;
-    
+    ros::Duration(3).sleep(); 
 
     //ros::Subscriber sub_bounding; // Subscriber to bounding boxes
 
-    message_filters::Subscriber<darknet_ros_msgs::BoundingBoxes> sub_bounding(n_, "/darknet_ros/bounding_boxes", 2); // Subscriber to bounding boxes
+    message_filters::Subscriber<object_msgs::ObjectsInBoxes> sub_bounding(n_, "/filtered_boxes", 1); // Subscriber to bounding boxes
 
-    message_filters::Subscriber<sensor_msgs::PointCloud2> sub_depth(n_, "/camera/depth_registered/points", 2);       // Subscriber to depth point cloud
+    message_filters::Subscriber<sensor_msgs::PointCloud2> sub_depth(n_, "/camera/depth_registered/points", 1);       // Subscriber to depth point cloud
 
-    typedef sync_policies::ApproximateTime<darknet_ros_msgs::BoundingBoxes, sensor_msgs::PointCloud2> MySyncPolicy;  // Synchronization policy
+    typedef sync_policies::ApproximateTime<object_msgs::ObjectsInBoxes, sensor_msgs::PointCloud2> MySyncPolicy;  // Synchronization policy
 
     // ApproximateTime takes a queue size as its constructor argument, hence MySyncPolicy(10)
-    Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),sub_bounding, sub_depth); // Synchronizer for the two topics
+    Synchronizer<MySyncPolicy> sync(MySyncPolicy(20),sub_bounding, sub_depth); // Synchronizer for the two topics
 
     sync.registerCallback(boost::bind(&callback, _1, _2)); // Link synchronizer with callback
 

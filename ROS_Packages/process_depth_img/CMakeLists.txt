@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   tf
   geometry_msgs
-  darknet_ros_msgs)
+  object_msgs)
 
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
@@ -82,11 +82,10 @@ INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  darknet_ros_msgs
-)
+#generate_messages(
+#  DEPENDENCIES
+#  std_msgs
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -122,7 +121,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES obstacle_avoidance
-   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs darknet_ros_msgs
+   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs object_msgs
 #  DEPENDS system_lib
    CATKIN_DEPENDS message_runtime 
    DEPENDS EIGEN3
@@ -227,6 +226,9 @@ find_package (Eigen3 REQUIRED)
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
 add_executable(process_depth_img_node src/process_depth_img_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp)
 target_link_libraries(process_depth_img_node ${catkin_LIBRARIES})
-#target_link_libraries (listener_data Eigen3::Eigen)
-#target_link_libraries(listener_data ${mylib_LIBRARIES})
-#add_dependencies(listener_data obstacle_avoidance_generate_messages_cpp)
+
+install(TARGETS process_depth_img_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

@@ -84,7 +84,7 @@ struct tracked_person
 tracked_person::tracked_person(float x, float y, float h, float w)
 {
      info[0] = x; info[1] = y; info[2] = h, info[3] = w;
-     age = 1;
+     age = limit_age - 6;
      KalmanFilter filter_temp(n_states,0);
      filter_person = filter_temp;
      /* Initialize the Filter*/
@@ -221,7 +221,11 @@ public:
         {
 	    
 	    // Reset filter age
-	    (tracked_people[index_match[i]]).age = 0;
+	    (tracked_people[index_match[i]]).age -= 2;
+            if ((tracked_people[index_match[i]]).age < 0)
+	    {
+		(tracked_people[index_match[i]]).age = 0;
+	    }
 
 	    // Measurement Step
 	    x_box = static_cast<float>((only_people[i]).roi.x_offset);
