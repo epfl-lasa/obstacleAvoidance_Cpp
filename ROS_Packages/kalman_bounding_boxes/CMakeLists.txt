@@ -225,6 +225,9 @@ find_package (Eigen3 REQUIRED)
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
 add_executable(kalman_bounding_boxes_node src/kalman_bounding_boxes_node.cpp src/KalmanFilter.cpp)
 target_link_libraries(kalman_bounding_boxes_node ${catkin_LIBRARIES})
-#target_link_libraries (listener_data Eigen3::Eigen)
-#target_link_libraries(listener_data ${mylib_LIBRARIES})
-#add_dependencies(listener_data obstacle_avoidance_generate_messages_cpp)
+
+install(TARGETS kalman_bounding_boxes_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

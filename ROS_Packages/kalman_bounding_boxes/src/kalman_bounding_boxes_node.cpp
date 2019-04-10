@@ -12,8 +12,8 @@ typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> myMap;
 
 using namespace std;
 
-const int limit_age = 10;
-const int limit_dist = 100;
+const int limit_age = 25;
+const int limit_dist = 250;
 
 /* Initialization */
 int n_states = 4;
@@ -137,6 +137,8 @@ public:
         // KEEP ONLY PEOPLE AND DISCARD OTHER OBJECTS
 
         std::vector<object_msgs::ObjectInBox> only_people;
+        
+
         for (int iter=0; iter < (input.objects_vector).size(); iter++)
         {
             if ( (input.objects_vector[iter]).object.object_name == "person" )
@@ -151,9 +153,12 @@ public:
         for (int i=0; i < tracked_people.size(); i++)
         {
             (tracked_people[i]).age += 1;
+	    ROS_INFO("Filter %i is now %i steps old", i, (tracked_people[i]).age);
             if (((tracked_people[i]).age) > limit_age) 
 		{
-		     tracked_people.erase(tracked_people.begin() + i); // remove the person from the list
+		     tracked_people.erase(tracked_people.begin() + i); // remove the person from the list  
+                     only_trackers.erase(only_trackers.begin() + i);               
+		     ROS_INFO("Filter %i deleted because it is too old", i);
 		     i -= 1; // go on step back since an element has been removed
 		}
         }
@@ -192,6 +197,7 @@ public:
 			     // Already used so we make a copy of the tracked_person and we append it at the end of the list tracked_people
                              j_min = tracked_people.size();
                              tracked_people.push_back(tracked_people[index_match[k]]);
+                             only_trackers.push_back(only_people[i]);
 			     break;
              		}
 		}
@@ -199,11 +205,12 @@ public:
                 {
                 	index_match[i] = j_min;
 		}
-		else
+		else // A new person appeared in the field of view of the camera
 		{
 			tracked_person new_person(x,y,static_cast<float>((only_people[i]).roi.height), static_cast<float>((only_people[i]).roi.width));
                         index_match[i] = tracked_people.size();
                         tracked_people.push_back(new_person);
+                        only_trackers.push_back(only_people[i]);
 		}
         }
 	
@@ -212,6 +219,10 @@ public:
 
 	for (int i=0; i < only_people.size(); i++) 
         {
+	    
+	    // Reset filter age
+	    (tracked_people[index_match[i]]).age = 0;
+
 	    // Measurement Step
 	    x_box = static_cast<float>((only_people[i]).roi.x_offset);
             y_box = static_cast<float>((only_people[i]).roi.y_offset);
@@ -230,22 +241,28 @@ public:
             y_pred = (((tracked_people[index_match[i]]).filter_person).X)[1];
 
 	    // Update output
-            (only_people[i]).roi.x_offset = static_cast<int>(std::round(x_pred));
-            (only_people[i]).roi.y_offset = static_cast<int>(std::round(y_pred));
+            (only_trackers[index_match[i]]).roi.x_offset = static_cast<int>(std::round(x_pred));
+            (only_trackers[index_match[i]]).roi.y_offset = static_cast<int>(std::round(y_pred));
+            (only_trackers[index_match[i]]).roi.height = (only_people[i]).roi.height;
+            (only_trackers[index_match[i]]).roi.width  = (only_people[i]).roi.width;
 	}
-	// DISPLAY DETECTED PEOPLE (for information purpose)
-	for (int iter=0; iter < only_people.size(); iter++)
-        {
-            ((tracked_people[index_match[iter]]).filter_person).predict();
-            ROS_INFO("Predicted box at position: %f %f", (((tracked_people[index_match[iter]]).filter_person).X)[0], (((tracked_people[index_match[iter]]).filter_person).X)[1]);
-        }
+
+	
         }
         else
         {
             ROS_INFO("No one has been detected.");
 	}
-        
 
+	// DISPLAY TRACKED PEOPLE (for information purpose)
+        ROS_INFO("Number of current trackers: %i", static_cast<int>(only_trackers.size()));
+	for (int iter=0; iter < tracked_people.size(); iter++)
+        {
+            ((tracked_people[iter]).filter_person).predict();
+            ROS_INFO("Person %i predicted at position: %f %f", iter, (((tracked_people[iter]).filter_person).X)[0], (((tracked_people[iter]).filter_person).X)[1]);
+        }
+        
+      
         /*if (only_people.size() == 0)
         {
             ROS_INFO("No one has been detected.");
@@ -284,7 +301,7 @@ public:
         }*/
 
         // Publish output with new information
-        output.objects_vector = only_people;
+        output.objects_vector = only_trackers;
         pub_.publish(output);
     }
 
@@ -295,6 +312,7 @@ private:
 
     KalmanFilter filter1;
     std::vector<tracked_person> tracked_people;
+    std::vector<object_msgs::ObjectInBox> only_trackers;
 
 
 };//End of class SubscribeAndPublish
