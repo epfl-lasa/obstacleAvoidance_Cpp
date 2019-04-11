@@ -1,11 +1,11 @@
 <sdf version='1.6'>
   <world name='default'>
   
-  <include>
+   <include>
       <uri>model://willowgarage</uri>
       <name>willow_garage</name>
       <pose>-9.7 -34.5 -0.05 0 0 0</pose>
-   </include>
+   </include> 
 
    <include>
       <uri>model://fountain</uri>
@@ -64,7 +64,7 @@
     <include>
       <uri>model://person_standing</uri>
       <name>person_standing2</name>
-      <pose>8.0 -9 0 0 0 3.1415</pose>
+      <pose>7.6 -9 0 0 0 3.1415</pose>
    </include>
 
    <include>
@@ -81,7 +81,7 @@
 
     <light name='sun' type='directional'>
       <cast_shadows>1</cast_shadows>
-      <pose frame=''>0 0 10 0 -0 0</pose>
+      <pose frame=''>5 5 10 0 -0 0</pose>
       <diffuse>0.8 0.8 0.8 1</diffuse>
       <specular>0.1 0.1 0.1 1</specular>
       <attenuation>
@@ -90,7 +90,7 @@
         <linear>0.01</linear>
         <quadratic>0.001</quadratic>
       </attenuation>
-      <direction>-0.5 0.5 -1</direction>
+      <direction> -0.2 0.2 -1</direction>
     </light>
 
 
