@@ -23,7 +23,7 @@ using Grid   = Eigen::MatrixXi;
 using State  = Eigen::Matrix<float, 3, 1>; // State is an alias to represent a column vector with three components
 
 
-struct PointFill
+struct PointFill // Simple structure of a 2D point
 {
     int x;
     int y;
@@ -34,11 +34,11 @@ Point get_center(Blob const& blob); // get the center cell of a blob of cells
 
 Point get_random(Blob const& blob, int const& limit=0); // get a random cell of a blob of cells
 
-bool isPart(Blob const& blob, float const& x, float const& y); // check if a point is part of a blob
+bool isPart(Blob const& blob, float const& x, float const& y); // check if a cell is part of a blob
 
-bool isPartBorder(Border const& border, float const& x, float const& y);
+bool isPartBorder(Border const& border, float const& x, float const& y); // check if a cell belongs to the input border starting from the first row
 
-bool isPartBorderReverse(Border const& border, float const& x, float const& y);
+bool isPartBorderReverse(Border const& border, float const& x, float const& y); // check if a cell belongs to the input border starting from the last row
 
 bool check_direction(Blob const& obstacle, Point const& point, int const& direction); // check if the targeted cell is part of the obstacle
 
@@ -46,15 +46,15 @@ Blob fill_gaps(Blob const& obstacle); // fill the 1-cell wide gaps in an obstacl
 
 Blob fill_gaps_with_grid(Blob const& obstacle, Grid & occupancy_grid); // fill the 1-cell wide gaps in an obstacle and update occupancy grid
 
-void update_border(Border & border, Point const& position, int const& previous_direction, int const& next_direction); // find the next direction to follow the sides of the obstacles
+void update_border(Border & border, Point const& position, int const& previous_direction, int const& next_direction); // add elements to the border to follow the sides of the obstacles depending on the direction taken
 
-void add_to_border(Border & border, int const& x, int const& y, int const& type, float const& charac_1, float const& charac_2); // add the given cell to the border and save its characteristics
+void add_to_border(Border & border, int const& x, int const& y, int const& type, float const& charac_1, float const& charac_2); // add the given cell to the border with its characteristics
 
 void update_position(Point & current_position, int const& direction); // update the position of a point after a step in a given direction
 
-Border compute_border_and_fill(Blob const& obstacle, Point const& center, Grid & occupancy_grid); // follow the sides of the obstacle to create its border incrementally and update occupancy grid
+Border compute_border_and_fill(Blob const& obstacle, Point const& start_point, Grid & occupancy_grid); // follow the sides of the obstacle to create its border incrementally and update occupancy grid
 
-Border compute_border(Blob const& obstacle, Point const& center); // follow the sides of the obstacle to create its border incrementally
+Border compute_border(Blob const& obstacle, Point const& start_point); // follow the sides of the obstacle to create its border incrementally
 
 void display_border(Blob const& obstacle, Border const& border); // display the border in the console (simplified graphic representation)
 
@@ -63,9 +63,9 @@ void remove_end_duplicate(Border & border); // Function to remove the few duplic
 Blob expand_obstacle(Blob const& obstacle, int const& n_cells); // expand an obstacle by a given number of cells
 // idea: border detection -> fill the border -> border detection -> fill the border -> ...   n_cells times
 
-Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& state_robot, float const& limit_range, float const& size_of_cells);
+Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& state_robot, float const& limit_range, float const& size_of_cells); // expand the occupied cells of an occupancy grid by a given number of cells
 
-Eigen::Matrix<float, 1, 6> find_closest_point(Eigen::Matrix<float,1,2>  const& robot, Border const& border); // return [x, y, type, charac_1, charac_2, distance_to_robot^2]
+Eigen::Matrix<float, 1, 6> find_closest_point(Eigen::Matrix<float,1,2>  const& robot, Border const& border); // find the closest cell of a given border
 
 Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest); // return the Gamma distance of a point knowing its closest border cell
 // as well as the reference vector (point - projected_point_on_the_border)
@@ -76,12 +76,16 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
 // Just like compute_quiver but with a small variation to be able to plot a "streamplot" with Matplotlib
 void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles, int const& ID=-1);
 
+void compute_morphing(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles); // compute morphing between initial and circle spaces
+
+void compute_trajectory_both_spaces(State const& state_robot, State const& state_attractor, std::vector<Blob> obstacles); // compute trajectory in initial and circle spaces
+
 Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& size_side_cell); // for a given point it returns the center of the closest cell of the grid
 
-State next_step_single_obstacle_border(State const& state_robot, State const& state_attractor, Border const& border); // compute the velocity command of the robot
+State next_step_single_obstacle_border(State const& state_robot, State const& state_attractor, Border const& border); // compute the velocity command of the robot (version with no limit distance)
 // based on its relative position to the border of a single obstacle
 
-State next_step_several_obstacles_border( State const& state_robot, State const& state_attractor, std::vector<Border> const& borders);
+State next_step_several_obstacles_border( State const& state_robot, State const& state_attractor, std::vector<Border> const& borders); // compute the velocity command of the robot with several obstacles (version with no limit distance)
 
 Eigen::Matrix<float, 1, 2> get_projection_on_border(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest, float const& angle); // project a point on the border of an obstacle
 // for a given point and knowing the closest border cell (position and line/arc of circle), one can project the point onto the border
@@ -102,10 +106,9 @@ int other_side_obstacle(Border const& border, int const& row, int const& col); /
 void explore_obstacle( Blob & obstacle, Grid & occupancy_grid, int const& row, int const& col); // explore an obstacle to detect all its cells
 // start from one cell and a recursive function gradually explores nearby cells and checks if they are occupied (i.e part of the obstacle)
 
-// TEST FOR NEW OBSTACLE AVOIDANCE METHOD
-Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance);
+Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance); // compute the relative weights of obstacles in the limit range
 
-State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells);
+State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells); // compute the velocity command for a given position of the robot/attractor/obstacles
 
 Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State const& state_attractor, Border const& border); // compute the next step with the special method for a single obstacle
 // output is velocity_command stacked with gamma

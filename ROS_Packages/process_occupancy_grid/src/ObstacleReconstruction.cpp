@@ -5,18 +5,18 @@ float myRad = 0.1;
 const float size_cell = 1.0;
 const float margin = 0.5;
 
-Point get_center(Blob const& blob)
+Point get_center(Blob const& blob) // Get the center of a group of cells by computing the mean of the positions of the cells along x and y
 {
     Point res = blob.colwise().mean();
     return res;
 }
 
-Point get_random(Blob const& blob, int const& limit)
+Point get_random(Blob const& blob, int const& limit) // Get a random cell among a group of cells
 {
     Point res;
     int i = 0;
-    std::srand(42);
-    if (limit==0)
+    std::srand(42); // random seed
+    if (limit==0) // default value of limit
     {
         i = rand() % blob.rows(); // between 0 and blob.rows - 1
     }
@@ -24,53 +24,55 @@ Point get_random(Blob const& blob, int const& limit)
     {
         i = rand() % limit; // between 0 and limit - 1
     }
-    res(0,0) = blob(i,0);
-    res(0,1) = blob(i,1);
+    res(0,0) = blob(i,0); // assign x
+    res(0,1) = blob(i,1); // assign y
     return res;
 }
 
-bool isPart(Blob const& blob, float const& x, float const& y)
+bool isPart(Blob const& blob, float const& x, float const& y) // check if a point is part of a blob
 {
-    for (int i=0; i<blob.rows(); i++)
+    for (int i=0; i<blob.rows(); i++) // for each cell in the blob
     {
-        if ((x==blob(i,0)) && (y==blob(i,1)))
+        if ((x==blob(i,0)) && (y==blob(i,1))) // check if the cell has the same coordinates (i.e if it is the same cell)
         {
-            return true;
+            return true; // is part of the input blob
         }
     }
-    return false;
+    return false; // is not part of the input blob
 }
 
-bool isPartBorder(Border const& border, float const& x, float const& y)
+bool isPartBorder(Border const& border, float const& x, float const& y) // check if a cell belongs to the input border starting from the first row
 {
-    for (int i=0; i<border.rows(); i++)
+    for (int i=0; i<border.rows(); i++) // for each cell in the border starting from the first
     {
-        if ((x==border(i,0)) && (y==border(i,1)))
+        if ((x==border(i,0)) && (y==border(i,1))) // check if the cell has the same coordinates (i.e if it is the same cell)
         {
-            return true;
+            return true; // is part of the input border
         }
     }
-    return false;
+    return false; // is not part of the input border
 }
 
-bool isPartBorderReverse(Border const& border, float const& x, float const& y)
+bool isPartBorderReverse(Border const& border, float const& x, float const& y) // check if a cell belongs to the input border starting from the first row
 {
-    for (int i=border.rows()-1; i>0; i--)
+    for (int i=border.rows()-1; i>0; i--) // for each cell in the border starting from the last
     {
-        if ((x==border(i,0)) && (y==border(i,1)))
+        if ((x==border(i,0)) && (y==border(i,1))) // check if the cell has the same coordinates (i.e if it is the same cell)
         {
-            return true;
+            return true; // is part of the input border
         }
     }
-    return false;
+    return false; // is not part of the input border
 }
 
 
-bool check_direction(Blob const& obstacle, Point const& point, int const& direction)
+bool check_direction(Blob const& obstacle, Point const& point, int const& direction) // check if the targeted cell is part of the obstacle
 {
     // Directions are:  3 2 1
     //                  4   0
     //                  5 6 7
+    // With positive X towards the right and positive Y towards the top
+    // For instance if point is at (2,2) and direction is 3 then it checks if cell (1,3) is part of the input blob "obstacle"
     switch(direction) {
     case 0 : if (isPart(obstacle, point(0,0)+1, point(0,1)  )) {return true;};
              break;       // exits the switch
@@ -88,38 +90,48 @@ bool check_direction(Blob const& obstacle, Point const& point, int const& direct
              break;       // exits the switch
     case 7 : if (isPart(obstacle, point(0,0)+1, point(0,1)-1)) {return true;};
              break;       // exits the switch
-    default: throw std::invalid_argument("Direction must be an integer between 0 and 7." );
+    default: throw std::invalid_argument("Direction must be an integer between 0 and 7." ); // Not supposed to happen
              break;
     }
     return false;
 }
 
 
-Blob fill_gaps(Blob const& obstacle)
+Blob fill_gaps(Blob const& obstacle) // fill the 1-cell wide gaps in an obstacle
 {
-    Eigen::Matrix<int, 1, 2> mini = obstacle.colwise().minCoeff();
-    Eigen::Matrix<int, 1, 2> maxi = obstacle.colwise().maxCoeff();
-    Eigen::MatrixXi grid = Eigen::MatrixXi::Zero(maxi(0,0)-mini(0,0)+1+2, maxi(0,1)-mini(0,1)+1+2);
+    // Finding a box which encloses the obstacle to avoid manipulating a really big matrix
+    Eigen::Matrix<int, 1, 2> mini = obstacle.colwise().minCoeff(); // minimum coordinates along x and y
+    Eigen::Matrix<int, 1, 2> maxi = obstacle.colwise().maxCoeff(); // maximum coordinates along x and y
+    Eigen::MatrixXi grid = Eigen::MatrixXi::Zero(maxi(0,0)-mini(0,0)+1+2, maxi(0,1)-mini(0,1)+1+2); // box which encloses the obstacle with a 1-cell margin all around it
+
+    // For instance a 2x2 obstacle will end in a box like that (. is free and x is occupied)
+    // . . . .
+    // . x x .
+    // . x x .
+    // . . . .
 
     // Fill a grid with occupied cells
-    //int counter = 0;
     Blob filled_gaps;
     for (int i=0; i<obstacle.rows(); i++)
     {
-        grid(obstacle(i,0)-mini(0,0)+1,obstacle(i,1)-mini(0,1)+1) = 1;
+        grid(obstacle(i,0)-mini(0,0)+1,obstacle(i,1)-mini(0,1)+1) = 1; // copy the obstacle from the huge occupancy map matrix to the small matrix that is just the right size to contain it
     }
 
-    for (int i=1; i<(grid.rows()-1); i++)
+    for (int i=1; i<(grid.rows()-1); i++) // first and last rows are margin so no need to scan them
     {
-        for (int j=1; j<(grid.cols()-1); j++)
+        for (int j=1; j<(grid.cols()-1); j++) // first and last cols are margin so no need to scan them
         {
-            if ((grid(i,j)==0) && ((grid(i-1,j)+grid(i+1,j)+grid(i,j-1)+grid(i,j+1))>=3))
+            if ((grid(i,j)==0) && ((grid(i-1,j)+grid(i+1,j)+grid(i,j-1)+grid(i,j+1))>=3)) // if the cell is occupied and there is at least 3 occupied cells nearby it means it's a 1-cell wide gap
             {
-                grid(i,j) = 1;
+                grid(i,j) = 1; // fill the gap
                 filled_gaps.conservativeResize(filled_gaps.rows()+1, Eigen::NoChange);
-                filled_gaps.row(filled_gaps.rows()-1) << i-1+mini(0,0),j-1+mini(0,1);
+                filled_gaps.row(filled_gaps.rows()-1) << i-1+mini(0,0),j-1+mini(0,1); // append the occupied cell to the obstacle
                 i -= 1; // go 1 row up
-                if (i<1) {i=1;}
+                // . . .
+                // x . x // this gap is not filled (sum == 2)
+                // x . x // this gap is filled (sum == 3), but we need to recheck the row above because now the gap is going to be filled since the sum is not 2 anymore
+                // x x x
+                if (i<1) {i=1;} // if we were already at the first row
                 j = 0;  // restart at beginning of the row (j++ will make it 1)
             }
         }
@@ -138,32 +150,43 @@ Blob fill_gaps(Blob const& obstacle)
     return result;
 }
 
-Blob fill_gaps_with_grid(Blob const& obstacle, Grid & occupancy_grid)
+Blob fill_gaps_with_grid(Blob const& obstacle, Grid & occupancy_grid) // fill the 1-cell wide gaps in an obstacle and update occupancy grid
 {
-    Eigen::Matrix<int, 1, 2> mini = obstacle.colwise().minCoeff();
-    Eigen::Matrix<int, 1, 2> maxi = obstacle.colwise().maxCoeff();
-    Eigen::MatrixXi grid = Eigen::MatrixXi::Zero(maxi(0,0)-mini(0,0)+1+2, maxi(0,1)-mini(0,1)+1+2);
+    // Finding a box which encloses the obstacle to avoid manipulating a really big matrix
+    Eigen::Matrix<int, 1, 2> mini = obstacle.colwise().minCoeff(); // minimum coordinates along x and y
+    Eigen::Matrix<int, 1, 2> maxi = obstacle.colwise().maxCoeff(); // maximum coordinates along x and y
+    Eigen::MatrixXi grid = Eigen::MatrixXi::Zero(maxi(0,0)-mini(0,0)+1+2, maxi(0,1)-mini(0,1)+1+2); // box which encloses the obstacle with a 1-cell margin all around it
+
+    // For instance a 2x2 obstacle will end in a box like that (. is free and x is occupied)
+    // . . . .
+    // . x x .
+    // . x x .
+    // . . . .
 
     // Fill a grid with occupied cells
-    //int counter = 0;
     Blob filled_gaps;
     for (int i=0; i<obstacle.rows(); i++)
     {
-        grid(obstacle(i,0)-mini(0,0)+1,obstacle(i,1)-mini(0,1)+1) = 1;
+        grid(obstacle(i,0)-mini(0,0)+1,obstacle(i,1)-mini(0,1)+1) = 1; // copy the obstacle from the huge occupancy map matrix to the small matrix that is just the right size to contain it
     }
+    // TODO: Optimization using .block directly from the occupancy grid?
 
-    for (int i=1; i<(grid.rows()-1); i++)
+    for (int i=1; i<(grid.rows()-1); i++) // first and last rows are margin so no need to scan them
     {
-        for (int j=1; j<(grid.cols()-1); j++)
+        for (int j=1; j<(grid.cols()-1); j++) // first and last cols are margin so no need to scan them
         {
-            if ((grid(i,j)==0) && ((grid(i-1,j)+grid(i+1,j)+grid(i,j-1)+grid(i,j+1))>=3))
+            if ((grid(i,j)==0) && ((grid(i-1,j)+grid(i+1,j)+grid(i,j-1)+grid(i,j+1))>=3)) // if the cell is occupied and there is at least 3 occupied cells nearby it means it's a 1-cell wide gap
             {
-                grid(i,j) = 1;
-                occupancy_grid(i+mini(0,0)-1,j+mini(0,1)-1) = 100;
+                grid(i,j) = 1; // fill the gap
+                occupancy_grid(i+mini(0,0)-1,j+mini(0,1)-1) = 100; // update the occupancy_grid (occupied = 100, free = 0)
                 filled_gaps.conservativeResize(filled_gaps.rows()+1, Eigen::NoChange);
                 filled_gaps.row(filled_gaps.rows()-1) << i-1+mini(0,0),j-1+mini(0,1);
                 i -= 1; // go 1 row up
-                if (i<1) {i=1;}
+                // . . .
+                // x . x // this gap is not filled (sum == 2)
+                // x . x // this gap is filled (sum == 3), but we need to recheck the row above because now the gap is going to be filled since the sum is not 2 anymore
+                // x x x
+                if (i<1) {i=1;}  // if we were already at the first row
                 j = 0;  // restart at beginning of the row (j++ will make it 1)
             }
         }
@@ -176,11 +199,73 @@ Blob fill_gaps_with_grid(Blob const& obstacle, Grid & occupancy_grid)
     return result;
 }
 
-void update_border(Border & border, Point const& position, int const& previous_direction, int const& next_direction)
+void update_border(Border & border, Point const& position, int const& previous_direction, int const& next_direction) // add elements to the border to follow the sides of the obstacles depending on the direction taken
 {
-    const int x = position(0,0);
+    const int x = position(0,0); // position of the current cell
     const int y = position(0,1);
-    switch(previous_direction) {
+    // Directions are
+    // 3 2 1
+    // 4   0
+    // 5 6 7
+    // For instance if we have a 2x2 obstacle
+    // . . . .
+    // . x x .
+    // . x x .
+    // . . . .
+    // If we are at the bottom right corner, the previous_previous direction is 0 (we went from bottom left to bottom right) and the next_direction is 2 (go to top right as we move counter-clockwise)
+    // so we have to add three cell to the border to make the "corner"
+    // . . . .
+    // . x x .
+    // . x x |
+    // . . - /
+    // The final border being
+    // / - - \
+    // | x x |
+    // | x x |
+    // \ - - /
+
+    // Obstacle:
+    // . . . . . . . .
+    // . / - - - - \ .
+    // . | x x x x | .
+    // . | x x x x | .
+    // . | x x / - / .
+    // . \ - - / . . .
+    // . . . . . . . .
+
+    // Format of straight line : [x_cell, y_cell, 1, x_dir, y_dir]
+    // "|" on the left  will have x_dir = -1 and y_dir = 0 because their normal vector points to the left
+    // "|" on the right will have x_dir =  1 and y_dir = 0 because their normal vector points to the right
+    // "-" on the top    will have x_dir = 0 and y_dir =  1 because their normal vector points to the top
+    // "-" on the bottom will have x_dir = 0 and y_dir = -1 because their normal vector points to the bottom
+
+    // Format of an outward arc of circle : [x_cell, y_cell, 2, unused, pos_center]
+    // Pos center is a convention I defined to make a difference between the four quarters of circle
+    // Pos 0  Pos 1  Pos 2  Pos 3
+    //  - \    / -    | x    x |
+    //  x |    | x    \ -    - /
+    // The normal vector is going outward, from x to the \ or /
+    // You use this type for convex corners like the four corners or a square
+
+    // Format of an inward arc of circle : [x_cell, y_cell, 3, unused, pos_center]
+    // Pos center is a convention I defined to make a difference between the four quarters of circle
+    // Pos 0  Pos 1  Pos 2  Pos 3
+    //  - \    / -    | x    x |
+    //  x |    | x    \ -    - /
+    // The normal vector is going inward, from \ or / to x
+    // You use this type for concave corners like the two corners inside a U shaped obstacle
+
+    // With the pos_center (six arcs of type 2 and two arcs of type 3)
+    // . . . . . . . . .
+    // . 1 - 0 . 1 - 0 .
+    // . | x | . | x | .
+    // . | x | . | x | .
+    // . | x 0 - 1 x | .
+    // . | x x x x x | .
+    // . 2 - - - - - 3 .
+    // . . . . . . . . .
+
+    switch(previous_direction) { // depending on which direction was taken to get to the current cell
     case 0 : switch(next_direction) {
             case 0: add_to_border(border, x, y-1, 1, 0, -1); break;
             case 1: add_to_border(border, x, y-1, 1, 0, -1); add_to_border(border, x+1, y-1, 2, myRad, 3); add_to_border(border, x+1, y, 3, myRad, 1);  break;
@@ -269,26 +354,29 @@ void update_border(Border & border, Point const& position, int const& previous_d
             case 7: add_to_border(border, x-1, y, 3, myRad, 0); add_to_border(border, x-1, y-1, 2, myRad, 2); add_to_border(border, x, y-1, 3, myRad, 0);  break;
             }
              break;       // exits the switch
-    default: throw std::invalid_argument("Direction must be an integer between 0 and 7." );
+    default: throw std::invalid_argument("Direction must be an integer between 0 and 7." ); // Should not happen
              break;
     }
 
 }
 
-void add_to_border(Border & border, int const& x, int const& y, int const& type, float const& charac_1, float const& charac_2)
+void add_to_border(Border & border, int const& x, int const& y, int const& type, float const& charac_1, float const& charac_2)  // add the given cell to the border with its characteristics
 {
     if (!isPartBorderReverse( border, x, y)) // if not already part of the border
     {
         border.conservativeResize(border.rows()+1, Eigen::NoChange);
-        border.row(border.rows()-1) << x, y, type, charac_1, charac_2;
+        border.row(border.rows()-1) << x, y, type, charac_1, charac_2; // append new border cell at the end
     }
 }
 
-void update_position(Point & current_position, int const& direction)
+void update_position(Point & current_position, int const& direction) // update the position of a point after a step in a given direction
 {
-        // Directions are:  3 2 1
+    // Directions are:  3 2 1
     //                  4   0
     //                  5 6 7
+    // With positive X towards the right and positive Y towards the top
+    // If the point is at position (3,3) and we take a step in direction 1 then the point is now at position (4,4)
+    // If the point is at position (3,3) and we take a step in direction 6 then the point is now at position (3,2)
     switch(direction) {
     case 0 : current_position(0,0) += 1;
              break;       // exits the switch
@@ -306,55 +394,77 @@ void update_position(Point & current_position, int const& direction)
              break;       // exits the switch
     case 7 : current_position(0,0) += 1; current_position(0,1) -= 1;
              break;       // exits the switch
-    default: throw std::invalid_argument("Direction must be an integer between 0 and 7." );
+    default: throw std::invalid_argument("Direction must be an integer between 0 and 7." ); // Should not happen
              break;
     }
 }
 
-Border compute_border_and_fill(Blob const& obstacle, Point const& center, Grid & occupancy_grid)
+Border compute_border_and_fill(Blob const& obstacle, Point const& start_point, Grid & occupancy_grid) // follow the sides of the obstacle to create its border incrementally and update occupancy grid
 {
-    Border border;
-    Blob filled_obstacle = fill_gaps_with_grid(obstacle, occupancy_grid); // Fill the gaps in the obstacle
+    // Border border;
+    Blob filled_obstacle = fill_gaps_with_grid(obstacle, occupancy_grid); // Fill the 1-wide gaps in the obstacle and update the occupancy grid accordingly
 
-    return compute_border( filled_obstacle, center);
+    return compute_border( filled_obstacle, start_point); // Compute the border of the filled obstacle
 }
-Border compute_border(Blob const& obstacle, Point const& center)
+
+Border compute_border(Blob const& obstacle, Point const& start_point) // follow the sides of the obstacle in a counter-clockwise direction to create its border incrementally
 {
 
     Border border;
     // Fill the gaps in the obstacle
     Blob filled_obstacle = fill_gaps(obstacle);
-    // Reach the right border starting from the center
-    Point target = center;
-    while (isPart(filled_obstacle, target(0,0), target(0,1)))
+    // TODO: Check if it is still needed since if the function is called from compute_border_and_fill then the obstacle is already filled.
+
+    // Reach the right border by starting from start_point and going to the right till we reach a free cell (i.e the border)
+    Point target = start_point;
+    while (isPart(filled_obstacle, target(0,0), target(0,1))) // go right till we reach the border
     {
         target(0,0) += 1;
     }
-    target(0,0) -= 1;
+    target(0,0) -= 1; // go on step to the left to get back in the obstacle
+
+    // Now we want to know from which which is the previous direction to get to this cell if we were following the border
+    // If the obstacle is like that (x occupied, . free, s starting point)
+    // x x x .
+    // x x x .
+    // s x x .
+    // x x . .
+    // So we go right till we reach the . (c current cell, p previous cell if we were following the border counter clockwise)
+    // x x x .
+    // x x x .
+    // x x c .
+    // x p . .
+    // If we were following the border, it means the previous_direction is 1 because we would have went to the top-right from the p cell.
+
     Point start = target;
     Point current_pos = target;
-    int previous_dir = 2;
-    int next_dir = 7;
+    int previous_dir = 2; // default value, should not matter I think
+    int next_dir = 7; // direction 6 from c is a free cell since we stopped for this exact reason
+    // so the first direction to check for to find the p cell is bottom right (7) then counter clockwise till every direction is checked
+    // Once the previous cell has been found, we add 4 to the direction we used to find it since we would have been coming from that cell
+    // With the example above, we find the p cell by checking direction 5 so it means the previous direction is 1 (5+4 modulo 8)
+
     // Retrieve previous direction from starting position to ensure that the border is correctly created for the first step
     bool flag_start = true;
     while (flag_start)
     {
-        if (check_direction(filled_obstacle, current_pos, next_dir))
+        if (check_direction(filled_obstacle, current_pos, next_dir)) // check if the cell in that direction is occupied
         {
-            previous_dir = next_dir;
+            previous_dir = next_dir; // if it is occupied we stop and assign the direction to previous_dir
             flag_start = false;
         }
         else
         {
-            next_dir -= 1;
-            if (next_dir==0) {flag_start = false;}
+            next_dir -= 1; // we check clockwise
+            if (next_dir==0) {flag_start = false;} // should not happen or else it means the c cell is not surrounded by any cell
         }
     }
     previous_dir += 4;
     if (previous_dir >= 8) {previous_dir-=8;} // I am not using std::remainder because it returns a float (could cast it to int)
     int initial_previous_dir = previous_dir; // Used later
-    next_dir = 1;
+    next_dir = 1; // we start to check counter-clockwise from direction 1 since we already know that cell in direction 0 is free (we stopped because of that)
     flag_start = true;
+
     //check_direction(obstacle, current, next_dir);
     // Follow border till we come back to the initial position
     //std::cout << "(" << current_pos(0,0) << "," << current_pos(0,1) << ")" << std::endl;
@@ -365,31 +475,51 @@ Border compute_border(Blob const& obstacle, Point const& center)
         {
             //std::cout << "(" << current_pos(0,0) << "," << current_pos(0,1) << ") and going from " << previous_dir << " to " << next_dir << std::endl;
 
-            // go to next
-            update_border(border, current_pos, previous_dir, next_dir);
-            update_position(current_pos, next_dir);
-            previous_dir = next_dir;
-            next_dir = previous_dir - 1;
+            // go to next cell
+            update_border(border, current_pos, previous_dir, next_dir); // add the correct elements to the border container
+            update_position(current_pos, next_dir); // update the position of the current cell
+            previous_dir = next_dir; // update previous direction taken
+            next_dir = previous_dir - 1; // start by checking from previous dir - 1 because previous dir - 2 is free since we filled 1 wide gaps
+            // x x ?
+            // c . ?
+            // In this case, we go from c to top-middle cell (so direction 1).
+            // x c ?
+            // x . ?
+            // Direction 6 is obviously free or else we would have taken direction 0 during the previous step
+            // Should we check direction 7? No because if the bottom-right cell is occupied then the bottom-middle cell is a 1-wide gap so it would have been filled during the fill_obstacle step
+            // As bottom-middle is free, it implies that bottom-right is also free, the first direction to check is direction 0 (top-right cell). Direction 0 is indeed previous dir - 1 in this case
+            // You can have the same reasoning for other cases and it's always previous_dir - 1 that you should check first
+
             if (next_dir<0) {next_dir = 7;}
             flag_start = false;
         }
         else
         {
-            next_dir += 1;
+            next_dir += 1; // we check counter-clockwise
             if (next_dir==8) {next_dir = 0;}
         }
 
-    } while((flag_start)|| !((current_pos(0,0)==start(0,0))&&(current_pos(0,1)==start(0,1)&&(previous_dir==initial_previous_dir))));
+    } while((flag_start)|| !((current_pos(0,0)==start(0,0))&&(current_pos(0,1)==start(0,1)&&(previous_dir==initial_previous_dir)))); // while we do not come back to the starting cell with the initial previous direction
+    // initial previous direction is important because if the obstacle is very thin we may pass twice at the starting cell, for instance
+    // . . . . . . .
+    // . x . . . x .
+    // . x . . . x .
+    // . x x p s . .
+    // . . . . . . .
+    // With s the occupied starting cell, we will pass twice when following the border
+    // previous initial dir in this case is 0 (coming from occupied cell p)
+
+    // Perform one last step to properly close the border
     flag_start = true;
     while (flag_start)
     {
         if (check_direction(filled_obstacle, current_pos, next_dir))
         {
             // go to next
-            update_border(border, current_pos, previous_dir, next_dir);
-            update_position(current_pos, next_dir);
-            previous_dir = next_dir;
-            next_dir = previous_dir - 1;
+            update_border(border, current_pos, previous_dir, next_dir); // add the correct elements to the border container
+            update_position(current_pos, next_dir); // update the position of the current cell
+            previous_dir = next_dir; // update previous direction taken
+            next_dir = previous_dir - 1; // start by checking from previous dir - 1
             if (next_dir<0) {next_dir = 7;}
             flag_start = false;
             //std::cout << "(" << current_pos(0,0) << "," << current_pos(0,1) << ")" << std::endl;
@@ -401,12 +531,12 @@ Border compute_border(Blob const& obstacle, Point const& center)
         }
     }
 
-    remove_end_duplicate(border);
+    remove_end_duplicate(border); // remove duplicates in the border container as the last step we take to properly close the border creates some duplicates
 
     return border;
 }
 
-void display_border(Blob const& obstacle, Border const& border)
+void display_border(Blob const& obstacle, Border const& border) // display the border in the console (simplified graphic representation)
 {
     Eigen::Matrix<int, 1, 2> mini = obstacle.colwise().minCoeff();
     Eigen::Matrix<int, 1, 2> maxi = obstacle.colwise().maxCoeff();
@@ -417,8 +547,7 @@ void display_border(Blob const& obstacle, Border const& border)
     {
         for (int j=0; j<grid.cols();j++)
         {
-            display_storage[i][j] = ".";
-
+            display_storage[i][j] = "."; // all cells are initially free so "."
         }
     }
 
@@ -426,16 +555,16 @@ void display_border(Blob const& obstacle, Border const& border)
     for (int i=0; i<obstacle.rows(); i++)
     {
         grid(obstacle(i,0)-mini(0,0)+1,obstacle(i,1)-mini(0,1)+1) = 1;
-        display_storage[obstacle(i,0)-mini(0,0)+1][obstacle(i,1)-mini(0,1)+1] = "\u25A1";
+        display_storage[obstacle(i,0)-mini(0,0)+1][obstacle(i,1)-mini(0,1)+1] = "\u25A1"; // if cell is occupied then we put a square symbol in it
     }
     for (int i=0; i<border.rows(); i++)
     {
         grid(border(i,0)-mini(0,0)+1,border(i,1)-mini(0,1)+1) = 2;
         switch((int)(border(i,2))) {
-            case 1: if (border(i,3)==0) {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "\u007C";}
+            case 1: if (border(i,3)==0) {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "\u007C";} // long - and | symbols
                     else {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "\u2015";}
                     break;
-            case 2: if (border(i,4)==0) {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "/";}
+            case 2: if (border(i,4)==0) {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "/";} // corners, arc of circle characters are not displayed properly
                     else if (border(i,4)==1) {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "\\";}
                     else if (border(i,4)==2) {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "/";}
                     else  {display_storage[(int)(border(i,0))-mini(0,0)+1][(int)(border(i,1))-mini(0,1)+1] = "\\";}
@@ -458,12 +587,12 @@ void display_border(Blob const& obstacle, Border const& border)
     }
 }
 
-void remove_end_duplicate(Border & border)
+void remove_end_duplicate(Border & border) // Function to remove the few duplicates at the beginning/end of the border creation because we come back to the same cell
 {
     bool flag_end = false;
     while (!flag_end)
     {
-        int x = border(border.rows()-1,0); // load data of last row
+        int x = border(border.rows()-1,0); // load data of the current last row
         int y = border(border.rows()-1,1);
         for (int i=0;i<=border.rows()-2; i++)
         {
@@ -472,20 +601,22 @@ void remove_end_duplicate(Border & border)
                 border.conservativeResize(border.rows()-1,border.cols()); // remove last row because it is a duplicate
                 break;
             }
-            if (i==border.rows()-2) {flag_end = true;} // if not duplicate has been detected we stop
+            if (i==border.rows()-2) {flag_end = true;} // if no duplicate has been detected we stop
         }
     }
 }
 
 
-Blob expand_obstacle(Blob const& obstacle, int const& n_cells)
+Blob expand_obstacle(Blob const& obstacle, int const& n_cells) // expand an obstacle by a given number of cells
 {
-    Blob expanded_obs = fill_gaps(obstacle);
+    Blob expanded_obs = fill_gaps(obstacle); // fill 1-wide gaps in the obstacle
 
-    for (int i_expand=0; i_expand<n_cells; i_expand++)
+    for (int i_expand=0; i_expand<n_cells; i_expand++) // loop once for each expansion
     {
-        Point center_blob = get_random(expanded_obs);
-        Border expanded_border = compute_border( expanded_obs, center_blob);
+        Point starting_point = get_random(expanded_obs);
+        Border expanded_border = compute_border( expanded_obs, starting_point); // find the border of the current obstacle
+        // the border is actually a 1-wide ring of free cells around the obstacle
+        // so expanding the obstacle by 1 cell is just filling its border
 
         int N = expanded_obs.rows();
         expanded_obs.conservativeResize(N+expanded_border.rows(), Eigen::NoChange);
@@ -495,18 +626,23 @@ Blob expand_obstacle(Blob const& obstacle, int const& n_cells)
         }
     }
 
-    Border placeholder_border;
+    //Border placeholder_border;
     //display_border(expanded_obs, placeholder_border);
     return expanded_obs;
 }
 
-int ID_data = 0;
+int ID_data = 0; // variables used to save data to a file, may not be used
 long counter_frame = 0;
 
-Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& state_robot, float const& limit_range, float const& size_of_cells)
+Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& state_robot, float const& limit_range, float const& size_of_cells) // expand the occupied cells of an occupancy grid by a given number of cells
 {
-    // Only the cells in a given range around the robot has to been processed, the rest is discarded
+    // TODO: Optimization possible? We deal with big matrices so maybe something to do here
 
+    // Only the cells in a given range around the robot has to been processed, the rest is discarded
+    // Because out of this range the obstacles have a weight of 0 so what's the point of expanding them if
+    // they are going to have no influence on the velocity of the robot anyway
+
+    limit_dist = limit_range; // modify the global variable set in ObstacleAvoidance.h
 
     float offset = std::sqrt(limit_dist-1);//limit_range / size_of_cells;
     int x_min = static_cast<int>(std::round(state_robot(0,0)-offset));
@@ -514,51 +650,20 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     int y_min = static_cast<int>(std::round(state_robot(1,0)-offset));
     int y_max = static_cast<int>(std::round(state_robot(1,0)+offset));
 
-    /*std::cout << " OFFSET: " << offset << std::endl;
-    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
-
-    bool flag_occupied = false;
-    do {
-        flag_occupied = false;
-        if ( (grid.block(x_min, y_min, 1, y_max-y_min+1)).maxCoeff() > 1) // there is at least one occupied block on the bottom border (value 100)
-        {
-            flag_occupied = true;
-            x_min -= 1;
-        }
-        if ( (grid.block(x_max, y_min, 1, y_max-y_min+1)).maxCoeff() > 1) // there is at least one occupied block on the top border (value 100)
-        {
-            flag_occupied = true;
-            x_max += 1;
-        }
-        if ( (grid.block(x_min, y_min, x_max-x_min+1, 1)).maxCoeff() > 1) // there is at least one occupied block on the left border (value 100)
-        {
-            flag_occupied = true;
-            y_min -= 1;
-        }
-        if ( (grid.block(x_min, y_max, x_max-x_min+1, 1)).maxCoeff() > 1) // there is at least one occupied block on the right border (value 100)
-        {
-            flag_occupied = true;
-            y_max += 1;
-        }
-    } while (flag_occupied);
-
-    */
-    std::cout << x_min << " , " << x_max << " , " << y_min << " , " << y_max << std::endl;
+    // std::cout << " OFFSET: " << offset << std::endl;
+    // std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
 
 
-    // Select only the box around the robot
-    //Grid occupancy_res = grid.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1);
+    // Expand all occupied cells of the occupancy grid by n cells
     Grid occupancy_res = grid;
-    //std::cout << "After expansion of box: " << std::endl << occupancy_res << std::endl;
-
     for (int n=0; n<n_cells; n++)
     {
-        Grid occupancy_temp = occupancy_res;
-        for (int i=1; i<(occupancy_res.rows()-1); i++)
+        Grid occupancy_temp = occupancy_res; // occupancy grid at step n
+        for (int i=1; i<(occupancy_res.rows()-1); i++) // scan row i
         {
-           for (int j=1; j<(occupancy_res.cols()-1); j++)
+           for (int j=1; j<(occupancy_res.cols()-1); j++) // scan col j
            {
-               if (occupancy_temp(i,j) == 100)
+               if (occupancy_temp(i,j) == 100) // if occupied we fill the 4 neightbour cells
                {
                    occupancy_res(i+1,j) = 100;
                    occupancy_res(i-1,j) = 100;
@@ -568,27 +673,26 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
            }
         }
     }
-    //std::cout << "After expansion of box: " << std::endl << occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) << std::endl;
 
     // Output is an empty grid with the obstacle inside the limit distance
-    Grid output = Grid::Zero(grid.rows(), grid.cols());
-    output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1);;
+    Grid output = Grid::Zero(grid.rows(), grid.cols()); // empty grid the size of the input occupancy grid
+    output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1); // copy the obstacle in the limit range
 
-    // Detect all obstacles that have at least one cell in the square around the robot
+    // Detect all obstacles that have at least one cell in the limit square around the robot
     // For instance if one half of an obstacle is within the limit distance we also want
-    // to take into account the part that is outside the limit square
+    // to take into account the part that is outside the limit square because the whole shape of the obstacle matters
 
     Grid temp_grid = occupancy_res;
-    std::vector<Blob> all_detected = detect_blobs( temp_grid);
+    std::vector<Blob> all_detected = detect_blobs( temp_grid); // detect all blobs of occupied cells in the grid (i.e all obstacles)
     std::vector<Blob> inside_square;
-    for (int i_blob=0; i_blob < all_detected.size(); i_blob++)
+    for (int i_blob=0; i_blob < all_detected.size(); i_blob++) // check each detected blob
     {
         bool flag = true;
-        for (int i_cell=0; (flag)&&(i_cell < (all_detected[i_blob]).rows()); i_cell++)
+        for (int i_cell=0; (flag)&&(i_cell < (all_detected[i_blob]).rows()); i_cell++) // check each cell of this blob
         {
             int x = (all_detected[i_blob])(i_cell,0);
             int y = (all_detected[i_blob])(i_cell,1);
-            if ((x >= x_min) && (x <= x_max) && (y >= y_min) && (y <= y_max))
+            if ((x >= x_min) && (x <= x_max) && (y >= y_min) && (y <= y_max)) // if the considered blob has at least one cell in the limit range then we include it
             {
                 inside_square.push_back(all_detected[i_blob]);
                 flag = false;
@@ -597,42 +701,46 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     }
 
 
-
-
-    // Add obstacles inside square to occupancy grid (maybe it could be optimized by only doing it for
-    // those are not already completely inside the square)
+    // Add obstacles inside square to occupancy grid
+    // TODO: maybe it could be optimized by only doing it for those are not already completely inside the square
+    // Especially there is something not optimized with the line above "// copy the obstacle in the limit range"
+    // I think something is done twice
 
     std::cout << all_detected.size() << " obstacles detected in total" << std::endl;
-    std::cout << inside_square.size() << " obstacles partly inside the square" << std::endl;
+    std::cout << inside_square.size() << " obstacles partly inside the limit square" << std::endl;
 
-    for (int i_blob=0; i_blob < inside_square.size(); i_blob++)
+    for (int i_blob=0; i_blob < inside_square.size(); i_blob++) // for each blob partly/completely inside the limit square
     {
         for (int i_cell=0; i_cell < (inside_square[i_blob]).rows(); i_cell++)
         {
             int x = (inside_square[i_blob])(i_cell,0);
             int y = (inside_square[i_blob])(i_cell,1);
-            if (!((x >= x_min) && (x <= x_max) && (y >= y_min) && (y <= y_max))) // if outside the square
+            if (!((x >= x_min) && (x <= x_max) && (y >= y_min) && (y <= y_max))) // if outside the square we set the cell as occupied (if inside it is already done)
             {
                 output(x,y) = 100;
-                //std::cout << "Add (" << x << "," << y << ") | ";
             }
         }
         std::cout << std::endl;
     }
+    // TODO: Here there may be something to optimize, maybe a way to avoid the for loop and pass the whole obstacle directly
 
-    // Fill the holes in obstacles
+    // Fill the holes in obstacles (free cells that are enclosed in an obstacle, they mess with the border detection algorithm)
+
+    // We start from the cell the robot is standing one (which is a free cell)
+    // Then it works like a flood algorithm to detect all the free cells of the map
+    // Once all the free cells have been detected, by taking the negative of the map
+    // we got all occupied cell + free cells enclosed inside obstacles
+    // Then it's easy to scan this negative map to fill all enclosed free cells
     PointFill origin;
-    origin.x = static_cast<int>(std::round(state_robot(0,0)));//-x_min;
-    origin.y = static_cast<int>(std::round(state_robot(1,0)));//-y_min;
-    std::cout << "Origin: (" << origin.x << " , " << origin.y << std::endl;
-    float mysign = 1;
+    origin.x = static_cast<int>(std::round(state_robot(0,0)));
+    origin.y = static_cast<int>(std::round(state_robot(1,0)));
+    std::cout << "Origin of flood: (" << origin.x << " , " << origin.y << ")" << std::endl;
+
     float mycount = 1;
+    // If the cell the robot is standing one is not a free cell (if the robot touches an obstacle),
+    // trying to find the closest free cell
     while (output(origin.x, origin.y) == 100)
     {
-        /*origin.x += mycount * mysign;
-        mycount += 1;
-        mysign *= -1;*/
-
         if (output( static_cast<int>(origin.x+mycount), origin.y) != 100)
         {
             origin.x = static_cast<int>(origin.x+mycount);
@@ -656,21 +764,15 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
         mycount += 1;
     }
 
-    //TODO: Only do fillgrid for the square that include all obstacles partly inside the limit
+    // TODO: Only do fillgrid for the square that include all obstacles partly inside the limit
+    // Set limits inside fillGrid for the flood
 
     //std::cout << "Before fillGrid: " << std::endl << occupancy_res << std::endl;
-    fillGrid(origin, output);
+    fillGrid(origin, output); // function that performs the flood
     //std::cout << "After fillGrid: " << std::endl << occupancy_res << std::endl;
 
-    // Output only the content of the box centered on the robot
-    // The rest of the occupancy grid is discarded
-    //Grid output = Grid::Zero(grid.rows(), grid.cols());
-    //output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res;
-
-
-
-    // For display
-    if (std::remainder(counter_frame, 30) < 0.1)
+    // For display (save data to text files for matplotlib)
+    /*if (std::remainder(counter_frame, 30) < 0.1)
     {
         std::ofstream myrobotpos;
         if (ID_data==-1)
@@ -734,44 +836,87 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
 
         ID_data += 1;
     }
-    counter_frame += 1;
+    counter_frame += 1;*/
 
 
     return output;
 }
-////obstacle = expand_obstacle( obstacle, 2); // security margin of n cells
 
-Eigen::Matrix<float, 1, 6> find_closest_point(Eigen::Matrix<float,1,2> const& robot, Border const& border)
+
+Eigen::Matrix<float, 1, 6> find_closest_point(Eigen::Matrix<float,1,2> const& robot, Border const& border) // find the closest cell of a given border
 {
-    float min_distance = std::pow(robot(0,0)-border(0,0),2) + std::pow(robot(0,1)-border(0,1),2);
+    // TODO: Is it right to use the Euclidian distance? For Gamma = 1 + euclidian dist to surface it's ok but for the others?
+
+    float min_distance = std::pow(robot(0,0)-border(0,0),2) + std::pow(robot(0,1)-border(0,1),2); // distance to cell 0
     int i_closest = 0;
-    for (int i=1; i<border.rows(); i++)
+    for (int i=1; i<border.rows(); i++) // for each cell in the border (except the 0 one)
     {
         float distance = std::pow(robot(0,0)-border(i,0),2) + std::pow(robot(0,1)-border(i,1),2);
-        if (distance < min_distance)
+        if (distance < min_distance) // then it is closest then the current closest one
         {
             min_distance = distance;
             i_closest = i;
         }
     }
     Eigen::Matrix<float, 1, 6> res; res << border.row(i_closest), min_distance;
-    return res;
+    return res; // return [x, y, type, charac_1, charac_2, distance_to_robot^2]
 }
 
 std::ofstream mypoints;
 
-Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest)
-{
+Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest)// return the Gamma distance of a point knowing its closest border cell
+{  // as well as the reference vector (point - projected_point_on_the_border, the normal vector to the surface that goes through the robot)
    Eigen::Matrix<float, 4, 1> output; // output is transpose of [gamma, x, y, phi]
 
+   // Obstacle:
+   // . . . . . . . .
+   // . / - - - - \ .
+   // . | x x x x | .
+   // . | x x x x | .
+   // . | x x / - / .
+   // . \ - - / . . .
+   // . . . . . . . .
+
+   // Format of straight line : [x_cell, y_cell, 1, x_dir, y_dir]
+   // "|" on the left  will have x_dir = -1 and y_dir = 0 because their normal vector points to the left
+   // "|" on the right will have x_dir =  1 and y_dir = 0 because their normal vector points to the right
+   // "-" on the top    will have x_dir = 0 and y_dir =  1 because their normal vector points to the top
+   // "-" on the bottom will have x_dir = 0 and y_dir = -1 because their normal vector points to the bottom
+
+   // Format of an outward arc of circle : [x_cell, y_cell, 2, unused, pos_center]
+   // Pos center is a convention I defined to make a difference between the four quarters of circle
+   // Pos 0  Pos 1  Pos 2  Pos 3
+   //  - \    / -    | x    x |
+   //  x |    | x    \ -    - /
+   // The normal vector is going outward, from x to the \ or /
+   // You use this type for convex corners like the four corners or a square
+
+   // Format of an inward arc of circle : [x_cell, y_cell, 3, unused, pos_center]
+   // Pos center is a convention I defined to make a difference between the four quarters of circle
+   // Pos 0  Pos 1  Pos 2  Pos 3
+   //  - \    / -    | x    x |
+   //  x |    | x    \ -    - /
+   // The normal vector is going inward, from \ or / to x
+   // You use this type for concave corners like the two corners inside a U shaped obstacle
+
+   // With the pos_center (six arcs of type 2 and two arcs of type 3)
+   // . . . . . . . . .
+   // . 1 - 0 . 1 - 0 .
+   // . | x | . | x | .
+   // . | x | . | x | .
+   // . | x 0 - 1 x | .
+   // . | x x x x x | .
+   // . 2 - - - - - 3 .
+   // . . . . . . . . .
+
    float angle = 0;
-   if (data_closest(0,2)==1)
+   if (data_closest(0,2)==1) // if the closest cell is a straight line "-" or "|"
    {
        output.block(1,0,2,1) = data_closest.block(0,3,1,2).transpose(); // assign x,y
    }
-   else if ((data_closest(0,2)==2)||(data_closest(0,2)==3))
+   else if ((data_closest(0,2)==2)||(data_closest(0,2)==3)) // if the closest cell is an arc of circle
    {
-       switch (static_cast<int>(data_closest(0,4))) {
+       switch (static_cast<int>(data_closest(0,4))) { // depending on the origin of the arc of circle
             case 0: angle = std::atan2(robot(0,1)-(data_closest(0,1)-0.5* size_cell), robot(0,0)-(data_closest(0,0)-0.5* size_cell)); break;
             case 1: angle = std::atan2(robot(0,1)-(data_closest(0,1)-0.5* size_cell), robot(0,0)-(data_closest(0,0)+0.5* size_cell)); break;
             case 2: angle = std::atan2(robot(0,1)-(data_closest(0,1)+0.5* size_cell), robot(0,0)-(data_closest(0,0)+0.5* size_cell)); break;
@@ -783,10 +928,10 @@ Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot,
    {
         throw std::invalid_argument("Should not happen. Closest border cell has no type." );
    }
-   output(3,0) = 0; // assign phi
+   output(3,0) = 0; // assign phi (always 0)
 
    Eigen::Matrix<float, 1, 2> projected;
-   projected = get_projection_on_border( robot, data_closest, angle);
+   projected = get_projection_on_border( robot, data_closest, angle); // get the coordinates of the projection of the robot on the border
 
    // Checking if the robot is inside the obstacle (it can cross the boundary due to discretization)
    State normal_vec;
@@ -799,35 +944,38 @@ Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot,
     case 3:
         normal_vec << output(1,0), output(2,0), 0; break;
     }
+    // TODO: I think normal_vec << output(1,0), output(2,0), 0; works for the 3 cases so switch is useless
 
+
+    // If the robot is inside the border than the scalar product between normal_vec and the vector (robot - projection) will be negative
+    // as normal_point always points outward and (robot - projection) will point inwards
     State robot_vec; robot_vec << (robot(0,0)-projected(0,0)),(robot(0,1)-projected(0,1)),0;
     if (((data_closest(0,2)==1)||(data_closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0))
     {
         // if true it means the robot is inside obstacle
         output(0,0) = 1; // we set gamma to 1 to trick the controller into thinking the robot is on the border
         return output;
-
     }
     else if ((data_closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
     {
         output(0,0) = 1; // we set gamma to 1 to trick the controller into thinking the robot is on the border
         return output;
     }
-
     // End checking if robot is inside the obstacle
 
 
    //std::cout << "Projected: " << projected << std::endl;
    //mypoints << projected(0,0)  << "," << projected(0,1) << "\n";
-   output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + distance^2
+   output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + euclidian_distance^2
+   // TODO: Add call to a Gamma() function to centralize the computation of gamma at a single place
+   // That way if we want to change gamma we do it at a single place without the need to change stuff everywhere
 
    return output;
 }
 
+void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, Blob const& obstacle) // compute the velocity command for all points of a given grid
+{   // used with Python for visualization purpose (Quiver function of Matlab)
 
-
-void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, Blob const& obstacle)
-{
     // Compute the velocity command at the initial time for all points of a [x,y] grid
     // Save the result in a txt file and then use a Python script to plot the vector field (quiver) with matplotlib
     //const int number_obstacles = mat_obs.cols();
@@ -855,9 +1003,6 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
             flag = false;
             Eigen::Matrix<int, 2, 1> pos_cell;
             pos_cell = get_cell(x, y, size_cell);
-            //for (int i=0; i < number_obstacles; i++)
-            //{
-
 
             if (isPart(filled_obstacle, pos_cell(0,0), pos_cell(1,0)))// || isPartBorder(border_out, pos_cell(0,0), pos_cell(1,0)))
             {
@@ -870,7 +1015,6 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
                 Eigen::Matrix<float, 4, 1> output = next_step_special( state_robot, state_attractor, border_out); // compute special velocity with transform in circle space
                 State next_eps = output.block(0,0,3,1);
                 myfile << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
-
             }
         }
     }
@@ -879,7 +1023,8 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
 }
 
 void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles, int const& ID)
-{
+{   // Just like compute_quiver but with a small variation to be able to plot a "streamplot" with Matplotlib
+
     // Compute the velocity command at the initial time for all points of a [x,y] grid
     // Save the result in a txt file and then use a Python script to plot the vector field (quiver) with matplotlib
     //const int number_obstacles = mat_obs.cols();
@@ -956,11 +1101,118 @@ void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const
     std::cout << "-- Stream file closed --" << std::endl;
 }
 
+std::ofstream my_initial_space; // to store coordinates of points in the initial space
+std::ofstream my_circle_space;  // to store coordinates of points in the circle space
 
-Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& size_side_cell)
+void compute_morphing(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles)
+{   // compute morphing between initial and circle spaces
+    // used with Python for visualization purpose
+
+    // Compute the velocity command at the initial time for all points of a [x,y] grid
+    // Save the result in a txt file and then use a Python script to plot the vector field (quiver) with matplotlib
+    //const int number_obstacles = mat_obs.cols();
+    bool flag = false;
+
+    std::vector<Border> borders;
+    std::vector<Blob> filled_obstacles;
+
+
+    my_initial_space.open("Data_Initial_Space.txt");
+    my_circle_space.open("Data_Circle_Space.txt");
+
+    std::cout << "-- Morphing storage files opened --" << std::endl;
+
+    for (int i_obs=0; i_obs<obstacles.size(); i_obs++)
+    {
+        Point center_blob = get_random(obstacles[i_obs]);
+        Border border_out = compute_border( obstacles[i_obs], center_blob);
+        Blob filled_obstacle = fill_gaps(obstacles[i_obs]);
+
+        borders.push_back(border_out);
+        filled_obstacles.push_back(filled_obstacle);
+    }
+
+    for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
+    {
+        std::cout << x << std::endl;
+        for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
+        {
+            State state_robot; state_robot << x, y, 0; // the robot is set on the point of the grid
+            flag = false;
+            Eigen::Matrix<int, 2, 1> pos_cell;
+            pos_cell = get_cell(x, y, size_cell);
+
+            for (int i=0; i < obstacles.size(); i++)
+            {
+                if (isPart(filled_obstacles[i], pos_cell(0,0), pos_cell(1,0)))// || isPartBorder(border_out, pos_cell(0,0), pos_cell(1,0)))
+                {
+                    flag = true; // if the point/robot is inside an obstacle (distance < 1) then it makes no sense to compute its velocity command
+                }
+            }
+
+            if (!flag) // if not inside an obstacle
+            {
+                //State next_eps = next_step_single_obstacle_border( state_robot, state_attractor, border_out); // compute velocity command
+                State next_eps = next_step_special_weighted( state_robot, state_attractor, borders, size_cell); // compute special velocity with transform in circle space
+                my_initial_space << x << "," << y << "\n"; // write position of the point in the initial space
+            }
+            else
+            {
+                //myfile << x << "," << y << "," << 0 << "," << 0 << "\n"; // write result in text file
+            }
+        }
+    }
+    my_initial_space.close();
+    my_circle_space.close();
+    std::cout << "-- Morphing storage files closed --" << std::endl;
+}
+
+void compute_trajectory_both_spaces(State const& state_robot, State const& state_attractor, std::vector<Blob> obstacles) // compute trajectory in initial and circle spaces
+{   // used with Python for visualization purpose
+
+    bool flag = false;
+
+    std::vector<Border> borders;
+    std::vector<Blob> filled_obstacles;
+
+    my_initial_space.open("Trajectory_Initial_Space.txt");
+    my_circle_space.open("Trajectory_Circle_Space.txt");
+
+    std::cout << "-- Trajectory storage files opened --" << std::endl;
+
+    for (int i_obs=0; i_obs<obstacles.size(); i_obs++)
+    {
+        Point center_blob = get_random(obstacles[i_obs]);
+        Border border_out = compute_border( obstacles[i_obs], center_blob);
+        Blob filled_obstacle = fill_gaps(obstacles[i_obs]);
+
+        borders.push_back(border_out);
+        filled_obstacles.push_back(filled_obstacle);
+    }
+
+    int N_steps = 2300;
+    float time_step = 0.03; // time_step (does not have a physical sense)
+    State robot; robot = state_robot;
+
+    for (int i=0; i<N_steps; i++)
+    {
+        if (std::remainder(i,10)==0) {std::cout << i << std::endl;}
+        State next_eps = next_step_special_weighted( robot, state_attractor, borders, size_cell); // compute special velocity with transform in circle space
+        my_initial_space << robot(0,0) << "," << robot(1,0) << "\n"; // write position of the point in the initial space
+        robot += next_eps * time_step;
+    }
+    my_initial_space.close();
+    my_circle_space.close();
+    std::cout << "-- Trajectory storage files closed --" << std::endl;
+}
+
+
+Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& size_side_cell) // for a given point it returns the center of the closest cell of the grid
 {
-    float x_cell = std::floor((x+0.5) / size_side_cell);
-    float y_cell = std::floor((y+0.5) / size_side_cell);
+    // for instance for size_side_cell = 1, then the cell (0,0) is a square centered on (0,0) and its four
+    // corners are (0.5, 0.5) (-0.5, 0.5) (-0.5,-0.5) (0.5,-0.5)
+    float x_cell = std::floor((x + (size_side_cell/2)) / size_side_cell);
+    float y_cell = std::floor((y + (size_side_cell/2)) / size_side_cell);
     int x_int = static_cast<int>(x_cell);
     int y_int = static_cast<int>(y_cell);
     Eigen::Matrix<int, 2, 1> out; out << x_int, y_int;
@@ -968,7 +1220,9 @@ Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& s
 }
 
 State next_step_single_obstacle_border(State const& state_robot, State const& state_attractor, Border const& border)
-{
+{   // compute the velocity command of the robot (version with no limit distance)
+    // based on its relative position to the border of a single obstacle
+
     // Compute all the steps for a single step and a single obstacle
     //std::cout << "PASS: " << state_robot.transpose() << std::endl;
     Eigen::Matrix<float, 1, 2> robot = state_robot.block(0,0,2,1).transpose();
@@ -1021,7 +1275,9 @@ State next_step_single_obstacle_border(State const& state_robot, State const& st
 }
 
 State next_step_several_obstacles_border( State const& state_robot, State const& state_attractor, std::vector<Border> const& borders)
-{
+{   // compute the velocity command of the robot with several obstacles (version with no limit distance)
+    // based on its relative position to the border of several obstacles
+
     // Compute all the steps for a single step and a single obstacle
     Eigen::Matrix<float, 1, 2> robot = state_robot.block(0,0,2,1).transpose();
     Eigen::MatrixXf closest(1,6);
@@ -1077,7 +1333,10 @@ State next_step_several_obstacles_border( State const& state_robot, State const&
     return speed_limiter(cmd_velocity);
 }
 Eigen::Matrix<float, 1, 2> get_projection_on_border(Eigen::Matrix<float,1,2>  robot, Eigen::Matrix<float, 1, 6> data_closest, float const& angle)
-{
+{   // Project a point on the border of an obstacle
+    // For a given point and knowing the closest border cell (position and line/arc of circle), one can project the point onto the border
+    // It is used to get the normal vector to the surface since normal vector = point - projected_point
+
     Eigen::Matrix<float, 1, 2> projected_point;
     projected_point << 0,0;
 
@@ -1086,24 +1345,35 @@ Eigen::Matrix<float, 1, 2> get_projection_on_border(Eigen::Matrix<float,1,2>  ro
         std::cout << " -- PROJECTION --" << std::endl;
         std::cout << "Robot:   " << robot << std::endl;
         std::cout << "Closest: " << data_closest << std::endl;
+        std::cout << " --            --" << std::endl;
     }*/
+
+
+    // Margin is a length between 0 and size_cell
+    // If we get the obstacle
+    // / - - \
+    // | x x |
+    // | x x |
+    // \ - - /
+    // Then if margin = 0 the border touches the surface of the obstacle
+    // If margin = size cell the distance between the border and the surface is a whole cell
 
 
     switch (static_cast<int>(data_closest(0,2)))
     {
-    case 1:
-        if (data_closest(0,3)!=0) // normal along X axis
+    case 1: // Straight lines
+        if (data_closest(0,3)!=0) // normal vector along X axis
         {
             projected_point(0,1) = robot(0,1);
             projected_point(0,0) = data_closest(0,0) + data_closest(0,3) * (margin - (size_cell*0.5)); // center_cell +- half_side (depending on normal direction) + margin
         }
-        else // normal along Y axis
+        else // normal vector along Y axis
         {
             projected_point(0,0) = robot(0,0);
             projected_point(0,1) = data_closest(0,1) + data_closest(0,4) * (margin - (size_cell*0.5));  // center_cell +- half_side (depending on normal direction) + margin
         }
         break;
-    case 2:
+    case 2: // Outward circles
         switch (static_cast<int>(data_closest(0,4)))
         {
         case 0: projected_point(0,0) = data_closest(0,0) - (size_cell*0.5) + (margin*std::cos(angle));
@@ -1116,7 +1386,7 @@ Eigen::Matrix<float, 1, 2> get_projection_on_border(Eigen::Matrix<float,1,2>  ro
                 projected_point(0,1) = data_closest(0,1) + (size_cell*0.5) + (margin*std::sin(angle)); break;
         }
         break;
-    case 3:
+    case 3: // Inward circles
         switch (static_cast<int>(data_closest(0,4)))
         {
         case 0: projected_point(0,0) = data_closest(0,0) - (size_cell*0.5) + ((size_cell-margin)*std::cos(angle));
@@ -1134,10 +1404,14 @@ Eigen::Matrix<float, 1, 2> get_projection_on_border(Eigen::Matrix<float,1,2>  ro
 
     return projected_point;
 }
-// In gamma_and_ref -> get the projection on the border,easy with the info of closest
 
-void growing_obstacle()
-{
+// In gamma_and_ref -> get the projection on the border, easy with the info of closest
+
+void growing_obstacle() // create a single blob of occupied cells to test the border creation of "compute_border"
+{   // used with Python for visualization purpose
+
+    // Basically it randomly grows a single obstacle in the middle of an empty occupancy grid
+
     std::ofstream myobs;
     std::srand(42);
     int n_max = 61;
@@ -1238,8 +1512,10 @@ void growing_obstacle()
 
 }
 
-void growing_several_obstacle()
-{
+void growing_several_obstacle() // create several blobs of occupied cells to test the obstacle detection algorithm "detect_borders"
+{   // used with Python for visualization purpose
+
+    // Basically it randomly grows several obstacles in the middle of an empty occupancy grid
 
     Grid occupancy_grid = Eigen::MatrixXi::Zero(20, 20);
 
@@ -1298,61 +1574,48 @@ void growing_several_obstacle()
    }
 
     // Previous pos of growing obs
-
 }
 
 
-std::vector<Border> detect_borders( Grid & occupancy_grid )
+std::vector<Border> detect_borders( Grid & occupancy_grid ) // scan an occupancy grid for obstacles and returns a vector containing the borders of all detected obstacles
 {
-
-
     std::vector<Border> detected_borders;
-    //int cursor_x = 0;
-    //int cursor_y = 0;
+
     Point start_obstacle;
     Border border_obstacle;
-    //std::cout << "== Entry==" << std::endl;
 
-    for (int cursor_row=0; cursor_row < occupancy_grid.rows(); cursor_row++)
+    for (int cursor_row=0; cursor_row < occupancy_grid.rows(); cursor_row++) // scan each row
     {
-        for (int cursor_col=0; cursor_col < occupancy_grid.cols(); cursor_col++)
+        for (int cursor_col=0; cursor_col < occupancy_grid.cols(); cursor_col++) // scan each column
         {
-            //std::cout << "Cursor at point (" << cursor_row << "," << cursor_col << ")" << std::endl;
-            //if ( (cursor_row==1)&&(cursor_col==1) ) { std::cout << occupancy_grid << std::endl;}
             if (occupancy_grid(cursor_row, cursor_col)==100) // if the cell is occupied -> it may be new obstacle
             {
-                //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << " PASS - " << std::endl;}
-
                 bool flag_not_in_border = true;
-
                 for (int i_border=0; ((i_border<detected_borders.size())&&(flag_not_in_border == true)); i_border++)
                 {
-                    //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << " PASS 2 " << std::endl;}
-
                     // cursor_col - 1 because we scan from left to right so we hit the left side of obstacle
-                    // so the cell which may be part of a border is the cell on the left of the detected cell
+                    // so the cell which may be part of a border is the cell on the left of the detected occupied cell
                     if (isPartBorder(detected_borders[i_border],cursor_row,cursor_col-1))
                     {
-                        flag_not_in_border = false;
+                        flag_not_in_border = false; // the detected cell is already part of a border
                         // set col to the other side of the obstacle by going around it
                         cursor_col = other_side_obstacle( detected_borders[i_border], cursor_row, cursor_col-1);
                     }
                 }
-                if (flag_not_in_border)
+                if (flag_not_in_border) // the detected cell is not part of a border, it means we have hit a new obstacle
                 {
+                    //std::cout << "New obstacle!" << std::endl;
 
-                    //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << " PASS 3 " << std::endl;}
                     start_obstacle << cursor_row, cursor_col;
                     Grid temp_grid = occupancy_grid;
                     Blob obstacle;
-                    explore_obstacle( obstacle, temp_grid, cursor_row, cursor_col);
-                    //std::cout << "New obstacle!" << std::endl;
-                    //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << obstacle << std::endl;}
-                    if (obstacle.rows()>1)
+                    explore_obstacle( obstacle, temp_grid, cursor_row, cursor_col); // detect all occupied cells that form the obstacle
+
+                    if (obstacle.rows()>1) // if the obstacle is not a single occupied cell (noise)
                     {
-                        border_obstacle = compute_border_and_fill( obstacle, start_obstacle, occupancy_grid);
-                        detected_borders.push_back(border_obstacle);
-                        // set col to the other side of the obstacle by going around it
+                        border_obstacle = compute_border_and_fill( obstacle, start_obstacle, occupancy_grid); // compute the border of the obstacle
+                        detected_borders.push_back(border_obstacle); // add the new border to the list of borders
+                        // set col to the other side of the obstacle by going around it in order to scan the rest of the row
                         cursor_col = other_side_obstacle( border_obstacle, cursor_row, cursor_col-1);
                     }
                     /*td::cout << border_obstacle << std::endl;
@@ -1363,53 +1626,21 @@ std::vector<Border> detect_borders( Grid & occupancy_grid )
             }
         }
     }
-
-
     return detected_borders;
-    /*while ((cursor_x!=(occupancy_grid.rows()-1))&&(cursor_y!=(occupancy_grid.cols()-1)))
-    {
-        if (occupancy_grid(cursor_x, cursor_y)==1) // if the cell is occupied and not in a border-> new obstacle
-        {
-            bool flag_not_in_border = true;
-            for (int i_border=0; ((i_border<detected_borders.size())&&(flag_not_in_border == true)); i_border++)
-            {
-                // cursor_x - 1 because we scan from left to right so we hit the left side of obstacle
-                // so the cell which may be part of a border is the cell on the left of the detected cell
-                if (isPartBorder(detected_borders[i_border],cursor_x-1,cursor_y))
-                {
-                    flag_not_in_border = false;
-                    // set x to the other side of the obstacle by going around it
-                    cursor_x = other_side_obstacle( detected_borders[i_border]);
-                }
-            }
-            if (flag_not_in_border)
-            {
-                start_obstacle << cursor_x, cursor_y;
-                border_obstacle = compute_border( obstacle, start_obstacle);
-                detected_borders.push_back(border_obstacle);
-                // set x to the other side of the obstacle by going around it
-                cursor_x = other_side_obstacle( border_obstacle);
-            }
-
-
-
-        }
-
-        cursor_x += 0; // could be done with two for loops instead of a while
-        cursor_y += 1;
-    }*/
 }
 
-std::vector<Blob> detect_blobs( Grid & occupancy_grid )
+std::vector<Blob> detect_blobs( Grid & occupancy_grid ) // scan an occupancy grid for obstacles and returns a vector containing the blobs of all detected obstacles
 {
+    // The same as detect_borders but it returns the cells that form the obstacles instead of their borders.
+
     std::vector<Border> detected_borders;
     std::vector<Blob> detected_blobs;
     Point start_obstacle;
     Border border_obstacle;
 
-    for (int cursor_row=0; cursor_row < occupancy_grid.rows(); cursor_row++)
+    for (int cursor_row=0; cursor_row < occupancy_grid.rows(); cursor_row++) // scan each row
     {
-        for (int cursor_col=0; cursor_col < occupancy_grid.cols(); cursor_col++)
+        for (int cursor_col=0; cursor_col < occupancy_grid.cols(); cursor_col++) // scan each column
         {
             if (occupancy_grid(cursor_row, cursor_col)==100) // if the cell is occupied -> it may be new obstacle
             {
@@ -1425,43 +1656,48 @@ std::vector<Blob> detect_blobs( Grid & occupancy_grid )
                         cursor_col = other_side_obstacle( detected_borders[i_border], cursor_row, cursor_col-1);
                     }
                 }
-                if (flag_not_in_border)
+                if (flag_not_in_border) // the detected cell is not part of a border, it means we have hit a new obstacle
                 {
+                    //std::cout << "New obstacle!" << std::endl;
 
-                    //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << " PASS 3 " << std::endl;}
                     start_obstacle << cursor_row, cursor_col;
                     Grid temp_grid = occupancy_grid;
                     Blob obstacle;
-                    explore_obstacle( obstacle, temp_grid, cursor_row, cursor_col);
-                    //std::cout << "New obstacle!" << std::endl;
-                    //if ( (cursor_row==16)&&(cursor_col==8) ) { std::cout << obstacle << std::endl;}
+                    explore_obstacle( obstacle, temp_grid, cursor_row, cursor_col); // detect all occupied cells that form the obstacle
+
                     if (obstacle.rows()>1)
                     {
-                        border_obstacle = compute_border_and_fill( obstacle, start_obstacle, occupancy_grid);
-                        detected_borders.push_back(border_obstacle);
-                        detected_blobs.push_back(obstacle);
-                        // set col to the other side of the obstacle by going around it
+                        border_obstacle = compute_border_and_fill( obstacle, start_obstacle, occupancy_grid); // compute the border of the obstacle
+                        detected_borders.push_back(border_obstacle); // add the new border to the list of borders
+                        detected_blobs.push_back(obstacle); // add the new blob to the list of blobs
+                        // set col to the other side of the obstacle by going around it in order to scan the rest of the row
                         cursor_col = other_side_obstacle( border_obstacle, cursor_row, cursor_col-1);
                     }
                 }
             }
         }
     }
-
-
     return detected_blobs;
 }
 
 
 int other_side_obstacle(Border const& border, int const& row, int const& col)
 {
+    // return the index of the column on the other side an obstacle thanks to its border
+    // the scan for obstacles is done from left to right so by giving (row, col_left) on the left of the obstacle the algorithm returns col_right
+    // then the scan resumes from the (row, col_right) cell
+
     // in case there are several non convex obstacles that are kind of interlocked we need to get out as left as possible
-    // for instance if there is a I-shaped obstacle in a U-shaped obstacle, we have to get out in the middle or the U and not on the other side
-    /*if ( (row==16)&&(col==7) ) {
-            std::cout << " PASS 4 " << std::endl;
-            std::cout <<  border  << std::endl;
-            std::cout << " Row: " << row << " Col: " << col << std::endl;
-    }*/
+    // for instance if there is a I-shaped obstacle in a U-shaped obstacle, we have to get out in the middle or the U and not on the other side:
+    // . . . . . . . . .
+    // . x . x x . x . .
+    // . x . x x . x . .
+    // . x . x x . x . .
+    // . x . x x . x . .
+    // . x . . . . x . .
+    // . x x x x x x . .
+    // . . . . . . . . .
+
 
     int mini = border.col(1).maxCoeff();
     if (mini <= col) { return (col+2); std::cout << "SPECIAL" << std::endl;} // test to avoid an issue when two obstacles have only a 1-cell gap between them
@@ -1475,8 +1711,10 @@ int other_side_obstacle(Border const& border, int const& row, int const& col)
     return mini;
 }
 
-void explore_obstacle( Blob & obstacle, Grid & occupancy_grid, int const& row, int const& col)
+void explore_obstacle( Blob & obstacle, Grid & occupancy_grid, int const& row, int const& col) // explore an obstacle to detect all its cells
 {
+    // start from one cell and a recursive function gradually explores nearby cells and checks if they are occupied (i.e part of the obstacle)
+
     obstacle.conservativeResize(obstacle.rows()+1, Eigen::NoChange);
     obstacle.row(obstacle.rows()-1) << row, col;
     occupancy_grid(row,col) = 0;
@@ -1493,9 +1731,10 @@ void explore_obstacle( Blob & obstacle, Grid & occupancy_grid, int const& row, i
     if (((row-1) >= 0                   ) && ((col+1) < occupancy_grid.cols()) && (occupancy_grid(row-1, col+1)==100)) {explore_obstacle( obstacle, occupancy_grid, row-1, col+1);}
     if (((row-1) >= 0                   ) && ((col-1) >= 0                   ) && (occupancy_grid(row-1, col-1)==100)) {explore_obstacle( obstacle, occupancy_grid, row-1, col-1);}
 
+    // the obstacle is directly updated with the detected occupied cells
 }
 
-bool verbose = false;
+bool verbose = false; // to trigger verbose mode
 
 /*State next_step_several_obstacles_border( State const& state_robot, State const& state_attractor, std::vector<Border> const& borders)
 {
@@ -1521,7 +1760,8 @@ bool verbose = false;
 }*/
 
 Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance)
-{
+{   // compute the relative weights of obstacles in the limit range
+
     const int number_obstacles = mat_gamma.cols();
 
     // mat_obs is a matrix with size "7 x number_obstacles"
@@ -1561,19 +1801,19 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
             if (mat_dist(0,i) > limit_distance) // obstacle too far so it is not considered (0 weight)
             {
                 mat_prod(0,i) = 0;
-                std::cout << i << " is out of range | ";
+                //std::cout << i << " is out of range | ";
             }
             else if (mat_dist(0,i) > 1.01)
             {
                 // Weight is infinity if the robot touches the surface of the obstacle and is 0 if the robot is at the limit distance
                 // I used minus the natural log to get the +infinity with a shift to get 0 at the limit distance -log((x-1)/(xlim-1))
                 mat_prod(0,i) = - std::log((mat_dist(0,i)-1)/(limit_distance-1));
-                std::cout << i << " is in the range | ";
+                //std::cout << i << " is in the range | ";
             }
             else
             {
                 mat_prod(0,i) = 100000; // very high number (problem with infinity when the distance is almost 1)
-                std::cout << i << " is in contact with the robot | ";
+                //std::cout << i << " is in contact with the robot | ";
             }
         }
         //std::cout << std::endl;
@@ -1594,13 +1834,13 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
     // Relative importance of the weights to have them between [0,1]
     for (int i=0; i < number_obstacles; i++)
     {
-        if (denominator == 0)
+        if (denominator == 0) // no obstacle in range
         {
             mat_weights(0,i) = 0;
         }
         else
         {
-            mat_weights(0,i) = mat_prod(0,i) / denominator;
+            mat_weights(0,i) = mat_prod(0,i) / denominator; // relative weight of obstacles in range
         }
     }
 
@@ -1608,17 +1848,15 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
 }
 
 State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells)
-{
+{   // compute the velocity command for a given position of the robot/attractor/obstacles
+
     // Compute all the steps to get the velocity command considering several obstacles
     const int number_obstacles = borders.size();
 
     // Velocity command for each obstacle
-    //Eigen::MatrixXf mat_velocities(number_states, number_obstacles); // "3 x number_of_obstacles"
-    //mat_velocities = velocities(state_robot, state_attractor, mat_obs);
-
     // mat_velocities is a matrix with size "number_states x number_obstacles"
-    Eigen::MatrixXf mat_velocities(number_states, number_obstacles); // "3 x number_of_obstacles"
-    Eigen::MatrixXf mat_gamma(1, number_obstacles); // "3 x number_of_obstacles"
+    Eigen::MatrixXf mat_velocities(number_states, number_obstacles);  // "3 x number_of_obstacles" (x,y,phi)
+    Eigen::MatrixXf mat_gamma(1, number_obstacles);                   // "1 x number_of_obstacles" (gamma distance)
     for (int i=0; i < borders.size(); i++)
     {
         Eigen::Matrix<float, 4, 1> output = next_step_special(state_robot, state_attractor, borders[i]); // compute velocity command for each obstacle
@@ -1651,7 +1889,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         // Decrease speed when the robot get close to the attractor
         float distance_stop = 0.25;
         float distance_start_decreasing = 1 / size_of_cells; // numerical value is in meters, converted into the cell world
-        float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2));
+        float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2)); // Euclidian distance
         //std::cout << "Distance to attractor:   " << distance_to_attractor << std::endl;
         cmd_velocity.block(0,0,3,1) *= std::min(std::max(static_cast<float>(0.0),distance_to_attractor-distance_stop)/(distance_start_decreasing-distance_stop), static_cast<float>(1.0));
 
@@ -1702,7 +1940,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     // Decrease speed when the robot get close to the attractor
     float distance_stop = 0.25;
     float distance_start_decreasing = 1 / size_of_cells; // numerical value is in meters, converted into the cell world
-    float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2));
+    float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2)); // Euclidian distance
     //std::cout << "Distance to attractor:   " << distance_to_attractor << std::endl;
     cmd_velocity.block(0,0,2,1) *= std::min(std::max(static_cast<float>(0.0),distance_to_attractor-distance_stop)/(distance_start_decreasing-distance_stop), static_cast<float>(1.0));
 
@@ -1710,7 +1948,8 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
 }
 
 Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State const& state_attractor, Border const& border)
-{
+{   // compute the next step with the special method for a single obstacle
+    // output is velocity_command stacked with gamma
 
     // Initialization
     Eigen::MatrixXf closest(1,6);
@@ -1739,7 +1978,8 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     Eigen::Matrix<float, 1, 2> robot = state_robot.block(0,0,2,1).transpose();
     Eigen::Matrix<float, 1, 2> attractor = state_attractor.block(0,0,2,1).transpose();
 
-    /*// Compute all the steps for a single step and a single obstacle
+    /* TEST - NOT USED
+    // Compute all the steps for a single step and a single obstacle
     //for (int iter=0; iter< borders.size(); iter++)
     // {
        // Compute attractor function
@@ -1759,148 +1999,156 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         }
 
      //}*/
-        //Border border = borders[iter];
+    //Border border = borders[iter];
 
-        // Get closest cell for the robot
-        closest = find_closest_point(robot, border);
-        //std::cout << robot << " and " << closest << std::endl;
+    // Get closest cell for the robot
+    closest = find_closest_point(robot, border);
+    //std::cout << robot << " and " << closest << std::endl;
 
-        // Get gamma distance + normal vector + point projected on border for the robot
-        gamma_norm_proj = gamma_normal_projection( robot, closest);
+    // Get gamma distance + normal vector + point projected on border for the robot
+    gamma_norm_proj = gamma_normal_projection( robot, closest);
 
-        // Get closest cell for the attractor
-        closest_attractor = find_closest_point(attractor, border);
-        //std::cout << robot << " and " << closest << std::endl;
+    // Get closest cell for the attractor
+    closest_attractor = find_closest_point(attractor, border);
+    //std::cout << robot << " and " << closest << std::endl;
 
-        // Get gamma distance + normal vector + point projected on border for the attractor
-        gamma_norm_proj_attractor = gamma_normal_projection( attractor, closest_attractor);
+    // Get gamma distance + normal vector + point projected on border for the attractor
+    gamma_norm_proj_attractor = gamma_normal_projection( attractor, closest_attractor);
 
-        // To return NaN for points inside obstacle
-        robot_vec << (robot(0,0)-gamma_norm_proj(4,0)),(robot(0,1)-gamma_norm_proj(5,0)),0;
-        normal_vec << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
-        if (verbose)
-        {
-            std::cout << "Closest         " << closest << std::endl;
-            std::cout << "Projected robot " << gamma_norm_proj(4,0) << " " << gamma_norm_proj(5,0) << std::endl;
-            std::cout << "Robot_vec       " << robot_vec.transpose() << std::endl;
-            std::cout << "Normal_vec      " << normal_vec.transpose()  << std::endl;
-            std::cout << "Dot product     " << normal_vec.dot(robot_vec.colwise().normalized()) << std::endl;
-            std::cout << "Projected attractor " << gamma_norm_proj_attractor(4,0) << " " << gamma_norm_proj_attractor(5,0) << std::endl;
-        }
-
-        if (((closest(0,2)==1)||(closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0))
-        {
-            // If inside an obstacle, avoid display by returning NaN
-            //Eigen::Matrix<float, 4, 1>  output; output << std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(), 0, std::numeric_limits<float>::quiet_NaN();
-            Eigen::Matrix<float, 4, 1>  output; output << -robot_vec(0,0), -robot_vec(1,0), 0, 1;
-            return output;
-        }
-        else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
-        {
-            // If inside an obstacle, avoid display by returning NaN
-            //Eigen::Matrix<float, 4, 1>  output; output << std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(), 0, std::numeric_limits<float>::quiet_NaN();
-            Eigen::Matrix<float, 4, 1>  output; output << -robot_vec(0,0), -robot_vec(1,0), 0, 1;
-            return output;
-        }
-        ////
-
-        // Get minimal distance along surface (either by following the surface clockwise or counter-clockwise)
-        // Distance between the projected point of the robot and the projected point of the attractor
-        Eigen::Matrix<float, 1, 2> proj_robot;     proj_robot     << gamma_norm_proj(4,0), gamma_norm_proj(5,0);
-        Eigen::Matrix<float, 1, 2> proj_attractor; proj_attractor << gamma_norm_proj_attractor(4,0), gamma_norm_proj_attractor(5,0);
-
-        //std::cout << "PASS" << std::endl;
-
-        // Get information about the position of the project point on the boundary of the obstacle
-        Eigen::Matrix<float, 1, 3> distances_surface = get_distances_surface(proj_robot, proj_attractor, border);
-
-
-        // Get the maximum gamma distance in the initial space for the robot
-        float max_gamma_robot = get_max_gamma_distance( proj_robot, gamma_norm_proj.block(1,0,2,1).transpose() , border);
-
-
-        // Get the maximum gamma distance in the initial space for the attractor
-        float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose() , border);
-
-
-        // Get the position of the robot in the circle space
-        Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
-        float gamma_circle_frame = point_circle_space(0,0);
-        State robot_circle_frame = point_circle_space.block(1,0,3,1);
-        State attractor_circle_frame = point_circle_space.block(4,0,3,1);
-        State ref_vec_circle_frame = point_circle_space.block(7,0,3,1);
-
-        if (closest(0,2)==3)
-        {
-            ref_vec_circle_frame = (-1) * ref_vec_circle_frame;
-        }
-
-        // Compute attractor function
-        f_eps = (attractor_circle_frame - robot_circle_frame);
-
-        // Several steps to get D(epsilon) matrix
-        lamb_r = 1 - (1/gamma_circle_frame);
-        lamb_e = 1 + (1/gamma_circle_frame);
-        D_eps = D_epsilon( lamb_r, lamb_e);
-
-        // Several steps to get E(epsilon) matrix
-        Obstacle obs;
-        obs << 0, 0, 0, 1, 1, 1, 1, 0, 0, 0; // unit circle [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
-
-        r_eps_vector = ref_vec_circle_frame;
-        gradient_vector = gradient( robot_circle_frame, obs);
-        ortho_basis = gram_schmidt( gradient_vector);
-        E_eps = E_epsilon( r_eps_vector, ortho_basis);
-
-        // Compute M(epsilon)
-        M_eps = M_epsilon( D_eps, E_eps);
-
-        // Compute epsilon_dot
-        velocity_circle_space = epsilon_dot( M_eps, f_eps, robot_circle_frame, obs);
-
-        // Transform the velocity_command back into the shape-space
-        circle_tranform <<   ref_vec_circle_frame(0,0), ref_vec_circle_frame(1,0),
-                      (-1) * ref_vec_circle_frame(1,0), ref_vec_circle_frame(0,0);
-
-        shape_tranform <<    gamma_norm_proj(1,0), (-1) * gamma_norm_proj(2,0),
-                             gamma_norm_proj(2,0),        gamma_norm_proj(1,0);
-
-
-        velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * velocity_circle_space.block(0,0,2,1);
-
-        // Remove tail effect (see the paper for a clean explanation)
-        /*State tail_vector = (attractor_circle_frame - robot_circle_frame);
-        if (r_eps_vector.dot(tail_vector.colwise().normalized()) > 0.9) // can be between 0 and 1, I chose > 0 because with thin ellipse I had some issues
-        {
-            velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
-        }*/
+    // To return NaN for points inside obstacle
+    robot_vec << (robot(0,0)-gamma_norm_proj(4,0)),(robot(0,1)-gamma_norm_proj(5,0)),0;
+    normal_vec << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
+    if (verbose)
+    {
+        std::cout << "Closest         " << closest << std::endl;
+        std::cout << "Projected robot " << gamma_norm_proj(4,0) << " " << gamma_norm_proj(5,0) << std::endl;
+        std::cout << "Robot_vec       " << robot_vec.transpose() << std::endl;
+        std::cout << "Normal_vec      " << normal_vec.transpose()  << std::endl;
+        std::cout << "Dot product     " << normal_vec.dot(robot_vec.colwise().normalized()) << std::endl;
+        std::cout << "Projected attractor " << gamma_norm_proj_attractor(4,0) << " " << gamma_norm_proj_attractor(5,0) << std::endl;
+    }
 
 
 
+    if (((closest(0,2)==1)||(closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0)) // if true it means the robot is inside obstacle
+    {
+        // If inside an obstacle, avoid display by returning NaN
+        //Eigen::Matrix<float, 4, 1>  output; output << std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(), 0, std::numeric_limits<float>::quiet_NaN();
 
-        if (verbose)
-        {
-            std::cout << "Distance tot:             " << distances_surface(0,0) << " | Distance min: " << distances_surface(0,1) << std::endl;
-            std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;
-            std::cout << "Normal vec robot:         " << gamma_norm_proj.block(1,0,2,1).transpose() << std::endl;
-            std::cout << "Max gamma dist robot:     " << max_gamma_robot << std::endl;
+        // If inside an obstacle, velocity command is normal to the surface
+        Eigen::Matrix<float, 4, 1>  output;
+        output << -robot_vec(0,0), -robot_vec(1,0), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
+        my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        return output;
+    }
+    else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
+    {
+        // If inside an obstacle, avoid display by returning NaN
+        //Eigen::Matrix<float, 4, 1>  output; output << std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(), 0, std::numeric_limits<float>::quiet_NaN();
 
-            std::cout << "Gamma dist attractor:     " << gamma_norm_proj_attractor(0,0) << std::endl;
-            std::cout << "Max gamma dist attractor: " << max_gamma_attractor << std::endl;
+        // If inside an obstacle, velocity command is normal to the surface
+        Eigen::Matrix<float, 4, 1>  output;
+        output << -robot_vec(0,0), -robot_vec(1,0), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
+        my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        return output;
+    }
 
-            std::cout << "Robot circle frame:       " << robot_circle_frame.transpose() << std::endl;
-            std::cout << "Attractor circle frame:   " << attractor_circle_frame.transpose() << std::endl;
-            std::cout << "Ref vec circle frame:     " << ref_vec_circle_frame.transpose() << std::endl;
-            std::cout << "Feps circle frame:        " << f_eps.transpose() << std::endl;
-            std::cout << "Gamma robot circle:       " << gamma_circle_frame << std::endl;
+    // Get minimal distance along surface (either by following the surface clockwise or counter-clockwise)
+    // Distance between the projected point of the robot and the projected point of the attractor
+    Eigen::Matrix<float, 1, 2> proj_robot;     proj_robot     << gamma_norm_proj(4,0), gamma_norm_proj(5,0);
+    Eigen::Matrix<float, 1, 2> proj_attractor; proj_attractor << gamma_norm_proj_attractor(4,0), gamma_norm_proj_attractor(5,0);
 
-            std::cout << "Vel circle frame:         " << velocity_circle_space.block(0,0,2,1).transpose() << std::endl;
 
-            std::cout << "Circle transform:         Shape transform: " << std::endl;
-            std::cout << circle_tranform.row(0) << "        " << shape_tranform.row(0) << std::endl;
-            std::cout << circle_tranform.row(1) << "        " << shape_tranform.row(1) << std::endl;
-            std::cout << "Vel shape frame:          "  << velocity_shape_space.block(0,0,2,1).transpose() << std::endl;
-        }
+    // Get information about the position of the project point on the boundary of the obstacle
+    Eigen::Matrix<float, 1, 3> distances_surface = get_distances_surface(proj_robot, proj_attractor, border);
+
+
+    // Get the maximum gamma distance in the initial space for the robot
+    float max_gamma_robot = get_max_gamma_distance( proj_robot, gamma_norm_proj.block(1,0,2,1).transpose(), border);
+
+
+    // Get the maximum gamma distance in the initial space for the attractor
+    float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
+
+
+    // Get the position of the robot in the circle space
+    Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
+    float gamma_circle_frame = point_circle_space(0,0);
+    State robot_circle_frame = point_circle_space.block(1,0,3,1);
+    State attractor_circle_frame = point_circle_space.block(4,0,3,1);
+    State ref_vec_circle_frame = point_circle_space.block(7,0,3,1);
+
+    my_circle_space << robot_circle_frame(0,0) << "," << robot_circle_frame(1,0) << "\n"; // write position of the point in the circle space (for matplotlib)
+
+
+    if (closest(0,2)==3)
+    {
+        ref_vec_circle_frame = (-1) * ref_vec_circle_frame;
+    }
+
+    // Compute attractor function
+    f_eps = (attractor_circle_frame - robot_circle_frame);
+
+    // Several steps to get D(epsilon) matrix
+    lamb_r = 1 - (1/gamma_circle_frame);
+    lamb_e = 1 + (1/gamma_circle_frame);
+    D_eps = D_epsilon( lamb_r, lamb_e);
+
+    // Several steps to get E(epsilon) matrix
+    Obstacle obs;
+    obs << 0, 0, 0, 1, 1, 1, 1, 0, 0, 0; // unit circle [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+    r_eps_vector = ref_vec_circle_frame;
+    gradient_vector = gradient( robot_circle_frame, obs);
+    ortho_basis = gram_schmidt( gradient_vector);
+    E_eps = E_epsilon( r_eps_vector, ortho_basis);
+
+    // Compute M(epsilon)
+    M_eps = M_epsilon( D_eps, E_eps);
+
+    // Compute epsilon_dot
+    velocity_circle_space = epsilon_dot( M_eps, f_eps, robot_circle_frame, obs);
+
+    // Transform the velocity_command back into the shape-space
+    circle_tranform <<   ref_vec_circle_frame(0,0), ref_vec_circle_frame(1,0),
+                  (-1) * ref_vec_circle_frame(1,0), ref_vec_circle_frame(0,0);
+
+    shape_tranform <<    gamma_norm_proj(1,0), (-1) * gamma_norm_proj(2,0),
+                         gamma_norm_proj(2,0),        gamma_norm_proj(1,0);
+
+
+    // Apply the two rotation matrices to get back to the shape-space
+    velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * velocity_circle_space.block(0,0,2,1);
+
+    // Remove tail effect (see the paper for a clean explanation)
+    /*State tail_vector = (attractor_circle_frame - robot_circle_frame);
+    if (r_eps_vector.dot(tail_vector.colwise().normalized()) > 0.9) // can be between 0 and 1, I chose > 0 because with thin ellipse I had some issues
+    {
+        velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
+    }*/
+
+    if (verbose)
+    {
+        std::cout << "Distance tot:             " << distances_surface(0,0) << " | Distance min: " << distances_surface(0,1) << std::endl;
+        std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;
+        std::cout << "Normal vec robot:         " << gamma_norm_proj.block(1,0,2,1).transpose() << std::endl;
+        std::cout << "Max gamma dist robot:     " << max_gamma_robot << std::endl;
+
+        std::cout << "Gamma dist attractor:     " << gamma_norm_proj_attractor(0,0) << std::endl;
+        std::cout << "Max gamma dist attractor: " << max_gamma_attractor << std::endl;
+
+        std::cout << "Robot circle frame:       " << robot_circle_frame.transpose() << std::endl;
+        std::cout << "Attractor circle frame:   " << attractor_circle_frame.transpose() << std::endl;
+        std::cout << "Ref vec circle frame:     " << ref_vec_circle_frame.transpose() << std::endl;
+        std::cout << "Feps circle frame:        " << f_eps.transpose() << std::endl;
+        std::cout << "Gamma robot circle:       " << gamma_circle_frame << std::endl;
+
+        std::cout << "Vel circle frame:         " << velocity_circle_space.block(0,0,2,1).transpose() << std::endl;
+
+        std::cout << "Circle transform:         Shape transform: " << std::endl;
+        std::cout << circle_tranform.row(0) << "        " << shape_tranform.row(0) << std::endl;
+        std::cout << circle_tranform.row(1) << "        " << shape_tranform.row(1) << std::endl;
+        std::cout << "Vel shape frame:          "  << velocity_shape_space.block(0,0,2,1).transpose() << std::endl;
+    }
 
     //Eigen::Matrix<float, 1, 1> norm = velocity_shape_space.colwise().norm();
     //velocity_shape_space = velocity_shape_space / std::sqrt(std::pow(velocity_shape_space(0,0),2)+std::pow(velocity_shape_space(1,0),2));
@@ -1913,49 +2161,53 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
 
 Eigen::Matrix<float, 6, 1> gamma_normal_projection(Eigen::Matrix<float,1,2> const& robot, Eigen::Matrix<float, 1, 6> const& data_closest)
 {
-   Eigen::Matrix<float, 6, 1> output; // output is transpose of [gamma, x, y, phi]
+    //returns [gamma, normal vector, projected point on border]
 
-   float angle = 0;
-   if (data_closest(0,2)==1)
-   {
-       output.block(1,0,2,1) = data_closest.block(0,3,1,2).transpose(); // assign x,y
-   }
-   else if ((data_closest(0,2)==2)||(data_closest(0,2)==3))
-   {
-       switch (static_cast<int>(data_closest(0,4))) {
-            case 0: angle = std::atan2(robot(0,1)-(data_closest(0,1)-0.5* size_cell), robot(0,0)-(data_closest(0,0)-0.5* size_cell)); break;
-            case 1: angle = std::atan2(robot(0,1)-(data_closest(0,1)-0.5* size_cell), robot(0,0)-(data_closest(0,0)+0.5* size_cell)); break;
-            case 2: angle = std::atan2(robot(0,1)-(data_closest(0,1)+0.5* size_cell), robot(0,0)-(data_closest(0,0)+0.5* size_cell)); break;
-            case 3: angle = std::atan2(robot(0,1)-(data_closest(0,1)+0.5* size_cell), robot(0,0)-(data_closest(0,0)-0.5* size_cell)); break;
-      }
+    Eigen::Matrix<float, 6, 1> output; // output is transpose of [gamma, x, y, phi]
+
+    float angle = 0;
+    if (data_closest(0,2)==1)
+    {
+        output.block(1,0,2,1) = data_closest.block(0,3,1,2).transpose(); // assign x,y
+    }
+    else if ((data_closest(0,2)==2)||(data_closest(0,2)==3))
+    {
+        switch (static_cast<int>(data_closest(0,4)))
+        {
+        case 0: angle = std::atan2(robot(0,1)-(data_closest(0,1)-0.5* size_cell), robot(0,0)-(data_closest(0,0)-0.5* size_cell)); break;
+        case 1: angle = std::atan2(robot(0,1)-(data_closest(0,1)-0.5* size_cell), robot(0,0)-(data_closest(0,0)+0.5* size_cell)); break;
+        case 2: angle = std::atan2(robot(0,1)-(data_closest(0,1)+0.5* size_cell), robot(0,0)-(data_closest(0,0)+0.5* size_cell)); break;
+        case 3: angle = std::atan2(robot(0,1)-(data_closest(0,1)+0.5* size_cell), robot(0,0)-(data_closest(0,0)-0.5* size_cell)); break;
+        }
         output.block(1,0,2,1) << std::cos(angle), std::sin(angle); // assign x,y
-        if (verbose) {std::cout << "Angle of normal is: " << angle << std::endl;}
-   }
-   else
-   {
+        if (verbose)
+        {
+            std::cout << "Angle of normal is: " << angle << std::endl;
+        }
+    }
+    else
+    {
         throw std::invalid_argument("Should not happen. Closest border cell has no type." );
-   }
-   output(3,0) = 0; // assign phi
+    }
+    output(3,0) = 0; // assign phi
 
-   Eigen::Matrix<float, 1, 2> projected;
+    Eigen::Matrix<float, 1, 2> projected;
 
-   projected = get_projection_on_border( robot, data_closest, angle);
-   output(4,0) = projected(0,0); // x of projected point on the border
-   output(5,0) = projected(0,1); // y of projected point on the border
+    projected = get_projection_on_border( robot, data_closest, angle);
+    output(4,0) = projected(0,0); // x of projected point on the border
+    output(5,0) = projected(0,1); // y of projected point on the border
 
-   // Checking if the robot is inside the obstacle (it can cross the boundary due to discretization)
-   State normal_vec;
-   switch (static_cast<int>(data_closest(0,2)))
-   {
-    case 1:
-        normal_vec << data_closest(0,3), data_closest(0,4), 0; break;
-    case 2:
-        normal_vec << output(1,0), output(2,0), 0; break;
-    case 3:
-        normal_vec << output(1,0), output(2,0), 0; break;
+    // Checking if the robot is inside the obstacle (it can cross the boundary due to discretization)
+    State normal_vec;
+    switch (static_cast<int>(data_closest(0,2)))
+    {
+    case 1: normal_vec << data_closest(0,3), data_closest(0,4), 0; break;
+    case 2: normal_vec << output(1,0), output(2,0), 0; break;
+    case 3: normal_vec << output(1,0), output(2,0), 0; break;
     }
 
-    State robot_vec; robot_vec << (robot(0,0)-projected(0,0)),(robot(0,1)-projected(0,1)),0;
+    State robot_vec;
+    robot_vec << (robot(0,0)-projected(0,0)),(robot(0,1)-projected(0,1)),0;
     if (((data_closest(0,2)==1)||(data_closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0))
     {
         // if true it means the robot is inside obstacle
@@ -1970,24 +2222,23 @@ Eigen::Matrix<float, 6, 1> gamma_normal_projection(Eigen::Matrix<float,1,2> cons
     }
     // End checking if robot is inside the obstacle
 
+    //std::cout << "Projected: " << projected << std::endl;
 
-   //std::cout << "Projected: " << projected << std::endl;
+    output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + euclidian_distance^2
+    // TODO: Call a general function that compute the gamma function
 
-   output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + distance^2
-
-   return output;
+    return output;
 }
 
 Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> const& proj_robot, Eigen::Matrix<float, 1, 2> const& proj_attractor, Border const& border)
-{
-
+{   // compute the minimum distance along surface (between 0 and half of the perimeter)
 
     Eigen::Matrix<float, 1, 3> distances_out;
 
     float distance_tot = 0;
 
-    Eigen::Matrix<int, 2, 1> cell_proj_robot     = get_cell( proj_robot(0,0), proj_robot(0,1), size_cell);
-    Eigen::Matrix<int, 2, 1> cell_proj_attractor = get_cell( proj_attractor(0,0), proj_attractor(0,1), size_cell);
+    Eigen::Matrix<int, 2, 1> cell_proj_robot     = get_cell( proj_robot(0,0), proj_robot(0,1), size_cell);   // projection of robot on surface
+    Eigen::Matrix<int, 2, 1> cell_proj_attractor = get_cell( proj_attractor(0,0), proj_attractor(0,1), size_cell);  // projection of attractor on surface
 
     int i_proj_robot = 0;
     int i_proj_attractor = 0;
@@ -2002,17 +2253,17 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
 
         if ((cell_proj_robot(0,0)==border(i,0)) && (cell_proj_robot(1,0)==border(i,1)))
         {
-            i_proj_robot = i;
+            i_proj_robot = i; // the projection of the robot is inside cell i
         }
 
         if ((cell_proj_attractor(0,0)==border(i,0)) && (cell_proj_attractor(1,0)==border(i,1)))
         {
-            i_proj_attractor = i;
+            i_proj_attractor = i; // the projection of the attractor is inside cell i
         }
 
     }
 
-    distances_out(0,0) = distance_tot;
+    distances_out(0,0) = distance_tot; // distance_tot = perimeter of the border
 
     float distance_up = 0; // distance following the border in the counter-clockwise direction
     float distance_down = 0; // distance following the border in the clockwise direction
@@ -2057,7 +2308,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
 
     // Now we need to add to distance_up and distance_down the small distance that exists from the projected points to the border of their cell
     // for both directions
-    // For instance i the projected point is something like that "----|----|-*--|----|----|" with "|----|" a cell and "*" the projected point,
+    // For instance if the projected point is something like that "----|----|-*--|----|----|" with "|----|" a cell and "*" the projected point,
     // then we need to add the distance "-" for the direction that goes left and "--" for the direction that goes right
 
 
@@ -2071,7 +2322,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
     int sign = 1;
     switch (static_cast<int>(border(i_proj_robot,2)))
     {
-    case 1:
+    case 1: // Straight line
 
         if (border(i_proj_robot,3)==0)
         {
@@ -2087,7 +2338,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
             //std::cout << direction << " " << add_up_robot << " " << add_down_robot << std::endl;
         }
         break;
-    case 2:
+    case 2: // Outward arc of circle
         switch (static_cast<int>(border(i_proj_robot,4)))
         {
         case 0:
@@ -2121,7 +2372,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
             std::cout << "Angle of normal is: " << angle << std::endl;
         }
         break;
-    case 3:
+    case 3: // Inward arc of circle
         switch (static_cast<int>(border(i_proj_robot,4)))
         {
         case 0:
@@ -2155,7 +2406,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
     distance_up += add_up_robot;
     distance_down += add_down_robot;
 
-    // For cell_proj_attractor
+    // For cell_proj_attractor (same thing than for cell_proj_robot but up and down are switched)
     sign = 1;
     switch (static_cast<int>(border(i_proj_attractor,2)))
     {
@@ -2264,11 +2515,11 @@ Eigen::Matrix<float, 1, 3> get_distances_surface(Eigen::Matrix<float, 1, 2> cons
     distances_out(0,1) = std::min(distance_up, distance_down);
     if (distance_up < distance_down)
     {
-        distances_out(0,2) = -1; // counter-clockwise direction
+        distances_out(0,2) = -1; // counter-clockwise direction (convention -1)
     }
     else
     {
-        distances_out(0,2) = 1; //         clockwise direction
+        distances_out(0,2) = 1; //         clockwise direction  (convention  1)
     }
     return distances_out;
 }
@@ -2279,8 +2530,8 @@ float get_max_gamma_distance(Eigen::Matrix<float, 1, 2> const& proj_robot, Eigen
     //std::cout << "Normal vector: " << normal << std::endl;
 
     float current_step = 0.5 * size_cell;
-    float min_step = 0.01;
-    float max_step = 100;
+    float min_step = 0.01; // minimum size of a step
+    float max_step = 100;  // maximum size of a step
 
     Eigen::Matrix<float, 1, 2> current_point; current_point = proj_robot;
     Eigen::Matrix<float, 1, 2> next_point;
@@ -2303,23 +2554,43 @@ float get_max_gamma_distance(Eigen::Matrix<float, 1, 2> const& proj_robot, Eigen
         }
     }
 
+    // . . . . . . . . .
+    // . x . . . . x . .
+    // . x 2 . . . x . .
+    // . x . . . . x . .
+    // 1 x . . . . x . .
+    // . x . . . . x . .
+    // . x x x x x x . .
+    // . . . . . . . . .
+    // we start from the projection of the robot on the surface and we follow the normal vector to the surface
+    // we go further and further from the surface till we reached a upper bound or a lower bound for the step
+    // if we reach the upper bound it means there is no limit in that direction, if we start from cell 1 we can go left to -infinity
+    // if we reach the lower bound it means there is a limit in that direction, if we start from cell 2, going right, the point is assigned to another cell when
+    // it crosses the axis of symmetry of the U
+
     // if (current_step > max_step) it means that the maximum gamma distance is likely infinity (approximation)
     // if (current_step < min_step) it means that the current point has reached a limit before switching to another closest cell
     // for instance if the current point is within a U-shaped object this limit is the vertical axis that cuts the U into two parts
 
     return (1 + std::pow(current_point(0,0)-proj_robot(0,0),2) + std::pow(current_point(0,1)-proj_robot(0,1),2));
+    // TODO: Call a more general function that will compute gamma
 }
 
 Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, float const& distance_tot, float const& gamma_robot, float const& gamma_max_robot, float const& gamma_attractor, float const& gamma_max_attractor, int direction)
 {
+    // returns [gamma_circle_frame, robot_circle_frame, attractor_circle_frame, ref_vec_circle_frame] of dim [1, 3, 3, 3]
+
+    // get lots of characteristic of the robot in the circle space depending of its position in the initial space
+
    // 1 is clockwise direction and -1 is counter-clockwise
    // so 1 is top half part of the circle and -1 is the bottom half part of the circle
    float ratio_distance = distance_proj / (0.5 * distance_tot);
 
-   //float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot); // = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
+   //float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot) ;// = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
    // it should guarantee the continuity of the transform between shape-space and circle-space.
    //float gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
 
+   // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results
    float gamma_circle_space_robot = gamma_robot; // /!\ TEST
    float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
 
@@ -2347,25 +2618,21 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    return output;
 }
 
-//
-void fillGrid(PointFill orig, Grid & occupancy_grid)
+void fillGrid(PointFill orig, Grid & occupancy_grid) // fill the holes in the occupied blobs of an occupancy grid
 {
-    //std::cout << "Pass fillGrid" << std::endl;
-
     int width  = occupancy_grid.cols();
     int height = occupancy_grid.rows();
 
-    // DECLARE TEMP GRID, FULL OF 100
-    Grid temp_grid = Grid::Ones(height,width) * 100;
+    Grid temp_grid = Grid::Ones(height,width) * 100; // occupancy grid which is completely occupied
 
-    std::cout << " PASS 1 " << std::endl;
+    /*std::cout << " PASS 1 " << std::endl;
     std::cout << " height " << height << std::endl;
-    std::cout << " width "  << width  << std::endl;
+    std::cout << " width "  << width  << std::endl;*/
 
     std::queue<PointFill> q;
     q.push(orig);
 
-    // the main flood loop
+    // The main flood loop
     while(!q.empty())
     {
         PointFill pnt = q.front();
@@ -2382,7 +2649,7 @@ void fillGrid(PointFill orig, Grid & occupancy_grid)
         {
             //std::cout << "Processing (" << adj[i].x << " , " << adj[i].y << ")"; // <<  std::endl;
 
-            // don't forget boundaries!
+            // Check for boundaries
             if(adj[i].x < 0 || adj[i].x >= height ||
             adj[i].y < 0 || adj[i].y >= width)
             {
@@ -2391,6 +2658,9 @@ void fillGrid(PointFill orig, Grid & occupancy_grid)
 
             // if adjacent point meets some criteria, then set
             // its value and include it in the queue
+            // If the cell is empty in occupancy_grid it means the flood can reach it so it is not a free cell that is enclosed in an obstacle
+            // If this cell is also occupied in temp_grid we set it to 0
+            // As a result, temp_grid is 100 everywhere except for the free cells that are not enclosed in obstacles which are set at 0
             if((temp_grid(adj[i].x,adj[i].y)!=0) && (occupancy_grid(adj[i].x,adj[i].y)!=100))
             {
                 temp_grid(adj[i].x,adj[i].y) = 0;
