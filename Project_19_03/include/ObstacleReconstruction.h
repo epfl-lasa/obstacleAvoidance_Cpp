@@ -74,7 +74,7 @@ void compute_quiver_border(Eigen::Matrix<float, 5, 1> const& limits, State const
 // used with Python for visualization purpose (Quiver function of Matlab)
 
 // Just like compute_quiver but with a small variation to be able to plot a "streamplot" with Matplotlib
-void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles, int const& ID=-1);
+void compute_stream_border(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, std::vector<Blob> obstacles);
 
 Eigen::Matrix<int, 2, 1> get_cell(float const& x, float const& y, float const& size_side_cell); // for a given point it returns the center of the closest cell of the grid
 
