@@ -1,6 +1,6 @@
 #include "ros/ros.h"
 #include "object_msgs/ObjectsInBoxes.h"
-#include "KalmanFilter.h"
+#include "gmm.h"
 
 // Eigen library and the header that contains my functions
 #include <eigen3/Eigen/Core>
@@ -13,7 +13,6 @@ typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> myMap;
 using namespace std;
 
 const int limit_age = 25;
-const int born_age = limit_age - 4;
 const int limit_dist = 250;
 
 /* Initialization */
@@ -85,7 +84,7 @@ struct tracked_person
 tracked_person::tracked_person(float x, float y, float h, float w)
 {
      info[0] = x; info[1] = y; info[2] = h, info[3] = w;
-     age = born_age;
+     age = limit_age - 6;
      KalmanFilter filter_temp(n_states,0);
      filter_person = filter_temp;
      /* Initialize the Filter*/
@@ -106,10 +105,10 @@ public:
 	init_parameters_kalman();
 
         //Topic you want to publish
-        pub_ = n_.advertise<object_msgs::ObjectsInBoxes>("/filtered_boxes", 10);
+        pub_ = n_.advertise<object_msgs::ObjectsInBoxes>("/pose_people", 10);
 
         //Topic you want to subscribe
-        sub_ = n_.subscribe("/movidius_ncs_nodelet/detected_objects", 1, &SubscribeAndPublish::callback, this);
+        sub_ = n_.subscribe("/filtered_boxes", 1, &SubscribeAndPublish::callback, this);
 
         /* Set the parameters (standard deviations) */
         Z = Eigen::VectorXf(n_states);
@@ -204,12 +203,10 @@ public:
 		}
                 if (j_min != -1)
                 {
-			ROS_INFO("Person %i assigned to box %i", i, j_min);
                 	index_match[i] = j_min;
 		}
 		else // A new person appeared in the field of view of the camera
 		{
-			ROS_INFO("A new person has appeared in the field of view!");
 			tracked_person new_person(x,y,static_cast<float>((only_people[i]).roi.height), static_cast<float>((only_people[i]).roi.width));
                         index_match[i] = tracked_people.size();
                         tracked_people.push_back(new_person);

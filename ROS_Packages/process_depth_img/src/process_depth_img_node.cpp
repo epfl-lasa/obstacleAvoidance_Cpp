@@ -11,6 +11,10 @@
 #include "geometry_msgs/Pose.h"
 #include <cstdlib>
 
+// GMM library
+#include <cmath>
+#include "gmm.h"
+
 // For synchronization of subscribed topics
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
@@ -21,12 +25,11 @@
 
 // Eigen library and the header that contains my functions
 #include <eigen3/Eigen/Core>
-
 #include <fstream>  // To write data into files
 
 using namespace message_filters;
 
-bool flag_write = true;
+bool flag_write = false;
 std::ofstream myfile;
 
 
@@ -151,6 +154,68 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 			}
 		}
 		myfile.close();		
+	}
+        
+	if (true) // Run GMM on depth to find the depth of the person
+        {
+		float ratio = 0.25;
+		double *data = new double[static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio))];
+		int counter_data = 0;
+		float Z_previous = 0;
+		for (int i= (boxes->objects_vector[0]).roi.x_offset ; i < ((boxes->objects_vector[0]).roi.x_offset + (boxes->objects_vector[0]).roi.width); i++)
+		{
+			for (int j= (boxes->objects_vector[0]).roi.y_offset ; j < ((boxes->objects_vector[0]).roi.y_offset + static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio)); j++)
+			{
+				// Extract depth from pixel (i,j)				
+				float Z_tempo = 0;
+				int arrayPoso = (j) * pc2->row_step + (i) * pc2->point_step;
+				int arrayPosoZ = arrayPoso + pc2->fields[2].offset;
+				memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
+				
+				// Store Z in array
+				if (!(Z_tempo != Z_tempo))
+				{				
+					data[counter_data] = static_cast<double>(Z_tempo);
+					Z_previous = Z_tempo;
+				}
+				else
+				{
+					data[counter_data] = static_cast<double>(Z_previous);
+				}
+				counter_data++;
+			}
+		}
+		std::cout << data[static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio))-1] << std::endl;
+
+		const int gaussians = 3;
+		const size_t maxIterations = 25;
+		const double tolerance = 3e-2;
+
+		double *W = new double[3];
+		W[0] = 0.35;
+		W[1] = 0.35;
+                W[2] = 0.3;
+
+		double *Mu = new double[3];
+		Mu[0] = 1.5;
+		Mu[1] = 3.0;
+                Mu[2] = 5.0;
+
+		double *Sigma = new double[3];
+		Sigma[0] = 1.0;
+		Sigma[1] = 1.0;
+                Sigma[2] = 1.0;
+
+		GMM gmm(gaussians,W,Mu,Sigma,maxIterations,tolerance,false);
+		std::cout << "Running GMM" << std::endl;
+		gmm.estimate(data,static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio)));
+
+		std::cout << "Final Mu: ";
+		for (int k=0; k<gaussians; k++)
+		{
+                        std::cout << gmm.getMean(k) << " | ";
+		}
+ 		std::cout << std::endl;
 	}
 
 

@@ -29,6 +29,8 @@ IF( NOT EIGEN3_INCLUDE_DIR )
 ENDIF()
 INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 
+pkg_check_modules( gsl REQUIRED gsl )
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -224,8 +226,9 @@ find_package (Eigen3 REQUIRED)
 
 # Listener node to retrieve LaserScan data
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
-add_executable(process_depth_img_node src/process_depth_img_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp)
+add_executable(process_depth_img_node src/process_depth_img_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp src/gmm.cpp)
 target_link_libraries(process_depth_img_node ${catkin_LIBRARIES})
+target_link_libraries(process_depth_img_node ${gsl_LIBRARIES})
 
 install(TARGETS process_depth_img_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
