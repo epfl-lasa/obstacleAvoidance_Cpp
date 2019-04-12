@@ -241,8 +241,8 @@ public:
 
     if (false) // enable to display a part of the occupancy map centered on the robot in the console
     {
-	int corner_square_x = static_cast<int>(std::floor(x_pose - transform_.getOrigin().getX()/size_cell)-20);
-        int corner_square_y = static_cast<int>(std::floor(y_pose - transform_.getOrigin().getY()/size_cell)-20);
+	int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-20);
+        int corner_square_y = static_cast<int>(std::floor((transform_.getOrigin().getY() - y_pose)/size_cell)-20);
 	std::cout << eig_expanded.block( corner_square_x, corner_square_y, 41, 41) << std::endl;
     }
     
