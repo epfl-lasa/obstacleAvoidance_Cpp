@@ -454,13 +454,33 @@ def disp10(): # plot a streamplot for each position of the robot along a traject
     ncur = 0
     for name in names:
         
+        posrobot = np.loadtxt(open(positions[ncur], "rb"), delimiter=",")
+        
         entry = np.loadtxt(open(name, "rb"), delimiter=",")
         n_size = int(len(entry[:,0])**0.5)
+        
+        limit_dist_x = 7
+        limit_dist_y = 7 
+        #bool_entry = np.reshape(((abs(entry[:,0]- np.ones(entry.shape[0]) * posrobot[0]) <limit_dist_x) & (abs(entry[:,1]- np.ones(entry.shape[0]) * posrobot[1]) <limit_dist_y)), (n_size,n_size)).transpose()
+        
+        #entry = entry[((abs(entry[:,0]- np.ones(entry.shape[0]) * posrobot[0]) <limit_dist_x) & (abs(entry[:,1]- np.ones(entry.shape[0]) * posrobot[1]) <limit_dist_y)),:]
+        #n_size = int(len(entry[:,0])**0.5)
+
         X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
         Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
         U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
         V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
         
+        limit_dist = 7
+        i_x = np.where(np.abs(X[0,:]-posrobot[0]) < limit_dist)[0]
+        i_y = np.where(np.abs(Y[:,0]-posrobot[1]) < limit_dist)[0]
+
+        X = X[i_y[0]:(i_y[-1]+1),i_x[0]:(i_x[-1]+1)]
+        Y = Y[i_y[0]:(i_y[-1]+1),i_x[0]:(i_x[-1]+1)]
+        U = U[i_y[0]:(i_y[-1]+1),i_x[0]:(i_x[-1]+1)]
+        V = V[i_y[0]:(i_y[-1]+1),i_x[0]:(i_x[-1]+1)]
+
+
         fig, ax = plt.subplots()
         
         
@@ -494,14 +514,14 @@ def disp10(): # plot a streamplot for each position of the robot along a traject
                     arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],1, 1, 0, 270, 360, LineWidth=2)
                 ax.add_artist(arc)
         
+        q = ax.streamplot(X, Y, U, V, density=0.5)
         
-        ellipse1 = mpatches.Ellipse([373,296.33], 1, 1, facecolor="orangered")
+        ellipse1 = mpatches.Ellipse([373,296.33], 2, 2, facecolor="orangered", zorder=2)
         ax.add_patch(ellipse1)
         
-        posrobot = np.loadtxt(open(positions[ncur], "rb"), delimiter=",")
-        ellipse2 = mpatches.Ellipse([posrobot[0],posrobot[1]], 1, 1, facecolor="forestgreen")
+        ellipse2 = mpatches.Ellipse([posrobot[0],posrobot[1]], 2, 2, facecolor="forestgreen", zorder=2)
         ax.add_patch(ellipse2)
-        q = ax.streamplot(X, Y, U, V, density=2)
+        
         ax.set_xlim(327, 377)
         ax.set_ylim(291, 341)
         manager = plt.get_current_fig_manager()
@@ -517,9 +537,10 @@ def disp10(): # plot a streamplot for each position of the robot along a traject
         ncur += 1
         
         
+        
        
         
-    imageio.mimsave('moving_stream.gif', images, duration = 0.25)
+    imageio.mimsave('moving_stream_9.gif', images, duration = 0.165)
 
 
 def disp_debug():
