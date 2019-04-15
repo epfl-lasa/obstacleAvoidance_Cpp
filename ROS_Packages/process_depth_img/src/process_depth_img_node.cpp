@@ -132,6 +132,7 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 
 	if (flag_write)
 	{
+		ros::Duration(3).sleep(); 
 		flag_write = false;
 		myfile.open("data_process_depth_img.txt");
 		for (int i= (boxes->objects_vector[0]).roi.x_offset ; i < ((boxes->objects_vector[0]).roi.x_offset + (boxes->objects_vector[0]).roi.width); i++)
@@ -156,16 +157,23 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 		myfile.close();		
 	}
         
-	if (true) // Run GMM on depth to find the depth of the person
+	float X_pos = 0 ;
+	float Y_pos = 0 ;
+	float Z_pos = 0 ;
+
+	if (false) // Run GMM on depth to find the depth of the person
         {
 		float ratio = 0.25;
-		double *data = new double[static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio))];
+		// double *data = new double[static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio))];
+		std::vector<double> v_data;		
 		int counter_data = 0;
 		float Z_previous = 0;
 		for (int i= (boxes->objects_vector[0]).roi.x_offset ; i < ((boxes->objects_vector[0]).roi.x_offset + (boxes->objects_vector[0]).roi.width); i++)
 		{
 			for (int j= (boxes->objects_vector[0]).roi.y_offset ; j < ((boxes->objects_vector[0]).roi.y_offset + static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio)); j++)
 			{
+				if (std::remainder(j,6) < 0.1) 
+				{
 				// Extract depth from pixel (i,j)				
 				float Z_tempo = 0;
 				int arrayPoso = (j) * pc2->row_step + (i) * pc2->point_step;
@@ -173,19 +181,22 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 				memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
 				
 				// Store Z in array
-				if (!(Z_tempo != Z_tempo))
+				if (!(Z_tempo != Z_tempo)) // Check if not NaN value
 				{				
-					data[counter_data] = static_cast<double>(Z_tempo);
+					//data[counter_data] = static_cast<double>(Z_tempo);
+					v_data.push_back(static_cast<double>(Z_tempo));
 					Z_previous = Z_tempo;
 				}
 				else
 				{
-					data[counter_data] = static_cast<double>(Z_previous);
+					//data[counter_data] = static_cast<double>(Z_previous);
+					v_data.push_back(static_cast<double>(Z_previous));
 				}
 				counter_data++;
+				}
 			}
 		}
-		std::cout << data[static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio))-1] << std::endl;
+		//std::cout << data[static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio))-1] << std::endl;
 
 		const int gaussians = 3;
 		const size_t maxIterations = 25;
@@ -208,8 +219,9 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 
 		GMM gmm(gaussians,W,Mu,Sigma,maxIterations,tolerance,false);
 		std::cout << "Running GMM" << std::endl;
-		gmm.estimate(data,static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio)));
-
+		// gmm.estimate(data,static_cast<int>(((boxes->objects_vector[0]).roi.width) * static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio)));
+        	double *data = v_data.data();        
+		gmm.estimate(data, v_data.size());
 		std::cout << "Final Mu: ";
 		for (int k=0; k<gaussians; k++)
 		{
@@ -219,51 +231,160 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 	}
 
 
-        // Mean of the depth over 9 points
-        float X_pos = 0 ;
-        float Y_pos = 0 ;
-        float Z_pos = 0 ;
-        float X_temp = 0;
-        float Y_temp = 0;
-        float Z_temp = 0;
-        const int pixel_diff = 3;
-        int num_points = 9;
-        for (int i=-pixel_diff; i <=pixel_diff; i += pixel_diff)
-        {
-            for (int j=-pixel_diff; j <=pixel_diff; j += pixel_diff)
-            {
-                // Position of the information (X,Y,Z) in the world frame
-                // See the documentation of sensor_msgs/PointCloud2 to understand the offsets and steps
-                int arrayPosition = (y+j) * pc2->row_step + (x+i) * pc2->point_step;
-                // Array Position is the start of a 32 bytes long sequence that contains X, Y, Z and RGB data        
-                
-                // about the pixel at position (x,y) in the picture
-                int arrayPosX = arrayPosition + pc2->fields[0].offset;
-                int arrayPosY = arrayPosition + pc2->fields[1].offset;
-                int arrayPosZ = arrayPosition + pc2->fields[2].offset;
-                memcpy(&X_temp, &pc2->data[arrayPosX], sizeof(float));
-                memcpy(&Y_temp, &pc2->data[arrayPosY], sizeof(float));
-                memcpy(&Z_temp, &pc2->data[arrayPosZ], sizeof(float));
-                
-                // Need to check if X,Y,Z are not NaN in case the considered pixel was not considered for this
-                // frame (it can happen, the resulting depth cloud has lots of holes)
-                if (!(X_pos != X_pos)) // (f != f) is true only when f is NaN
-                {
-                    X_pos += X_temp;
-                    Y_pos += Y_temp;
-                    Z_pos += Z_temp;
-                }
-                else
-                {
-                    num_points -= 1; // the point is not considered
-                }
-            }
-        }
-        
+	if (true) // Mean of the 25% closest points
+        {	
+		float ratio = 0.25;
+		double min_line = 1000.0;
+		double max_line = 0.0;
+		int j_mid = ((boxes->objects_vector[0]).roi.y_offset + static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio*0.5));
+		for (int i= (boxes->objects_vector[0]).roi.x_offset ; i < ((boxes->objects_vector[0]).roi.x_offset + (boxes->objects_vector[0]).roi.width); i++)
+		{
+			// Extract depth from pixel (i,j)				
+			float Z_tempo = 0;
+			int arrayPoso = (j_mid) * pc2->row_step + (i) * pc2->point_step;
+			int arrayPosoZ = arrayPoso + pc2->fields[2].offset;
+			memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
+				
 
-        X_pos /= num_points;
-        Y_pos /= num_points;
-        Z_pos /= num_points; // dividing by the number of points
+			if (!(Z_tempo != Z_tempo)) // Check if not NaN value
+			{				
+				if (Z_tempo < min_line)
+				{
+					min_line = Z_tempo;
+				}
+				else if (Z_tempo > max_line)
+				{
+					max_line = Z_tempo;
+				}
+			}
+
+
+			// Store Z in array
+			/*if (!(Z_tempo != Z_tempo)) // Check if not NaN value
+			{				
+				v_data.push_back(static_cast<double>(Z_tempo));
+				Z_previous = Z_tempo;
+			}
+			else
+			{
+				v_data.push_back(static_cast<double>(Z_previous));
+			}*/
+		}
+		//float min_line = std::min_element(v_data.begin(), v_data.end());
+		//float max_line = std::max_element(v_data.begin(), v_data.end());
+
+		int counter_mean = 0;
+		double sum_X = 0;
+		double sum_Y = 0;
+		double sum_Z = 0;
+		for (int i= (boxes->objects_vector[0]).roi.x_offset ; i < ((boxes->objects_vector[0]).roi.x_offset + (boxes->objects_vector[0]).roi.width); i++)
+		{
+			for (int j= (boxes->objects_vector[0]).roi.y_offset ; j < ((boxes->objects_vector[0]).roi.y_offset + static_cast<int>(std::floor((boxes->objects_vector[0]).roi.height)*ratio)); j++)
+			{
+				
+				// Extract depth from pixel (i,j)				
+				float Z_tempo = 0;
+				int arrayPoso = (j) * pc2->row_step + (i) * pc2->point_step;
+				int arrayPosoZ = arrayPoso + pc2->fields[2].offset;
+				memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
+				
+				// Store Z in array
+				if ((!(Z_tempo != Z_tempo))&&(Z_tempo < (min_line + (max_line-min_line)*0.25))) // Check if not NaN value and if in the interval
+				{	
+					// Read X and Y
+					float X_tempo = 0;			
+					float Y_tempo = 0;
+					int arrayPosoX = arrayPoso + pc2->fields[0].offset;
+					int arrayPosoY = arrayPoso + pc2->fields[1].offset;
+					memcpy(&X_tempo, &pc2->data[arrayPosoX], sizeof(float));
+					memcpy(&Y_tempo, &pc2->data[arrayPosoY], sizeof(float));
+
+					// Add to sum
+					sum_X += X_tempo;
+					sum_Y += Y_tempo;			
+					sum_Z += Z_tempo;
+					
+					counter_mean++;	// Increase counter of elements in the sum
+				}
+				
+			}
+		}
+		X_pos = sum_X / counter_mean;
+		Y_pos = sum_Y / counter_mean;
+		Z_pos = sum_Z / counter_mean;
+		std::cout << "DISTANCE = " << Z_pos << std::endl;
+
+		/*int direction = 1;
+		bool flag_run = true;
+		do
+		{
+			float X_tempo = 0;			
+			float Y_tempo = 0;
+			float Z_tempo = 0;
+			int arrayPoso = (j_mid) * pc2->row_step + (i) * pc2->point_step;
+			int arrayPosoX = arrayPoso + pc2->fields[0].offset;
+			int arrayPosoY = arrayPoso + pc2->fields[1].offset;
+			int arrayPosoZ = arrayPoso + pc2->fields[2].offset;
+			memcpy(&X_tempo, &pc2->data[arrayPosoX], sizeof(float));
+			memcpy(&Y_tempo, &pc2->data[arrayPosoY], sizeof(float));
+			memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
+				
+			if ((!(Z_tempo != Z_tempo))&&(std::abs(Z_pos-Z_tempo) < 0.2))) // Check if not NaN value and if in the interval
+			{			
+				X_pos = X_tempo;
+				Y_pos = Y_tempo;	
+				flag_run = false;
+			}
+		
+		} while (flag_run);*/
+	}
+
+
+	if (false) // Mean of the depth over 9 points
+        {        
+		float X_temp = 0;
+		float Y_temp = 0;
+		float Z_temp = 0;
+		const int pixel_diff = 3;
+		int num_points = 9;
+		for (int i=-pixel_diff; i <=pixel_diff; i += pixel_diff)
+		{
+		    for (int j=-pixel_diff; j <=pixel_diff; j += pixel_diff)
+		    {
+		        // Position of the information (X,Y,Z) in the world frame
+		        // See the documentation of sensor_msgs/PointCloud2 to understand the offsets and steps
+		        int arrayPosition = (y+j) * pc2->row_step + (x+i) * pc2->point_step;
+		        // Array Position is the start of a 32 bytes long sequence that contains X, Y, Z and RGB data        
+		        
+		        // about the pixel at position (x,y) in the picture
+		        int arrayPosX = arrayPosition + pc2->fields[0].offset;
+		        int arrayPosY = arrayPosition + pc2->fields[1].offset;
+		        int arrayPosZ = arrayPosition + pc2->fields[2].offset;
+		        memcpy(&X_temp, &pc2->data[arrayPosX], sizeof(float));
+		        memcpy(&Y_temp, &pc2->data[arrayPosY], sizeof(float));
+		        memcpy(&Z_temp, &pc2->data[arrayPosZ], sizeof(float));
+		        
+		        // Need to check if X,Y,Z are not NaN in case the considered pixel was not considered for this
+		        // frame (it can happen, the resulting depth cloud has lots of holes)
+		        if (!(X_pos != X_pos)) // (f != f) is true only when f is NaN
+		        {
+		            X_pos += X_temp;
+		            Y_pos += Y_temp;
+		            Z_pos += Z_temp;
+		        }
+		        else
+		        {
+		            num_points -= 1; // the point is not considered
+		        }
+		    }
+		}
+		
+
+		X_pos /= num_points;
+		Y_pos /= num_points;
+		Z_pos /= num_points; // dividing by the number of points
+	}
+
 
         std::cout << "(X,Y,Z) = (" << X_pos << "," << Y_pos << "," << Z_pos << ")" << std::endl;
         
@@ -303,7 +424,7 @@ int main(int argc, char **argv)
     //SubscribeAndPublish SAPObject;
 
     ros::NodeHandle n_;
-    ros::Duration(3).sleep(); 
+    
 
     //ros::Subscriber sub_bounding; // Subscriber to bounding boxes
 

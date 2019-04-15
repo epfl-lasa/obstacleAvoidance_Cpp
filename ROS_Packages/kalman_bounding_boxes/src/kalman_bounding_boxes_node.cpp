@@ -171,22 +171,37 @@ public:
         // - if a tracked people has no associated tracked people (there are all out of the limit range), a new tracked_people is created
         if (only_people.size() != 0)
         {
-        std::vector<int> index_match(only_people.size(), -1);
+        std::vector<int> index_match(only_people.size(), -2);
+	for (int i=0; i < only_people.size(); i++) 
+	{
+		std::cout << index_match[i] << std::endl;
+	}
         // Find closest bounding box for each tracked people
         for (int i=0; i < only_people.size(); i++) 
         {
 	     float x = static_cast<float>((only_people[i]).roi.x_offset);
              float y = static_cast<float>((only_people[i]).roi.y_offset);
+	     ROS_INFO("Detected person %i: (x,y) = (%f %f)", i, x, y);
 	     int j_min = -1;
              float d_min = limit_dist + 1;
              for (int j=0; j < tracked_people.size(); j++) 
              {
-		float d = std::sqrt(std::pow(x - (tracked_people[j]).info[0],2)+std::pow(y - (tracked_people[j]).info[1],2));
+		// ROS_INFO("Tracker (x,y) = (%f %f)", (tracked_people[j]).info[0], (tracked_people[j]).info[1]);
+		// float d = std::sqrt(std::pow(x - (tracked_people[j]).info[0],2)+std::pow(y - (tracked_people[j]).info[1],2));
+		
+		x_pred = (((tracked_people[j]).filter_person).X)[0];
+            	y_pred = (((tracked_people[j]).filter_person).X)[1];
+		ROS_INFO("Tracker (x,y) = (%f %f)", x_pred, y_pred);
+		float d = std::sqrt( std::pow(x - x_pred,2)+std::pow(y - y_pred,2) );
+              
+		ROS_INFO("Detected person %i and Box %i | Distance %f", i, j, d);
                 if ( (d<limit_dist) && (d<d_min))
 		{
 			j_min = j;
 			d_min = d;
+			ROS_INFO("Closest box is now box %i", j);
 		}
+		
              }
 
 		// j_min now contains the index of the closest tracked_person from the box
@@ -198,6 +213,7 @@ public:
 			     // Already used so we make a copy of the tracked_person and we append it at the end of the list tracked_people
                              j_min = tracked_people.size();
                              tracked_people.push_back(tracked_people[index_match[k]]);
+			     ((tracked_people[j_min]).filter_person).predict();
                              only_trackers.push_back(only_people[i]);
 			     break;
              		}
@@ -213,6 +229,7 @@ public:
 			tracked_person new_person(x,y,static_cast<float>((only_people[i]).roi.height), static_cast<float>((only_people[i]).roi.width));
                         index_match[i] = tracked_people.size();
                         tracked_people.push_back(new_person);
+                        ((tracked_people[index_match[i]]).filter_person).predict();
                         only_trackers.push_back(only_people[i]);
 		}
         }
@@ -233,8 +250,8 @@ public:
 	    // Measurement Step
 	    x_box = static_cast<float>((only_people[i]).roi.x_offset);
             y_box = static_cast<float>((only_people[i]).roi.y_offset);
-            vx_box = (x_box - x_prev)/h;
-            vy_box = (y_box - y_prev)/h;
+            vx_box = (x_box - x_prev)/h * 0.1;
+            vy_box = (y_box - y_prev)/h * 0.1;
 	    Z << x_box, y_box, vx_box, vy_box; 
             x_prev = x_box;
             y_prev = y_box;
