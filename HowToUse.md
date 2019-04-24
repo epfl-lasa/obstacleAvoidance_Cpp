@@ -6,9 +6,13 @@ Updated the 27/03/2019
 - folders inside ROS_Packages folder go into your ~/catkin_ws/src/ folder
 
 You need to have the Eigen library installed. I used version 3.3.7.  
-Download the library from http://eigen.tuxfamily.org/index.php?title=Main_Page  
+You can download the latest version with:
+* sudo apt-get install libeigen3-dev
+
+Other method (just in case):
+* Download the library from http://eigen.tuxfamily.org/index.php?title=Main_Page  
 Put library folder (which contains bench, blas, cmake, debug, demos...) into your ~/Documents folder   
-Rename the library folder "eigen3"
+Rename the library folder "eigen3" then add the folder to ros library path
 
 Install Ridgeback packages:  
 * sudo apt-get install ros-kinetic-ridgeback-simulator ros-kinetic-ridgeback-desktop
