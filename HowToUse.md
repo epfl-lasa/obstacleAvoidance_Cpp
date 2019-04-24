@@ -11,8 +11,7 @@ Put library folder (which contains bench, blas, cmake, debug, demos...) into you
 Rename the library folder "eigen3"
 
 Install Ridgeback packages:  
-* sudo apt-get install ros-indigo-ridgeback-simulator ros-indigo-ridgeback-desktop
-
+* sudo apt-get install ros-kinetic-ridgeback-simulator ros-kinetic-ridgeback-desktop
 
 Now you have to compile ROS packages with:  
 * cd ~/catkin_make  
