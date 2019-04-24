@@ -18,14 +18,14 @@ Install Ridgeback packages:
 * sudo apt-get install ros-kinetic-ridgeback-simulator ros-kinetic-ridgeback-desktop
 
 Now you have to compile ROS packages with:  
-* cd ~/catkin_make  
+* cd ~/catkin_ws 
 catkin_make  
 source ./devel/setup.bash
 
 Install gmapping with:  
 * sudo apt-get install ros-kinetic-slam-gmapping
 
-Install jsk_rviz_plugins to be able to display the velocity command in rviz:
+Install jsk_rviz_plugins to be able to display the velocity command in rviz (not compulsory):
 * sudo apt-get install ros-kinetic-jsk-rviz-plugins
 
 ---
