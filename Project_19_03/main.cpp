@@ -6,10 +6,8 @@
 #include <array>
 
 // INCLUDE HEADERS
-//#include "Attractor.h"
 #include "ObstacleAvoidance.h"
 #include "ObstacleReconstruction.h"
-//#include "SolverFunctions.h"
 
 
 using namespace std;
@@ -17,28 +15,79 @@ using namespace std;
 // Global variables
 float PI = 3.1415;
 
-int test_functions();
-void plot_stream_gazebo();
+int test_functions();         // Lots of stuff that I used to test the functions when I was developing them, to be deleted for the final version
+void trajectory_generation(); // Old function to plot trajectories with ellipses obstacles
+void plot_stream_gazebo();    // Create data to plot a stream with matplotlib for a given set of obstacles
+
+// float limit_dist;
 
 void test_fill_holes()
 {
-    Grid occupancy = Grid::Zero(16,16);
-    occupancy.row(4) << 0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0;
-    occupancy.row(5) << 0,0,0,0,0,1,0,0,0,1,1,1,0,0,0,0;
-    occupancy.row(6) << 0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0;
-    occupancy.row(7) << 0,0,0,0,1,1,1,0,0,0,1,1,0,0,0,0;
-    occupancy.row(8) << 0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0;
-    occupancy.row(9) << 0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0;
+    Grid occupancy = Grid::Zero(14,16);
+    occupancy.row(4) << 0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0;
+    occupancy.row(5) << 0,0,0,0,1,0,0,0,0,0,0,1,1,0,0,0;
+    occupancy.row(6) << 0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0;
+    occupancy.row(7) << 0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0;
+    occupancy.row(8) << 0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0;
+    occupancy.row(9) << 0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0;
     occupancy *= 100;
     State state_robot; state_robot << 8, 8, 0;
-    Grid output = expand_occupancy_grid( occupancy, 1, state_robot, 1, 1);
+    Grid output = expand_occupancy_grid( occupancy, 1, state_robot, 10, 1);
 
     cout << output << endl;
 
+    // Detect expanded obstacles
+    std::vector<Border> storage;
+    storage = detect_borders( output, state_robot);
 
-
+    std::cout << storage.size() << " detected obstacle(s)" << std::endl;
+    for (int i=0; i < storage.size(); i++)
+    {
+        //std::cout << storage[i] << std::endl;
+    }
 }
 
+void call_morphing()
+{
+    Blob obst(23,2); // This obstacle is a U-shape obstace
+    Blob res;
+    obst.row(0) << 5, 4;
+    obst.row(1) << 6, 4;
+    obst.row(2) << 7, 4;
+    obst.row(3) << 8, 4;
+    obst.row(4) << 9, 4;
+    obst.row(5) << 10, 4;
+    obst.row(6) << 11, 4;
+    obst.row(7) << 12, 4;
+    obst.row(8) << 13, 4;
+    obst.row(9) << 5, 5;
+    obst.row(10) << 13, 5;
+    obst.row(11) << 5, 6;
+    obst.row(12) << 13, 6;
+    obst.row(13) << 5, 7;
+    obst.row(14) << 13, 7;
+    obst.row(15) << 5, 8;
+    obst.row(16) << 13, 8;
+    obst.row(17) << 5, 9;
+    obst.row(18) << 13, 9;
+    obst.row(19) << 6, 9;
+    obst.row(20) << 12, 9;
+    obst.row(21) << 7, 9;
+    obst.row(22) << 11, 9;
+
+    Eigen::Matrix<float, 5, 1> limits_morphing;
+    limits_morphing << 2.02, 16.02, 1.02, 12.02, 0.1;
+
+    State state_attractor; state_attractor << 14.3,6.6,0;//10,6.8,0;//9.3, 7, 0; // 9.1,8.5, 0;//8, 1.6,0; // doesn't matter
+
+    std::vector<Blob> stack_of_obst;
+    stack_of_obst.push_back(obst);
+    //compute_morphing( limits_morphing, state_attractor, stack_of_obst); // compute morphing between initial and circle spaces
+
+    State robot; robot << 8,1.6,0; // 10.61, 6.45, 0;
+    compute_trajectory_both_spaces(robot, state_attractor, stack_of_obst);
+}
 void trajectories_border()
 {
     ofstream myfile;
@@ -80,7 +129,7 @@ void trajectories_border()
 
     Point center_blob = get_center(obst);
     Border border_out;
-    border_out = compute_border( obst, center_blob);
+    //border_out = compute_border( obst, center_blob);
 
     State state_robot;
     State state_attractor;
@@ -124,6 +173,7 @@ void trajectories_border()
 
 int main()
 {
+    //call_morphing();
     //test_fill_holes();
     //growing_obstacle();
     //trajectories_border();
@@ -142,7 +192,8 @@ int main()
         occupancy_grid.row(8) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
         occupancy_grid *= 100;
         std::vector<Border> storage;
-        storage = detect_borders( occupancy_grid );
+        State placeholder_state; placeholder_state << 0, 0, 0;
+        storage = detect_borders( occupancy_grid, placeholder_state );
         cout << storage.size() << " obstacles have been detected." << endl;
         for (int iter=0; iter<storage.size(); iter++)
         {
@@ -172,6 +223,7 @@ int main()
 
     if (false)
     {
+        // This obstacle has a random shape
         /*Blob obst(23,2);
         Blob res;
         obst.row(0) << 6, 4;
@@ -198,7 +250,8 @@ int main()
         obst.row(21) <<  5, 7;
         obst.row(22) <<  4, 8;*/
 
-        /*Blob obst(12,2); // This obstacle is a filled rectangle
+        // This obstacle is a filled rectangle
+        /*Blob obst(12,2);
         Blob res;
         obst.row(0) << 6, 4;
         obst.row(1) << 7, 4;
@@ -213,7 +266,8 @@ int main()
         obst.row(10) << 8, 6;
         obst.row(11) << 9, 6;*/
 
-        Blob obst(23,2); // This obstacle is a U-shape obstace
+        // This obstacle is a U-shaped obstacle
+        Blob obst(23,2);
         Blob res;
         obst.row(0) << 5, 4;
         obst.row(1) << 6, 4;
@@ -238,11 +292,6 @@ int main()
         obst.row(20) << 12, 9;
         obst.row(21) << 7, 9;
         obst.row(22) << 11, 9;
-
-
-        // TODO: Issue at attractor cell => it's an issue with the arcs of circle
-        // TODO: Issue with internal circles of type 3
-        // CHECK DISTANCE CALCULUS
 
         /*res = fill_gaps(obst);
         cout << "With gaps:" << endl;
@@ -361,106 +410,21 @@ int main()
 
         plot_stream_gazebo();
 
-        /*robot << 8, 6;//5.5, 5.5;
-        closest << 7, 7, 3, 0.7, 1, 4;
-        cout << (gamma_and_ref_vector(robot, closest)) << endl;
-
-        robot << 8, 8;//5.5, 5.5;
-        closest << 7, 7, 3, 0.7, 2, 4;
-        cout << (gamma_and_ref_vector(robot, closest)) << endl;
-
-        robot << 6, 8;//5.5, 5.5;
-        closest << 7, 7, 3, 0.7, 3, 4;
-        cout << (gamma_and_ref_vector(robot, closest)) << endl;
-
-        robot << 6, 6;//5.5, 5.5;
-        closest << 7, 7, 3, 0.7, 0, 4;
-        cout << (gamma_and_ref_vector(robot, closest)) << endl;*/
-
     }
-
     return 0;
-    cout << "Hello world!!!!" << endl;
+}
 
-    /*Eigen::Matrix<float, 3, 1> mat1; mat1 << 1, 2, 3;
-    Eigen::Matrix<float, 3, 1> mat2; mat2 << 1, 2, 4;
-    cout << mat1.cwiseProduct(mat2) << endl;*/
-    /*Eigen::MatrixXf mat(3,4);
-    mat.col(0) << 1, 1, 1;
-    mat.col(1) << 2, 2, 2;
-    mat.col(2) << 0, 1, 0;
-    mat.col(3) << 1, 2, 1;
-    cout << "Mat : " << endl << mat << endl;
-
-    Eigen::MatrixXf mat_bis(3,4);
-    mat_bis = mat.colwise().normalized();
-    cout << "Mat_bis : " << endl << mat_bis << endl;*/
-
-    //test_functions();
-
-    /*
-    State s1, s2;
-    s1 << 2, 2, 2;
-    s2 << 1, 2, 2;
-    cout << s1 << endl;
-
-    cout << distance(s1, s2) << endl;
-    cout << Eigen::Matrix<float, number_states, number_states>::Zero() << endl;
-    State state_h = State::Zero();
-    cout << state_h << endl;
-
-    cout << "Colum: " << s1 << endl;
-    cout << "Norm: "  << s1.norm() << endl;*/
-
-    /*Eigen::Matrix<float,9,1> test;
-    test << s1, s2, s1;
-    cout << "Test:" << endl << test << endl;*/
-
-    /*Eigen::Matrix<float,9,1> params_ellipse;
-    params_ellipse << 1,2,3,4,5,6,7,8,9;
-    findSurfacePointEllipse(params_ellipse);*/
-
-    /*Obstacle obs1({{1.0,1.0}},{{1.0,1.0}},{{10.0,-8.0}},-40/180*PI,1.0,{{0.0, 0.0}},0.0,1.0,0.0);
-    obs1.disp_params();
-
-    Attractor att1(1.2, 2.3);
-    att1.disp_params();
-
-    Eigen::Matrix<int, 2, 3> mat1;
-    mat1 << 1, 2, 3, 4, 5, 6;
-    cout << mat1 << endl;
-    mat1(1,2) = 9;
-    cout << mat1;
-
-    std::array<Obstacle, 2> test;
-    test[0].disp_params();
-    test[0] = obs1;
-    test[1] = obs1;
-    test[0].disp_params();*/
-
-    /*State s1(1.1, 2.2, 3.3);
-    s1.disp_params();
-    State s2(s1);
-    s2.disp_params();
-    State s3 = s1;
-    s3.disp_params();
-
-    s3 = s1.sumStates(s2);
-    s3.disp_params();
-    State s4(s3);
-    s4 = s1 + s3;
-    s4.disp_params();
-    s4 = s4 - s1;
-    s4.disp_params();*/
-
-    // ------------ TRAJECTORY GENERATION
-
-
+// Old function to plot trajectories for the first version of the algorithm
+// Generate data in a /Trajectories folder that is use with matplotlib
+void trajectory_generation()
+{
     ofstream myfile;
     ofstream myfile_obstacles;
     myfile_obstacles.open("obstacles_trajectory.txt");
     bool flag_obstacles = true;
-    bool flag_quiver = true; // Set to false to disable Quiver computation
+
+    bool flag_quiver = false; // Set to false to disable Quiver computation
+
     int num_file = 0;
     cout << "-- Starting solver --" << endl;
 
@@ -470,13 +434,14 @@ int main()
         myfile.open("./Trajectories/trajectory_" + std::to_string(y_k) + ".txt"); //each starting point has its own file
         try
         {
-
             State state_robot;
             State state_attractor;
-            Obstacle obs1, obs2, obs3, obs4, obs5;
 
+            // Set of obstacle number 1
             /*state_robot     << -2, y_k, 0;
             state_attractor <<  8, 4, 0;
+
+            Obstacle obs1, obs2, obs3, obs4, obs5;
             obs1 << 0, 0, (45*PI/180), 0.6, 1, 1, 1, 0, 2, (-60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
             obs2 << 2, 2, 0, 1, 1, 1, 1, 0, 0, (60*PI/180); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
             obs3 << 6, 6, 0, 1, 1, 1, 1, 0, 0, 0;
@@ -490,8 +455,9 @@ int main()
             mat_obs.col(3) = obs4;
             mat_obs.col(4) = obs5;*/
 
-            state_robot     << 0, 0, 0;
-            state_attractor << 5.9,4.9,0;
+            // Set of obstacle number 2
+            state_robot     << 0  ,  y_k, 0;
+            state_attractor << 5.9,  4.9, 0;
             Eigen::MatrixXf mat_obs(10,4); // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
             mat_obs.col(0) << -4, 7, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
             mat_obs.col(1) <<  2, 2, 0, 1.6, 1.6, 1, 1, 0, 0, 0;
@@ -502,7 +468,7 @@ int main()
             limits_quiver << -2, 6, -2, 5, 0.1;
 
 
-            if (flag_quiver)
+            if (flag_quiver) // Compute quiver for the starting position of the obstacles
             {
                 Eigen::Matrix<float, 2, 4> mat_points;
                 mat_points.row(0) << 2, 2, 3, 3;
@@ -513,7 +479,8 @@ int main()
                 //compute_quiver_polygon(limits_quiver, state_attractor, mat_points);
                 flag_quiver = false;
             }
-            int N_steps = 500;
+
+            int N_steps = 500; // Maximum number of steps
             float time_step = 0.01;
 
             for (int i=0; i<N_steps; i++)
@@ -530,11 +497,8 @@ int main()
                         myfile_obstacles << "\n";
                     }
                 }
-                myfile << time_stamp << "," << state_robot(0,0) << "," << state_robot(1,0) << "," << state_robot(2,0) << "\n";
-                //cout << "State robot: " << std::endl << state_robot << endl;
-                //State next_eps = next_step_single_obstacle(state_robot, state_attractor, obs);
+                myfile << time_stamp << "," << state_robot(0,0) << "," << state_robot(1,0) << "," << state_robot(2,0) << "\n"; // Write position of robot
                 State next_eps = one_step_2D( state_robot, state_attractor, mat_obs);
-                //cout << "Next velocity: " << std::endl << next_eps << endl;
                 state_robot += next_eps * time_step;
                 update_obstacles( mat_obs, time_step); // update [x_c, y_c, phi] of all obstacles
                 time_stamp += time_step;
@@ -553,8 +517,9 @@ int main()
     }
     cout << "-- Completed --" << endl;
     cout << "-- Trajectory files closed --" << endl;
-    return 0;
+
 }
+
 
 // Lots of stuff that I used to test the functions when I was developing them, to be deleted for the final version
 int test_functions()
@@ -648,8 +613,17 @@ int test_functions()
     return 0;
 }
 
+// Create data to plot a stream with matplotlib for a given set of obstacles
 void plot_stream_gazebo()
 {
+    // Initialization of four obstacles/blobs
+    // Obstacles are stacked into a single structure stack_of_obsts
+    // Initialization of the position of the attractor
+    // Initialization of the limits of the quiver plot on matplotlib
+    // Call function that computes the velocity command for all points in the limits of the quiver
+
+    // Just change the initialization if you want to use your own obstacles
+
     Blob obst0(108,2);
     obst0.row(0) << 314, 312;
     obst0.row(1) << 315, 312;
@@ -1166,6 +1140,7 @@ void plot_stream_gazebo()
     Eigen::Matrix<float, 5, 1> limits_quiver;
     limits_quiver << 300.02, 420.02, 280.02, 400.02, 1;
 
-    compute_stream_border(limits_quiver, state_attractor, stack_of_obst);
+    compute_stream_border(limits_quiver, state_attractor, stack_of_obst, -1);
 
 }
+
