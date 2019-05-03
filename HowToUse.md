@@ -1,4 +1,4 @@
-Updated the 27/03/2019
+Updated 03/05/2019
 
 - Content of Folders_Documents folder goes into your ~/Documents folder
 - Copy-paste content of /catkin_ws/src/ into your ~/catkin_ws/src/ folder
@@ -64,3 +64,8 @@ Once everything has been set, open a new terminal then run:
 * rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
 
 This topic triggers the callback function that computes the velocity command. It is set at 10 Hz but you can change it if you want. For instance "-r 1" to get 1 Hz.
+
+---
+
+* d415.stl and d435.dae have been removed from realsense2_camera/meshes folder to save storage space
+* Qolo_T_CB_Single.stl has been removed from process_depth_img/model_Qolo/meshes folder to save storage space
