@@ -1,9 +1,7 @@
 Updated the 27/03/2019
 
-- Project_19_03 folder goes into your ~/Documents folder
-- Gazebo_worlds folder goes into your ~/Documents folder
-- PointCloudFiltering folder goes into your ~/Documents folder
-- folders inside ROS_Packages folder go into your ~/catkin_ws/src/ folder
+- Content of Folders_Documents folder goes into your ~/Documents folder
+- Copy-paste content of /catkin_ws/src/ into your ~/catkin_ws/src/ folder
 
 You need to have the Eigen library installed. I used version 3.3.7.  
 You can download the latest version with:
