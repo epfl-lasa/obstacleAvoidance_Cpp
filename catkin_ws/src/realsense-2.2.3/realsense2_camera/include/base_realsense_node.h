@@ -134,6 +134,7 @@ namespace realsense2_camera
         std::map<stream_index_pair, std::string> _frame_id;
         std::map<stream_index_pair, std::string> _optical_frame_id;
         std::map<stream_index_pair, std::string> _depth_aligned_frame_id;
+        ros::NodeHandle& _node_handle, _pnh;
         bool _align_depth;
 
         virtual void calcAndPublishStaticTransform(const stream_index_pair& stream, const rs2::stream_profile& base_profile);
@@ -190,7 +191,8 @@ namespace realsense2_camera
         void setupFilters();
         void setupStreams();
         void setBaseTime(double frame_time, bool warn_no_metadata);
-        void clip_depth(rs2::depth_frame& depth_frame, float depth_scale, float clipping_dist);
+        void fix_depth_scale(rs2::depth_frame depth_frame);
+        void clip_depth(rs2::depth_frame depth_frame, float clipping_dist);
         void updateStreamCalibData(const rs2::video_stream_profile& video_profile);
         void publishStaticTransforms();
         void publishPointCloud(rs2::points f, const ros::Time& t, const rs2::frameset& frameset);
@@ -223,7 +225,6 @@ namespace realsense2_camera
         rs2_stream rs2_string_to_stream(std::string str);
 
         rs2::device _dev;
-        ros::NodeHandle& _node_handle, _pnh;
         std::map<stream_index_pair, rs2::sensor> _sensors;
         std::map<std::string, std::function<void(rs2::frame)>> _sensors_callback;
         std::vector<std::shared_ptr<ddynamic_reconfigure::DDynamicReconfigure>> _ddynrec;
@@ -264,6 +265,7 @@ namespace realsense2_camera
         ros::Time _ros_time_base;
         bool _sync_frames;
         bool _pointcloud;
+        bool _publish_odom_tf;
         imu_sync_method _imu_sync_method;
         std::string _filters_str;
         stream_index_pair _pointcloud_texture;
