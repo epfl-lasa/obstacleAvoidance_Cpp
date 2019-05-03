@@ -1,0 +1,24 @@
+<launch>
+
+  <rosparam param="/gazebo_ros_control/pid_gains">
+    base_to_second_joint_X:   {p: 10, i: 0.1, d: 1}
+    base_to_second_joint_Y:   {p: 10, i: 0.1, d: 1}
+  </rosparam>
+
+  <param name="robot_description_bis" textfile="$(find simple_example_description)/urdf/robot.urdf" />
+  
+  <node name="urdf_spawner_bis" pkg="gazebo_ros" type="spawn_model"
+    args="-urdf -model simple_model -param robot_description_bis -y -6"/>
+
+
+	<!-- loads the controllers -->
+	<rosparam file="$(find simple_example_description)/config/config.yaml" command="load" />
+	<node name="controller_spawner" pkg="controller_manager" type="spawner" ns="/simple_model" args="base_to_second_joint_position_controller joint_state_controller_bis"/> 
+
+
+	<!-- converts joint states to TF transforms -->
+	<node name="robot_state_publisher_bis" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
+	    <remap from="/joint_states" to="/simple_model/joint_states" />
+	</node> 
+
+</launch>

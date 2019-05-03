@@ -1,0 +1,15 @@
+simple_model:
+    joint_state_controller_bis:
+        type: joint_state_controller/JointStateController
+        publish_rate: 20
+
+    base_to_second_joint_position_controller:
+        type: position_controllers/JointGroupPositionController
+        joints: 
+           - base_to_second_joint_X
+           - base_to_second_joint_Y
+        pid_gains: 
+           base_to_second_joint_X: {p: 100.0, i: 0.01, d: 0.0}
+           base_to_second_joint_Y: {p: 100.0, i: 0.01, d: 0.0}
+
+

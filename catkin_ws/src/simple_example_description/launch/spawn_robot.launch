@@ -1,0 +1,29 @@
+<launch>
+	  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="/home/leziart/Documents/Gazebo_worlds/box_of_walls.world" /> <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="recording" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+
+  <rosparam param="/gazebo_ros_control/pid_gains">
+    base_to_second_joint_X:   {p: 10, i: 0.1, d: 1}
+    base_to_second_joint_Y:   {p: 10, i: 0.1, d: 1}
+  </rosparam>
+
+
+
+	<param name="robot_description" textfile="$(find simple_example_description)/urdf/robot.urdf" />
+	<node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" args="-urdf -model simple_model -param robot_description -y -6"/>
+	<!-- loads the controllers -->
+	<rosparam file="$(find simple_example_description)/config/config.yaml" command="load" />
+	<node name="controller_spawner" pkg="controller_manager" type="spawner" ns="/simple_model" args="base_to_second_joint_position_controller joint_state_controller --shutdown-timeout 3 "/> 
+	<!-- converts joint states to TF transforms -->
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
+	    <remap from="/joint_states" to="/simple_model/joint_states" />
+	</node>
+</launch>

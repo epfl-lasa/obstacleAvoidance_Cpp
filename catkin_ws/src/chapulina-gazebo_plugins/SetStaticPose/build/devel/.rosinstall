@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/leziart/catkin_ws/src/chapulina-gazebo_plugins-dd9c7d7e7291/SetStaticPose/build/devel/setup.sh
