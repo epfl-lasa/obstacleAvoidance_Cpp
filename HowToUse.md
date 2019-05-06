@@ -1,7 +1,8 @@
 Updated 06/05/2019
 
 - Content of Folders_Documents folder goes into your ~/Documents folder
-- Copy-paste content of /catkin_ws/src/ into your ~/catkin_ws/src/ folder
+
+If you only want to run the simulation, copy and paste content of /catkin_ws/src_for_simulation/ into your ~/catkin_ws/src/ folder
 
 You need to have the Eigen library installed. I used version 3.3.7.  
 You can download the latest version with:
@@ -15,16 +16,16 @@ Rename the library folder "eigen3" then add the folder to ros library path
 Install Ridgeback packages:  
 * sudo apt-get install ros-kinetic-ridgeback-simulator ros-kinetic-ridgeback-desktop
 
-Now you have to compile ROS packages with:  
-* cd ~/catkin_ws 
-catkin_make  
-source ./devel/setup.bash
-
 Install gmapping with:  
 * sudo apt-get install ros-kinetic-slam-gmapping
 
 Install jsk_rviz_plugins to be able to display the velocity command in rviz (not compulsory):
 * sudo apt-get install ros-kinetic-jsk-rviz-plugins
+
+Now you have to compile ROS packages with:  
+* cd ~/catkin_ws 
+catkin_make  
+source ./devel/setup.bash
 
 ---
 
