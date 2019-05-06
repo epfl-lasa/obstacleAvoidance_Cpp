@@ -1,4 +1,4 @@
-Updated 03/05/2019
+Updated 06/05/2019
 
 - Content of Folders_Documents folder goes into your ~/Documents folder
 - Copy-paste content of /catkin_ws/src/ into your ~/catkin_ws/src/ folder
@@ -28,34 +28,46 @@ Install jsk_rviz_plugins to be able to display the velocity command in rviz (not
 
 ---
 
+You need the following models to launch the world: (https://bitbucket.org/osrf/gazebo_models/src/e6d645674e8a99cb7955ce3b9a1fbe26c58c41f2/)
+* bookshelf
+* collapsed_industrial
+* dumpster
+* fountain
+* ground_plane
+* person_standing
+* sun
+* willowgarage
+If you use "hg clone https://bitbucket.org/osrf/gazebo_models" you get all the models but apparently you select which folders you want with a python script or with "mercurial"
+
+---
+
 For each one of the following lines, open a terminal and run the command in it
 
 * roscore
 
-* cd ~/Documents/Gazebo_worlds  
-RIDGEBACK_REAR_HOKUYO_LASER="1" roslaunch my_ridgeback.launch
+* roslaunch worlds_and_launchers my_ridgeback.launch
 
-* cd ~/Documents/PointCloudFiltering  
-roslaunch filter_for_static.launch
+* roslaunch worlds_and_launchers filter_for_static.launch
 
 * rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static
 
-* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.3 _map_update_interval:=1.0
+* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.2 _map_update_interval:=1.0
 
 * rosrun process_occupancy_grid process_occupancy_grid_node
 
 * rosrun process_occupancy_grid cmd_vel_listener 
 
-* rosrun rviz rviz ~/Documents/Gazebo_worlds/config_rviz.rviz
+* rosrun rviz rviz ~/catkin_ws/src/worlds_and_launchers/rviz/config_rviz.rviz
 
 ---
 
-In rviz (already done in the config_rviz.rviz file):  
+In rviz (already done if you use the config_rviz.rviz file):  
 * Set the global fixed frame to "map"
 * Add a Map object and set it to the "map" topic
 * Add a RobotModel object, the Ridgeback should appear
 * Add PointCloud2 object that displays "point_cloud_for_static" or "velodyne_points"
 * Add Laserscan object that displays "scan"
+* Add TwistStamped object that displays "cmd_vel_stamped" (need jsk_rviz_plugins)
 
 ---
 
