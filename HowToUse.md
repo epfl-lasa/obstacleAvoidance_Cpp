@@ -38,7 +38,10 @@ You need the following models to launch the world: (https://bitbucket.org/osrf/g
 * person_standing
 * sun
 * willowgarage
-If you use "hg clone https://bitbucket.org/osrf/gazebo_models" you get all the models but apparently you select which folders you want with a python script or with "mercurial"
+
+If you launch Gazebo without those models it should download them by itself but I did not tried.
+
+If you use "hg clone https://bitbucket.org/osrf/gazebo_models" you get all the models but apparently you can select which folders you want with a python script or with "mercurial".
 
 ---
 
