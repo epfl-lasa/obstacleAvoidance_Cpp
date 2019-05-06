@@ -2,10 +2,17 @@
   <arg name="use_sim_time" default="true" />
   <arg name="gui" default="true" />
   <arg name="headless" default="false" />
+
+  <!-- World with four walls enclosing a large empty space -->
   <!-- <arg name="world_name" default="/home/leziart/Documents/Gazebo_worlds/box_of_walls.world" /> -->
 
-  <arg name="world_name" default="/home/leziart/Documents/Gazebo_worlds/crossing_in_corridor.world" /> 
-  <!-- <arg name="world_name" default="/home/leziart/Documents/Gazebo_worlds/willowgarage_custom.world" />  -->
+  <!-- World with a long corridor and people moving in it -->
+  <!--  <arg name="world_name" default="$(find worlds_and_launchers)/worlds/crossing_in_corridor.world" />  -->
+
+  <!-- World with a big room filled with static obstacles and moving people -->
+  <arg name="world_name" default="$(find worlds_and_launchers)/worlds/willowgarage_custom.world" />  
+
+  <!-- World with small barriers -->
   <!-- <arg name="world_name" default="$(find ridgeback_gazebo)/worlds/ridgeback_race.world" /> -->
 
   <!-- Configuration of Ridgeback which you would like to simulate.
@@ -23,13 +30,16 @@
     <arg name="paused" value="false"/>
   </include>
 
-  <!-- Load Ridgeback's description, controllers, and teleop nodes. -->
+  <!-- Load Ridgeback's default description -->
   <!-- <include file="$(find ridgeback_description)/launch/description.launch">
-    <arg name="config" value="$(arg config)" />
-  </include> -->
+    <arg name="config" value="$(arg config)" /> </include> -->
+
+  <!-- Load Ridgeback's custom description -->
   <include file="$(find velodyne_description)/launch/my_description.launch">
     <arg name="config" value="$(arg config)" />
   </include>
+
+  <!-- Load Ridgeback's controllers and teleop nodes. -->
   <include file="$(find ridgeback_control)/launch/control.launch" />
   <include file="$(find ridgeback_control)/launch/teleop.launch">
     <arg name="joystick" value="false"/>
@@ -57,14 +67,5 @@
   <!-- Spawn Ridgeback -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
         args="-urdf -model ridgeback -param robot_description -x 0 -y 0 -z 0.1" />
-
-  <!--<node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
-        args="-sdf -model ridgeback -file /Users/mikepurvis/ridgeback_ws/ridgeback.sdf -x 0 -y 0 -z 0.1" /> -->
-
-  <!--<node name="urdf_spawner_bis" pkg="gazebo_ros" type="spawn_model"
-        args="-sdf -model kinect_ros -file /home/leziart/catkin_ws/src/process_depth_img/kinect_ros/model.sdf -x 0.2 -y 0 -z 1.8" />-->
-
-
-
 
 </launch>
