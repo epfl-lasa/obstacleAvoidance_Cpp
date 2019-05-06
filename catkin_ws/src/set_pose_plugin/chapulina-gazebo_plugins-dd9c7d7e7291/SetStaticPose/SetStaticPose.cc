@@ -33,6 +33,7 @@
 
 #include <tf/tf.h>
 
+
 using namespace gazebo;
 
 // Register this plugin with the simulator
@@ -51,8 +52,12 @@ SetStaticPose::~SetStaticPose()
 {
   this->range_queue_.clear();
   this->range_queue_.disable();
+  this->subscriber_queue_.clear();
+  this->subscriber_queue_.disable();
+
   this->rosnode_->shutdown();
   this->callback_queue_thread_.join();
+  this->subscriber_queue_thread_.join();
 
   delete this->rosnode_;
 }
@@ -115,7 +120,7 @@ void SetStaticPose::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
    this->node = transport::NodePtr(new transport::Node());
 
    this->node->Init();//this->model->GetWorld()->GetName());
-      
+     
    // Create a topic name
    this->topic_name = "/gazebo/pos_moving_people";
 
@@ -142,6 +147,15 @@ void SetStaticPose::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
           << "  gazebo -s libgazebo_ros_api_plugin.so\n";
    }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Subscriber callback
+void SetStaticPose::Callback(const geometry_msgs::PoseArrayConstPtr &msg) 
+{
+  /// TODO
+  std::cout << "Callback of PoseArray has been triggered" << std::endl;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Load the controller
 void SetStaticPose::LoadThread()
@@ -165,6 +179,13 @@ void SetStaticPose::LoadThread()
     std::cout << "Publisher of SetStaticPose has been initialized" << std::endl;
   }
 
+  ros::SubscribeOptions so =
+      ros::SubscribeOptions::create<geometry_msgs::PoseArray>(
+      "/poses_for_gazebo", 1,
+      boost::bind(&SetStaticPose::Callback, this, _1),
+      ros::VoidPtr(), &this->subscriber_queue_);
+
+  this->sub_ = this->rosnode_->subscribe(so);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

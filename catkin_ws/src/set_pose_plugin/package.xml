@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>worlds_and_launchers</name>
+  <name>set_pose_plugin</name>
   <version>0.0.0</version>
-  <description>Worlds and launch files</description>
+  <description>Plugin to set the pose of Gazebo models</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -30,10 +30,8 @@
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- gazebo_ros_paths_plugin automatically adds these to
-        GAZEBO_PLUGIN_PATH and GAZEBO_MODEL_PATH when you do this export inside
-        the package.xml file. You can than use URIs of type model://my_package/stuff. -->
-    <gazebo_ros                             
-        gazebo_model_path="${prefix}/.." />
+    <!-- gazebo_ros_paths_plugin automatically adds that to GAZEBO_PLUGIN_PATH -->
+    <gazebo_ros plugin_path="${prefix}/lib" />
+    <gazebo_ros gazebo_model_path="${prefix}/.." />
   </export>
 </package>

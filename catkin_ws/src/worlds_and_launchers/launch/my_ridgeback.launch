@@ -4,13 +4,13 @@
   <arg name="headless" default="false" />
 
   <!-- World with four walls enclosing a large empty space -->
-  <!-- <arg name="world_name" default="/home/leziart/Documents/Gazebo_worlds/box_of_walls.world" /> -->
+  <!-- <arg name="world_name" default="$(find worlds_and_launchers)/worlds/box_of_walls.world" /> -->
 
   <!-- World with a long corridor and people moving in it -->
-  <!--  <arg name="world_name" default="$(find worlds_and_launchers)/worlds/crossing_in_corridor.world" />  -->
+  <arg name="world_name" default="$(find worlds_and_launchers)/worlds/crossing_in_corridor.world" />
 
   <!-- World with a big room filled with static obstacles and moving people -->
-  <arg name="world_name" default="$(find worlds_and_launchers)/worlds/willowgarage_custom.world" />  
+  <!-- <arg name="world_name" default="$(find worlds_and_launchers)/worlds/willowgarage_custom.world" />  -->
 
   <!-- World with small barriers -->
   <!-- <arg name="world_name" default="$(find ridgeback_gazebo)/worlds/ridgeback_race.world" /> -->

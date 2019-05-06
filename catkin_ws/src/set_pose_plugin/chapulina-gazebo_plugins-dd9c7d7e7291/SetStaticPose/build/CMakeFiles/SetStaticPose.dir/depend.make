@@ -24,6 +24,7 @@ CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/gazebo
 CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/geometry_msgs/Point.h
 CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/geometry_msgs/PointStamped.h
 CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/geometry_msgs/Pose.h
+CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/geometry_msgs/PoseArray.h
 CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/geometry_msgs/PoseStamped.h
 CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/geometry_msgs/Quaternion.h
 CMakeFiles/SetStaticPose.dir/SetStaticPose.cc.o: /opt/ros/kinetic/include/geometry_msgs/QuaternionStamped.h

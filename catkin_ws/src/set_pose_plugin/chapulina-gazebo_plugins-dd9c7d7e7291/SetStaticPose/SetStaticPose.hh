@@ -27,7 +27,9 @@
 #include <ros/ros.h>
 #include <ros/callback_queue.h>
 #include <ros/advertise_options.h>
+
 #include <geometry_msgs/Vector3Stamped.h>
+#include <geometry_msgs/PoseArray.h>
 
 #include <gazebo/physics/physics.hh>
 #include <gazebo/transport/TransportTypes.hh>
@@ -84,7 +86,13 @@ namespace gazebo
     /// \brief pointer to ros node
     private: ros::NodeHandle* rosnode_;
     private: ros::Publisher pub_;
+    private: ros::Subscriber sub_;
 
+    private: void Callback(const geometry_msgs::PoseArrayConstPtr &msg);
+    private: ros::CallbackQueue subscriber_queue_;
+    private: void SubscriberQueueThread();
+    private: boost::thread subscriber_queue_thread_;
+    
     /// \brief ros message
     private: geometry_msgs::Vector3Stamped range_msg_;
 
@@ -104,5 +112,9 @@ namespace gazebo
     /// \brief Placeholder functions
     private: void RangeConnect();
     private: void RangeDisconnect();
+
+
+
+
   };
 }

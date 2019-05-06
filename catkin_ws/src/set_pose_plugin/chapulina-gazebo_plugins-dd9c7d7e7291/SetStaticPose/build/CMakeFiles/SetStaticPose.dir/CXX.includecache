@@ -93,6 +93,8 @@ ros/advertise_options.h
 -
 geometry_msgs/Vector3Stamped.h
 -
+geometry_msgs/PoseArray.h
+-
 gazebo/physics/physics.hh
 -
 gazebo/transport/TransportTypes.hh
@@ -364,6 +366,26 @@ ros/message_operations.h
 geometry_msgs/Point.h
 -
 geometry_msgs/Quaternion.h
+-
+
+/opt/ros/kinetic/include/geometry_msgs/PoseArray.h
+string
+-
+vector
+-
+map
+-
+ros/types.h
+-
+ros/serialization.h
+-
+ros/builtin_message_traits.h
+-
+ros/message_operations.h
+-
+std_msgs/Header.h
+-
+geometry_msgs/Pose.h
 -
 
 /opt/ros/kinetic/include/geometry_msgs/PoseStamped.h
