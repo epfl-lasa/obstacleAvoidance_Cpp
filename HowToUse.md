@@ -1,4 +1,4 @@
-Updated 06/05/2019
+Updated 07/05/2019
 
 - Content of Folders_Documents folder goes into your ~/Documents folder
 
@@ -29,6 +29,8 @@ source ./devel/setup.bash
 
 ---
 
+## Needed models
+
 You need the following models to launch the world: (https://bitbucket.org/osrf/gazebo_models/src/e6d645674e8a99cb7955ce3b9a1fbe26c58c41f2/)
 * bookshelf
 * collapsed_industrial
@@ -44,6 +46,8 @@ If you launch Gazebo without those models it should download them by itself but 
 If you use "hg clone https://bitbucket.org/osrf/gazebo_models" you get all the models but apparently you can select which folders you want with a python script or with "mercurial".
 
 ---
+
+## Command lines
 
 If all obstacles are static, use each one of the following lines, open a terminal and run the command in it
 
@@ -107,10 +111,14 @@ This topic triggers the callback function that computes the velocity command. It
 
 ---
 
+## Removed models
+
 * d415.stl and d435.dae have been removed from realsense2_camera/meshes folder to save storage space
 * Qolo_T_CB_Single.stl has been removed from process_depth_img/model_Qolo/meshes folder to save storage space
 
 ---
+
+## Custom use
 
 If you want to disable the graphical display of gazebo, in /worlds_and_launchers/launch/my_ridgeback.launch, change 'name="gui" default="true"' to 'name="gui" default="false"'
 
@@ -118,4 +126,19 @@ If you want to load another world, comment the current one in /worlds_and_launch
 
 If you want to modify some stuff for the world then look into the /worlds_and_launchers/worlds folder.
 
+---
+
+## To use the Realsense camera with people detection:
+
+* roscore
+
+* roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=realsense
+
+* cd ~/catkin_ws/src/ros_intel_movidius_ncs/movidius_ncs_launch/launch
+
+* roslaunch my_ncs_stream_detection_example.launch camera_topic:="/camera/color/image_raw"
+
+* rosrun kalman_bounding_boxes kalman_bounding_boxes_node 
+
+* rosrun process_depth_img process_depth_img_node 
 
