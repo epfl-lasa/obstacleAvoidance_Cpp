@@ -59,7 +59,7 @@ If all obstacles are static, use each one of the following lines, open a termina
 
 * rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static
 
-* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.2 _map_update_interval:=1.0
+* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.15 _map_update_interval:=1.0
 
 * rosrun process_occupancy_grid process_occupancy_grid_node
 
@@ -79,7 +79,7 @@ If there are moving people, they need to be removed from the velodyne point clou
 
 * rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_without_people
 
-* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.2 _map_update_interval:=1.0
+* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.15 _map_update_interval:=1.0
 
 * rosrun process_occupancy_grid process_occupancy_grid_node
 
