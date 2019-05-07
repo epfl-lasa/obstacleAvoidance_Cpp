@@ -45,7 +45,7 @@ If you use "hg clone https://bitbucket.org/osrf/gazebo_models" you get all the m
 
 ---
 
-For each one of the following lines, open a terminal and run the command in it
+If all obstacles are static, use each one of the following lines, open a terminal and run the command in it
 
 * roscore
 
@@ -62,6 +62,30 @@ For each one of the following lines, open a terminal and run the command in it
 * rosrun process_occupancy_grid cmd_vel_listener 
 
 * rosrun rviz rviz ~/catkin_ws/src/worlds_and_launchers/rviz/config_rviz.rviz
+
+If there are moving people, they need to be removed from the velodyne point cloud.
+
+* roscore
+
+* roslaunch worlds_and_launchers my_ridgeback.launch
+
+* roslaunch worlds_and_launchers filter_for_static.launch
+
+* rosrun remove_people_pcl remove_people_pcl_node
+
+* rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_without_people
+
+* rosrun gmapping slam_gmapping scan:=/scan _delta:=0.2 _map_update_interval:=1.0
+
+* rosrun process_occupancy_grid process_occupancy_grid_node
+
+* rosrun process_occupancy_grid vector_to_posearray_node
+
+* rosrun process_occupancy_grid cmd_vel_listener 
+
+* rosrun rviz rviz ~/catkin_ws/src/worlds_and_launchers/rviz/config_rviz.rviz
+
+Basically 'remove_people_pcl_node' removes people from /cloud_for_static and outputs /cloud_without_people. 'vector_to_posearray_node' makes the link between gazebo and ROS by grouping the position of all people (vectors) into a single PoseArray. This PoseArray is used both by 'remove_people_pcl_node' and 'process_occupancy_grid_node'.
 
 ---
 
@@ -85,3 +109,13 @@ This topic triggers the callback function that computes the velocity command. It
 
 * d415.stl and d435.dae have been removed from realsense2_camera/meshes folder to save storage space
 * Qolo_T_CB_Single.stl has been removed from process_depth_img/model_Qolo/meshes folder to save storage space
+
+---
+
+If you want to disable the graphical display of gazebo, in /worlds_and_launchers/launch/my_ridgeback.launch, change 'name="gui" default="true"' to 'name="gui" default="false"'
+
+If you want to load another world, comment the current one in /worlds_and_launchers/launch/my_ridgeback.launch with '<!-- [...] -->' and uncomment the one you want.
+
+If you want to modify some stuff for the world then look into the /worlds_and_launchers/worlds folder.
+
+
