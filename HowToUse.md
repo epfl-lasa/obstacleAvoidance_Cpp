@@ -89,7 +89,7 @@ If there are moving people, they need to be removed from the velodyne point clou
 
 * rosrun rviz rviz ~/catkin_ws/src/worlds_and_launchers/rviz/config_rviz.rviz
 
-Basically 'remove_people_pcl_node' removes people from /cloud_for_static and outputs /cloud_without_people. 'vector_to_posearray_node' makes the link between gazebo and ROS by grouping the position of all people (vectors) into a single PoseArray. This PoseArray is used both by 'remove_people_pcl_node' and 'process_occupancy_grid_node'.
+Basically `remove_people_pcl_node` removes people from /cloud_for_static and outputs /cloud_without_people. `vector_to_posearray_node` makes the link between gazebo and ROS by grouping the position of all people (vectors) into a single PoseArray. This PoseArray is used both by `remove_people_pcl_node` and `process_occupancy_grid_node`.
 
 ---
 
@@ -120,9 +120,9 @@ This topic triggers the callback function that computes the velocity command. It
 
 ## Custom use
 
-If you want to disable the graphical display of gazebo, in /worlds_and_launchers/launch/my_ridgeback.launch, change 'name="gui" default="true"' to 'name="gui" default="false"'
+If you want to disable the graphical display of gazebo, in /worlds_and_launchers/launch/my_ridgeback.launch, change `name="gui" default="true"` to `name="gui" default="false"`
 
-If you want to load another world, comment the current one in /worlds_and_launchers/launch/my_ridgeback.launch with '<!-- [...] -->' and uncomment the one you want.
+If you want to load another world, comment the current one in /worlds_and_launchers/launch/my_ridgeback.launch with `<!-- [...] -->` and uncomment the one you want.
 
 If you want to modify some stuff for the world then look into the /worlds_and_launchers/worlds folder.
 
