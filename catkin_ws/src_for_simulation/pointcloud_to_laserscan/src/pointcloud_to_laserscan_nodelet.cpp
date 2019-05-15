@@ -165,7 +165,7 @@ namespace pointcloud_to_laserscan
     }
     else
     {
-      output.ranges.assign(ranges_size, output.range_max + 1.0);
+      output.ranges.assign(ranges_size, output.range_max - 0.01);//+ 1.0);
     }
 
     sensor_msgs::PointCloud2ConstPtr cloud_out;
