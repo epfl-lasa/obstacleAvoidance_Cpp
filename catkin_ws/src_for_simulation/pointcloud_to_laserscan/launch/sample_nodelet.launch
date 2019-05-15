@@ -26,7 +26,7 @@
             scan_time: 0.3333
             range_min: 0.45
             range_max: 4.0
-            use_inf: true
+            use_inf: false
 
             # Concurrency level, affects number of pointclouds queued for processing, thread number governed by nodelet manager
             # 0 : Detect number of cores

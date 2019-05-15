@@ -57,7 +57,7 @@ If all obstacles are static, use each one of the following lines, open a termina
 
 * roslaunch worlds_and_launchers filter_for_static.launch
 
-* rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static
+* rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static _range_max:=20.0
 
 * rosrun gmapping slam_gmapping scan:=/scan _delta:=0.15 _map_update_interval:=1.0
 
@@ -77,7 +77,7 @@ If there are moving people, they need to be removed from the velodyne point clou
 
 * rosrun remove_people_pcl remove_people_pcl_node
 
-* rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_without_people
+* rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_without_people _range_max:=20.0
 
 * rosrun gmapping slam_gmapping scan:=/scan _delta:=0.15 _map_update_interval:=1.0
 
