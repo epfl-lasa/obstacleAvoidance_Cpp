@@ -68,7 +68,7 @@ namespace pointcloud_to_laserscan
 
     int concurrency_level;
     private_nh_.param<int>("concurrency_level", concurrency_level, 1);
-    private_nh_.param<bool>("use_inf", use_inf_, false);
+    private_nh_.param<bool>("use_inf", use_inf_, true);
 
     //Check if explicitly single threaded, otherwise, let nodelet manager dictate thread pool size
     if (concurrency_level == 1)
@@ -165,7 +165,7 @@ namespace pointcloud_to_laserscan
     }
     else
     {
-      output.ranges.assign(ranges_size, output.range_max - 0.01);//+ 1.0);
+      output.ranges.assign(ranges_size, output.range_max + 1.0);
     }
 
     sensor_msgs::PointCloud2ConstPtr cloud_out;

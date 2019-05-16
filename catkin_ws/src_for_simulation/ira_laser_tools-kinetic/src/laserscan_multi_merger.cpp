@@ -211,7 +211,7 @@ void LaserscanMerger::pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPo
 	output->range_max = this->range_max;
 
 	uint32_t ranges_size = std::ceil((output->angle_max - output->angle_min) / output->angle_increment);
-	output->ranges.assign(ranges_size, output->range_max - 0.01);// + 1.0);
+	output->ranges.assign(ranges_size, output->range_max + 1.0); // - 0.01);//
 
 	for(int i=0; i<points.cols(); i++)
 	{
