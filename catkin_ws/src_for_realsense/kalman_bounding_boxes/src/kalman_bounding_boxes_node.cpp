@@ -18,7 +18,7 @@ const int limit_dist = 250;
 
 /* Initialization */
 int n_states = 4;
-float x_box, y_box, x_prev, y_prev, x_pred, y_pred;
+float x_box, y_box, x_pred, y_pred;
 float sigma_1, sigma_2, sigma_vx, sigma_vy, sigma_0, h, vx_box, vy_box;
 Eigen::VectorXf Z;
 Eigen::MatrixXf A(n_states, n_states);
@@ -39,32 +39,32 @@ void init_parameters_kalman()
 	h = 0.1;
 
         /* Set Matrix and Vector for Kalman Filter: */
-        
+
         A << 1, 0, h, 0,
         0, 1, 0, h,
         0, 0, 1, 0,
         0, 0, 0, 1;
 
-        
+
         H << 1, 0, 0, 0,
              0, 1, 0, 0,
              0, 0, 1, 0,
              0, 0, 0, 1;
 
-        
+
         Q << h*sigma_vx,          0,        0,        0,
              0, h*sigma_vy,        0,        0,
              0,          0, sigma_vx,        0,
              0,          0,        0, sigma_vy;
 
-        
+
         R << sigma_1,       0,         0,         0,
              0, sigma_2,         0,         0,
              0,       0, sigma_1/h,         0,
              0,       0,         0, sigma_2/h;
-        
+
         X0 << 100,150,0,0;
-        
+
         P0 << 0, 0,       0,       0,
               0, 0,       0,       0,
               0, 0, sigma_0,       0,
@@ -78,13 +78,16 @@ struct tracked_person
    int age; // number of steps since this person was updated
    float info[4]; // [x, y, height, width] vector of the bounding box
    KalmanFilter filter_person;
+   float x_prev, y_prev;
 
-   tracked_person(float x, float y, float h, float w);  
+   tracked_person(float x, float y, float h, float w);
 };
 
 tracked_person::tracked_person(float x, float y, float h, float w)
 {
      info[0] = x; info[1] = y; info[2] = h, info[3] = w;
+     x_prev = x;
+     y_prev = y;
      age = born_age;
      KalmanFilter filter_temp(n_states,0);
      filter_person = filter_temp;
@@ -133,12 +136,12 @@ public:
 
         ROS_INFO("Receiving raw bounding boxes");
 
-        object_msgs::ObjectsInBoxes output = input;        
+        object_msgs::ObjectsInBoxes output = input;
 
         // KEEP ONLY PEOPLE AND DISCARD OTHER OBJECTS
 
         std::vector<object_msgs::ObjectInBox> only_people;
-        
+
 
         for (int iter=0; iter < (input.objects_vector).size(); iter++)
         {
@@ -155,10 +158,10 @@ public:
         {
             (tracked_people[i]).age += 1;
 	    ROS_INFO("Filter %i is now %i steps old", i, (tracked_people[i]).age);
-            if (((tracked_people[i]).age) > limit_age) 
+            if (((tracked_people[i]).age) > limit_age)
 		{
-		     tracked_people.erase(tracked_people.begin() + i); // remove the person from the list  
-                     only_trackers.erase(only_trackers.begin() + i);               
+		     tracked_people.erase(tracked_people.begin() + i); // remove the person from the list
+                     only_trackers.erase(only_trackers.begin() + i);
 		     ROS_INFO("Filter %i deleted because it is too old", i);
 		     i -= 1; // go on step back since an element has been removed
 		}
@@ -172,28 +175,28 @@ public:
         if (only_people.size() != 0)
         {
         std::vector<int> index_match(only_people.size(), -2);
-	for (int i=0; i < only_people.size(); i++) 
+	for (int i=0; i < only_people.size(); i++)
 	{
 		std::cout << index_match[i] << std::endl;
 	}
         // Find closest bounding box for each tracked people
-        for (int i=0; i < only_people.size(); i++) 
+        for (int i=0; i < only_people.size(); i++)
         {
 	     float x = static_cast<float>((only_people[i]).roi.x_offset);
              float y = static_cast<float>((only_people[i]).roi.y_offset);
 	     ROS_INFO("Detected person %i: (x,y) = (%f %f)", i, x, y);
 	     int j_min = -1;
              float d_min = limit_dist + 1;
-             for (int j=0; j < tracked_people.size(); j++) 
+             for (int j=0; j < tracked_people.size(); j++)
              {
 		// ROS_INFO("Tracker (x,y) = (%f %f)", (tracked_people[j]).info[0], (tracked_people[j]).info[1]);
 		// float d = std::sqrt(std::pow(x - (tracked_people[j]).info[0],2)+std::pow(y - (tracked_people[j]).info[1],2));
-		
+
 		x_pred = (((tracked_people[j]).filter_person).X)[0];
             	y_pred = (((tracked_people[j]).filter_person).X)[1];
 		ROS_INFO("Tracker (x,y) = (%f %f)", x_pred, y_pred);
 		float d = std::sqrt( std::pow(x - x_pred,2)+std::pow(y - y_pred,2) );
-              
+
 		ROS_INFO("Detected person %i and Box %i | Distance %f", i, j, d);
                 if ( (d<limit_dist) && (d<d_min))
 		{
@@ -201,12 +204,12 @@ public:
 			d_min = d;
 			ROS_INFO("Closest box is now box %i", j);
 		}
-		
+
              }
 
 		// j_min now contains the index of the closest tracked_person from the box
 	        // need to check if that tracked_person has already been taken by another box
-             	for (int k=0; k < i; k++) 
+             	for (int k=0; k < i; k++)
                 {
 			if (index_match[k] == j_min)
 			{
@@ -233,13 +236,13 @@ public:
                         only_trackers.push_back(only_people[i]);
 		}
         }
-	
+
 
 	// FEED MEASUREMENTS TO FILTERS
 
-	for (int i=0; i < only_people.size(); i++) 
+	for (int i=0; i < only_people.size(); i++)
         {
-	    
+
 	    // Reset filter age
 	    (tracked_people[index_match[i]]).age -= 2;
             if ((tracked_people[index_match[i]]).age < 0)
@@ -250,17 +253,17 @@ public:
 	    // Measurement Step
 	    x_box = static_cast<float>((only_people[i]).roi.x_offset);
             y_box = static_cast<float>((only_people[i]).roi.y_offset);
-            vx_box = (x_box - x_prev)/h * 0.1;
-            vy_box = (y_box - y_prev)/h * 0.1;
-	    Z << x_box, y_box, vx_box, vy_box; 
-            x_prev = x_box;
-            y_prev = y_box;
-	
+            vx_box = (x_box - (tracked_people[index_match[i]]).x_prev)/h * 0.1;
+            vy_box = (y_box - (tracked_people[index_match[i]]).y_prev)/h * 0.1;
+	    Z << x_box, y_box, vx_box, vy_box;
+            (tracked_people[index_match[i]]).x_prev = x_box;
+            (tracked_people[index_match[i]]).y_prev = y_box;
+
 	    // Prediction Step
             ((tracked_people[index_match[i]]).filter_person).predict();
 
 	    // Correction Step
-            ((tracked_people[index_match[i]]).filter_person).correct( Z ); 
+            ((tracked_people[index_match[i]]).filter_person).correct( Z );
             x_pred = (((tracked_people[index_match[i]]).filter_person).X)[0];
             y_pred = (((tracked_people[index_match[i]]).filter_person).X)[1];
 
@@ -271,7 +274,7 @@ public:
             (only_trackers[index_match[i]]).roi.width  = (only_people[i]).roi.width;
 	}
 
-	
+
         }
         else
         {
@@ -285,8 +288,8 @@ public:
             ((tracked_people[iter]).filter_person).predict();
             ROS_INFO("Person %i predicted at position: %f %f", iter, (((tracked_people[iter]).filter_person).X)[0], (((tracked_people[iter]).filter_person).X)[1]);
         }
-        
-      
+
+
         /*if (only_people.size() == 0)
         {
             ROS_INFO("No one has been detected.");
@@ -318,7 +321,7 @@ public:
             x_pred = (filter1.X)[0];
             y_pred = (filter1.X)[1];
             ROS_INFO("Corrected box at position: %f %f", x_pred, y_pred);
-            
+
             (only_people[iter]).roi.x_offset = static_cast<int>(std::round(x_pred));
             (only_people[iter]).roi.y_offset = static_cast<int>(std::round(y_pred));
         }
