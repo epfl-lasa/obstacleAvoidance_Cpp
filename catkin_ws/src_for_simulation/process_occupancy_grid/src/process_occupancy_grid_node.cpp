@@ -51,13 +51,38 @@ public:
     client_map_ = n_.serviceClient<nav_msgs::GetMap>("dynamic_map");
 
     // Transform listener
-    tf::TransformListener transform_(ros::Duration(10.0));
+    //tf::TransformListener listener_(ros::Duration(10.0));
 
     // Default command
     key_command = -1;
 
     // Default attractor
     num_attractor = 0;
+
+    // Default frame number
+    ID_frame = 0;
+
+    // Time start of node
+    time_start = ros::WallTime::now().toSec();
+
+    extern bool logging_enabled;
+    if (logging_enabled)
+    {
+        std::cout << "Opening log file" << std::endl;
+        mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+    }
+
+
+  }
+
+  ~SubscribeAndPublish()
+  {
+     extern bool logging_enabled;
+     if (logging_enabled)
+     {
+         std::cout << "Closing log file" << std::endl;
+         mylog.close();
+     }
   }
 
   void callback(const geometry_msgs::Twist& input) // callback is triggered by /test topic
@@ -76,11 +101,11 @@ public:
     //float position_goal_world_frame_y = -11;//-2.56;//-7.3; //5   ; // 0;
 
     int max_num_attractor = 4;
-    float position_goal_world_frame_x =  30;
-    float position_goal_world_frame_y =  0; 
+    float position_goal_world_frame_x =  9;
+    float position_goal_world_frame_y =  0;
     /*switch (num_attractor)
     {
-     case 0: 
+     case 0:
 	position_goal_world_frame_x =    42;
 	position_goal_world_frame_y =  -7.3; break;
      case 1:
@@ -96,7 +121,7 @@ public:
 
 
     // Radius of the Ridgeback
-    float radius_ridgeback = 0.4;
+    float radius_ridgeback = 0.6;
 
     // Number of cells that the obstacles should be expanded
     int n_expansion = static_cast<int>(std::ceil(radius_ridgeback/size_cell));
@@ -109,6 +134,10 @@ public:
     // It does not include the radius of the ridgeback ~0.6 meters (disk will be expanded)
     float radius_around_people = 0.3;
     int   radius_in_cells = static_cast<int>(std::ceil(radius_around_people / size_cell)); // radius_around_people is in [m] and we need a value in [cell]
+
+    // Variables used for logging when logging_enabled is set to true (in ObstacleReconstruction.cpp)
+    extern bool logging_enabled;
+    extern Eigen::MatrixXf log_matrix;
 
     //////////////////////////////////
     // RETRIEVING MAP FROM GMAPPING //
@@ -147,7 +176,7 @@ public:
     /*tfScalar roll, pitch, yaw;
     tf::Matrix3x3 mat(srv_map.response.map.info.origin.orientation);
     mat.getRPY(roll, pitch, yaw);
-    float phi_pose = yaw;*/    
+    float phi_pose = yaw;*/
 
     //////////////////////////////////////
     // PROCESSING POSITION OF THE ROBOT //
@@ -159,14 +188,14 @@ public:
       listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
       ROS_INFO("Transform is ready");
     }
-    catch (tf::TransformException &ex) 
+    catch (tf::TransformException &ex)
     {
       ROS_ERROR("%s",ex.what());
     }
 
     // Get rotation information between "map" and "base_link"
     tfScalar yaw, pitch, roll;
-    tf::Matrix3x3 mat(transform_.getRotation()); 
+    tf::Matrix3x3 mat(transform_.getRotation());
     mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
 
     // Create robot state vector and fill it
@@ -175,7 +204,7 @@ public:
                                       yaw;
     ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
-	
+
     //////////////////////////////////////////
     // PROCESSING POSITION OF THE ATTRACTOR //
     //////////////////////////////////////////
@@ -183,25 +212,26 @@ public:
     // Get the (x,y) coordinates in the world frame of the cell (0,0)
     float start_cell_x = (-1 * std::round(srv_map.response.map.info.origin.position.x / size_cell));
     float start_cell_y = (-1 * std::round(srv_map.response.map.info.origin.position.y / size_cell));
+    ROS_INFO("Start cell | %f %f", start_cell_x, start_cell_y);
 
     // Convert the position of the attractor into the occupancy map frame
     float target_cell_x = start_cell_x + std::round(position_goal_world_frame_x / size_cell);
     float target_cell_y = start_cell_y + std::round(position_goal_world_frame_y / size_cell);
-    //ROS_INFO("Starting cell %f %f",start_cell_x, start_cell_y); 
-    //ROS_INFO("Target cell %f %f",target_cell_x, target_cell_y); 
+    //ROS_INFO("Starting cell %f %f",start_cell_x, start_cell_y);
+    //ROS_INFO("Target cell %f %f",target_cell_x, target_cell_y);
 
     // Set state of the attractor
-       State state_attractor; 
+       State state_attractor;
        state_attractor << target_cell_x, target_cell_y, 0;
        ROS_INFO("Attractor | %f %f %f", target_cell_x, target_cell_y, 0.0);
-	
+
     if (false)
-    {	
+    {
 	if (static_cast<int>(key_command)==-1)
 	{
 		state_attractor << 0, 0, 0;
 	}
-	
+
 	float scale = 3.0;
 	float dir_x = 0.05; // Crash if 0 because state robot and state attractor are the same
 	float dir_y = 0;
@@ -236,7 +266,7 @@ public:
     pt_attrac.point.z = 0.05;
     ROS_INFO("Publishing /attractor");
     pub_attractor.publish(pt_attrac);
-	
+
     float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2)); // Euclidian distance
     if (distance_to_attractor < 7)
     {
@@ -321,7 +351,7 @@ public:
     // Detect expanded obstacles
     std::vector<Border> storage;
     storage = detect_borders( eig_expanded, state_robot );
-    
+
     if (false) // enable to display detected borders
     {
     	for (int iter=0; iter < storage.size(); iter++)
@@ -341,14 +371,14 @@ public:
 	    std::cout << storage_blobs.size() << " blobs have been detected." << std::endl;
 
 	    for (int iter=0; iter < storage_blobs.size(); iter++)
-	    { 
+	    {
 		std::cout << "Iterator: " << iter << std::endl;
 		myblobs.open("./gazebo_obstacle_" + std::to_string(iter) + ".txt"); // Each obstacle has its own file
 		std::cout << "Blob " << iter << " opened." << std::endl;
 		Blob blob = storage_blobs[iter];
 		for (int k=0; k < blob.rows(); k++)
 		{
-		     myblobs << "obst" << iter << ".row(" << k << ") << " << blob(k,0) << " , " << blob(k,1) << "; \n"; 
+		     myblobs << "obst" << iter << ".row(" << k << ") << " << blob(k,0) << " , " << blob(k,1) << "; \n";
 		}
 		myblobs.close();
 	    }
@@ -360,28 +390,28 @@ public:
 	    std::cout << storage.size() << " obstacles have been detected." << std::endl;
 	    int size_storage = storage.size();
 	    for (int iter=0; iter < storage.size(); iter++)
-	    { 
+	    {
 		std::cout << "Iterator: " << iter << std::endl;
 		myobstacles.open("./gazebo_obstacle_debug" + std::to_string(size_storage) + "_" + std::to_string(iter) + ".txt"); // Each border has its own file
 		std::cout << "Obstacle " << iter << " opened." << std::endl;
 		Border blob = storage[iter];
 		for (int k=0; k < blob.rows(); k++)
 		{
-		     myobstacles << "obst" << iter << ".row(" << k << ") << " << blob(k,0) << " , " << blob(k,1) << "; \n"; 
+		     myobstacles << "obst" << iter << ".row(" << k << ") << " << blob(k,0) << " , " << blob(k,1) << "; \n";
 		}
 		myobstacles.close();
 	    }
     }
 
-    
-    
+
+
     ///////////////////////////////////
     // COMPUTE NEXT VELOCITY COMMAND //
     ///////////////////////////////////
-    
+
     // Compute velocity command based on the detected obstacles (old version, no limit distance)
     // State next_eps = next_step_several_obstacles_border( state_robot, state_attractor, storage);
-    
+
     // Compute velocity command based on the detected obstacles (new version, only closest obstacle)
     /*Eigen::Matrix<float, 1, 2> robot; robot << state_robot(0,0), state_robot(1,0);
     int closest_i = 0;
@@ -400,30 +430,189 @@ public:
     State next_eps = next_step_special( state_robot, state_attractor, storage[closest_i]); */
 
     // Compute velocity command based on the detected obstacles (new version, all obstacles within limit range)
-    State next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell); 
+    State next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     ROS_INFO("VelCmd in map frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
+
+    ///////////////////////////////
+    // SAVING data_obstacles.txt //
+    ///////////////////////////////
+
+    if (logging_enabled)
+    {
+        float timestamp = ros::Time::now().toSec();
+	Eigen::MatrixXf time_matrix = timestamp * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
+        Eigen::MatrixXf matrix(log_matrix.rows(), 1+log_matrix.cols());
+        matrix << time_matrix, log_matrix;
+	//std::cout << log_matrix << std::endl;
+
+	mylog << matrix << "\n";
+
+    }
+
+    /////////////////////////////////////////
+    // COMPUTING DATA TO GET A STREAM PLOT //
+    /////////////////////////////////////////
+        if (false)
+        {
+            if (std::fmod(static_cast<float>(ID_frame),10) == 0)
+            {
+
+
+            // Declare file for recording
+            std::ofstream mystream;
+            if (ID_frame < 10)
+            {
+                mystream.open("./StreamNode/eigpeople_000" + std::to_string(ID_frame) + ".txt");
+            }
+            else if (ID_frame < 100)
+            {
+                mystream.open("./StreamNode/eigpeople_00" + std::to_string(ID_frame) + ".txt");
+            }
+            else if (ID_frame < 1000)
+            {
+                mystream.open("./StreamNode/eigpeople_0" + std::to_string(ID_frame) + ".txt");
+            }
+            else
+            {
+                mystream.open("./StreamNode/eigpeople_" + std::to_string(ID_frame) + ".txt");
+            }
+
+
+            // Expand all occupied cells of the occupancy grid by n cells
+            Grid occupancy_res = eig_people;
+            for (int n=0; n<n_expansion; n++)
+            {
+                Grid occupancy_temp = occupancy_res; // occupancy grid at step n
+                for (int i=1; i<(occupancy_res.rows()-1); i++) // scan row i
+                {
+                   for (int j=1; j<(occupancy_res.cols()-1); j++) // scan col j
+                   {
+                       if (occupancy_temp(i,j) == 100) // if occupied we fill the 4 neightbour cells
+                       {
+                           occupancy_res(i+1,j) = 100;
+                           occupancy_res(i-1,j) = 100;
+                           occupancy_res(i,j+1) = 100;
+                           occupancy_res(i,j-1) = 100;
+                       }
+                   }
+                }
+            }
+
+            mystream << occupancy_res << "\n";
+            mystream.close();
+
+            // Detecting blobs
+            std::vector<Blob> storage_blobs;
+            storage_blobs = detect_blobs( occupancy_res );
+
+            // Opening text file
+            std::ofstream myblobs;
+
+            // Declare file for recording
+            if (ID_frame < 10)
+            {
+                myblobs.open("./StreamNode/obstacles_000" + std::to_string(ID_frame) + ".txt");
+            }
+            else if (ID_frame < 100)
+            {
+                myblobs.open("./StreamNode/obstacles_00" + std::to_string(ID_frame) + ".txt");
+            }
+            else if (ID_frame < 1000)
+            {
+                myblobs.open("./StreamNode/obstacles_0" + std::to_string(ID_frame) + ".txt");
+            }
+            else
+            {
+                myblobs.open("./StreamNode/obstacles_" + std::to_string(ID_frame) + ".txt");
+            }
+
+            for (int iter=0; iter < storage_blobs.size(); iter++)
+            {
+                Blob blob = storage_blobs[iter];
+                /*for (int k=0; k < blob.rows(); k++)
+                {
+                    myblobs << blob(k,0) << " , " << blob(k,1) << "\n";
+                }*/
+                myblobs << blob << "\n";
+
+            }
+            myblobs.close();
+            }
+            ID_frame+=1;
+        }
+
+    if (false)
+    {
+
+        // Declare file for recording
+        std::ofstream mystream;
+        if (ID_frame < 10)
+        {
+            mystream.open("./StreamNode/stream_data_border_00" + std::to_string(ID_frame) + ".txt");
+        }
+        else if (ID_frame < 100)
+        {
+            mystream.open("./StreamNode/stream_data_border_0" + std::to_string(ID_frame) + ".txt");
+        }
+        else if (ID_frame < 100)
+        {
+            mystream.open("./StreamNode/stream_data_border_" + std::to_string(ID_frame) + ".txt");
+        }
+        ID_frame+=1;
+
+        // Limits of stream
+        Eigen::Matrix<float, 5, 1> limits;
+        limits << -2.02, 17.02, -2.02, 17.02, 0.2;
+
+        for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
+        {
+            std::cout << x << std::endl;
+            for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
+            {
+                float temp_cell_x = start_cell_x + std::round(x / size_cell);
+                float temp_cell_y = start_cell_y + std::round(y / size_cell);
+
+                // Position of the point
+                State state_point;
+                state_point << temp_cell_x, temp_cell_y, 0;
+
+                // Expand occupancy grid (obstacles in range)
+                eig_expanded = expand_occupancy_grid( eig_people, n_expansion, state_point, limit_in_cells, size_cell);
+
+                // Detect borders of obstacles in range
+                storage = detect_borders( eig_expanded, state_point );
+
+                // Compute velocity command
+                next_eps = next_step_special_weighted( state_point, state_attractor, storage, size_cell);
+
+                mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+            }
+        }
+
+        mystream.close();
+    }
 
     //////////////////////////////////////
     // PROCESSING NEXT VELOCITY COMMAND //
     //////////////////////////////////////
 
-    // We have to convert the velocity command from the map frame to the base_link frame 
+    // We have to convert the velocity command from the map frame to the base_link frame
     // because the Ridgeback uses a velocity command in its own frame
 
-    tf::Vector3 vec3; // Need to use the type tf::Vector3 to make the convertion 
+    tf::Vector3 vec3; // Need to use the type tf::Vector3 to make the convertion
     vec3.setX(next_eps(0,0));
     vec3.setY(next_eps(1,0));
     vec3.setZ(0);
     tf::Vector3 vec3_transformed;
 
     tf::Stamped<tf::Vector3> vec3_stamped(vec3, ros::Time(0), "map");
-    
+
     tf::Stamped<tf::Vector3> vec3_stamped_transformed(vec3_transformed, ros::Time(0), "base_link");
 
     if ( listener_.canTransform("base_link", "map", ros::Time(0)))
     {
             listener_.transformVector( "base_link", vec3_stamped, vec3_stamped_transformed);
-    
+
 	    ROS_INFO("VelCmd in base_link frame: %f %f %f", vec3_stamped_transformed.x(), vec3_stamped_transformed.y(), next_eps(2,0));
 
 	    // Creating velocity message
@@ -440,7 +629,7 @@ public:
 	   // {
 	        pub_.publish(output);
 	    //}
-	    
+
     }
     else
     {
@@ -465,8 +654,8 @@ void callback_for_people(const geometry_msgs::PoseArray& people) // Callback tri
         geometry_msgs::PoseStamped pose_person;
         pose_person.header = people.header;
         pose_person.pose = people.poses[i];
-        
-        
+
+
         //geometry_msgs::PoseStamped pose_person_in_map;
         //pose_person_in_map.header = people.header;
         //listener.tranformPose("map", pose_person, pose_person_in_map)
@@ -493,15 +682,15 @@ void callback_for_people(const geometry_msgs::PoseArray& people) // Callback tri
              }
              else
              {
-                  temp_storage.col(i) << personX, personY, detected_people(2,i), detected_people(3,i), received_time, 0, 0, 0, 0, 0;   
+                  temp_storage.col(i) << personX, personY, detected_people(2,i), detected_people(3,i), received_time, 0, 0, 0, 0, 0;
              }
         }
         else
         {
              temp_storage.col(i) << personX, personY, 0, 0, received_time, 0, 0, 0, 0, 0; // no previous information to compute velocity
         }
-        
-	
+
+
 
     }
     detected_people = temp_storage;
@@ -526,6 +715,10 @@ private:
   Eigen::MatrixXf detected_people;
   float key_command; // between 1 and 9 for direction
   int num_attractor; // numero of the attractor that is currently being followed
+
+  int ID_frame; // for stream recording
+  float time_start; // to know when the node has been launched
+  std::ofstream mylog;
 
 };//End of class SubscribeAndPublish
 

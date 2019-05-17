@@ -297,14 +297,14 @@ Eigen::Matrix<float, number_states, number_states> M_epsilon(Eigen::Matrix<float
 State epsilon_dot(Eigen::Matrix<float, number_states, number_states> const& M_eps, State const& f_eps, State const& state_robot, Obstacle const& obs)
 {
     // Version with moving obstacles (defined in the paper)
-    State eps_tilde = state_robot - obs.block(0,0,3,1);
+    /*State eps_tilde = state_robot - obs.block(0,0,3,1);
     State eps_dot_L; eps_dot_L << obs(7,0), obs(8,0), 0; // [v_x, v_y,     0]
     State eps_dot_R; eps_dot_R << 0, 0, obs(9,0);       // [  0,   0, w_rot]
     State eps_tilde_dot = eps_dot_L + eps_dot_R.cwiseProduct(eps_tilde);
-    State eps_dot = M_eps * (f_eps - eps_tilde_dot) + eps_tilde_dot;
+    State eps_dot = M_eps * (f_eps - eps_tilde_dot) + eps_tilde_dot;*/
 
     // Version with non-moving obstacles (simplification)
-    //State eps_dot = M_eps * f_eps;
+    State eps_dot = M_eps * f_eps;
     return eps_dot;
 }
 

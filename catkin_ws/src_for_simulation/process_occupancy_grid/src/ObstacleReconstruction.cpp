@@ -1,9 +1,12 @@
 #include "ObstacleReconstruction.h"
-#include "ObstacleAvoidance.h"
 
 float myRad = 0.1;
 const float size_cell = 1.0;
 const float margin = 0.25;
+
+bool logging_enabled = true;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
+Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
+float current_obstacle = 1;
 
 Point get_center(Blob const& blob) // Get the center of a group of cells by computing the mean of the positions of the cells along x and y
 {
@@ -715,8 +718,8 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     // Especially there is something not optimized with the line above "// copy the obstacle in the limit range"
     // I think something is done twice
 
-    std::cout << all_detected.size() << " obstacles detected in total" << std::endl;
-    std::cout << inside_square.size() << " obstacles partly inside the limit square" << std::endl;
+    //std::cout << all_detected.size() << " obstacles detected in total" << std::endl;
+    //std::cout << inside_square.size() << " obstacles partly inside the limit square" << std::endl;
 
     if (inside_square.size()>0)
     {
@@ -1697,6 +1700,12 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
     Point start_obstacle;
     Border border_obstacle;
 
+    int current_blob = 1; // used if logging_enabled
+    if (logging_enabled)
+    {
+        log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix initialization [ID obs, ID feature, 5 slots for data]
+    }
+
     for (int cursor_row=0; cursor_row < occupancy_grid.rows(); cursor_row++) // scan each row
     {
         for (int cursor_col=0; cursor_col < occupancy_grid.cols(); cursor_col++) // scan each column
@@ -1729,6 +1738,18 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
                     //std::cout << "All occupied cells detected" << std::endl;
                     //std::cout << "All occupied cells detected" << std::endl;
 
+                    // Adding occupied cells data
+                    if (logging_enabled)
+                    {
+                        log_matrix.conservativeResize(log_matrix.rows()+obstacle.rows(), Eigen::NoChange); // Add rows at the end
+                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 0, obstacle.rows(), 1) = current_blob * Eigen::MatrixXf::Ones(obstacle.rows(), 1); // Numero of obstacle
+                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 1, obstacle.rows(), 1) = 1 * Eigen::MatrixXf::Ones(obstacle.rows(), 1); // Numero of feature
+                        //std::cout << "Size (" << log_matrix.rows() << "," << log_matrix.cols() << ") for entry of size (" << obstacle.rows() << "," << obstacle.cols() << std::endl;
+                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 2, obstacle.rows(), 2) = obstacle.template cast<float>(); // Add occupied cells information
+                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 4, obstacle.rows(), 3) = Eigen::MatrixXf::Zero(obstacle.rows(), 3); // Put unusued cells to zero
+                        current_blob +=1;
+                    }
+
                     // Check if the obstacle encloses the robot (a closed room for instance)
                     int x_min = (obstacle.col(0)).minCoeff();
                     int x_max = (obstacle.col(0)).maxCoeff();
@@ -1736,11 +1757,11 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
                     int y_max = (obstacle.col(1)).maxCoeff();
 
                     //std::cout << i_row_min << " | " << i_row_max << " | " << i_col_min << " | " << i_col_max << std::endl;
-                    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+                    //std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
 
 
                     Eigen::Matrix<int, 2, 1> cell_robot = get_cell( state_robot(0,0), state_robot(1,0), size_cell);
-                    std::cout << cell_robot.transpose() << std::endl;
+                    //std::cout << cell_robot.transpose() << std::endl;
 
                     //if (true&&(x_min==i_row_min)&&(x_max==i_row_max)&&(y_min==i_col_min)&&(y_max==i_col_max))
                     if ((x_min<cell_robot(0,0))&&(x_max>cell_robot(0,0))&&(y_min<cell_robot(1,0))&&(y_max>cell_robot(1,0)))
@@ -2001,7 +2022,7 @@ bool verbose = false; // to trigger verbose mode
     }
 }*/
 
-Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance)
+Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance, bool const& do_not_normalize)
 {   // compute the relative weights of obstacles in the limit range
 
     const int number_obstacles = mat_gamma.cols();
@@ -2073,6 +2094,8 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
         denominator += mat_prod(0,j);
     }
 
+    //return mat_prod;}
+
     // Relative importance of the weights to have them between [0,1]
     for (int i=0; i < number_obstacles; i++)
     {
@@ -2087,17 +2110,27 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
     }
 
     // /!\ TEST 16/04 to smooth changes of direction
+    if (do_not_normalize) {
     for (int i=0; i < number_obstacles; i++)
     {
         float tempo = mat_prod(0,i);
         mat_weights(0,i) =  mat_weights(0,i) * std::min(static_cast<float>(1.0), tempo);
-    }
+    }}
 
     return mat_weights;
 }
 
 State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells)
 {   // compute the velocity command for a given position of the robot/attractor/obstacles
+
+    if (logging_enabled)
+    {
+        current_obstacle = 1; // Init obstacle counter
+
+
+        //log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add a new row at the end
+        //log_matrix.row(log_matrix.rows()-1) << 1,1,1,2,3,4,5;// Fill the new row;
+    }
 
     // Compute all the steps to get the velocity command considering several obstacles
     const int number_obstacles = borders.size();
@@ -2109,6 +2142,14 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
 
     for (int i=0; i < borders.size(); i++)
     {
+        if (logging_enabled)
+        {
+            log_matrix.conservativeResize(log_matrix.rows()+(borders[i]).rows(), Eigen::NoChange); // Add rows at the end
+            log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 0, (borders[i]).rows(), 1) = current_obstacle * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of obstacle
+            log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 1, (borders[i]).rows(), 1) = 2 * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of feature
+            log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 2, (borders[i]).rows(), 5) = borders[i]; // Add border information
+        }
+
         Eigen::Matrix<float, 4, 1> output = next_step_special(state_robot, state_attractor, borders[i]); // compute velocity command for each obstacle
         mat_velocities(0,i) = output(0,0);
         mat_velocities(1,i) = output(1,0);
@@ -2117,6 +2158,8 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         // Assigning the block does not work anymore but doing it coefficient by coefficient works... It makes no sense
         mat_velocities(2,i) = 0;
         mat_gamma(0,i) = output(3,0);
+
+        current_obstacle += 1;
     }
 
     // Norm of the velocity command for each obstacle
@@ -2138,6 +2181,10 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     {
         // No obstacle in range so the robot just goes toward the attractor
         State cmd_velocity = state_attractor - state_robot;
+
+        // Normalization of the speed to a default desired speed
+        cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
+
         cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
 
         // Decrease speed when the robot get close to the attractor
@@ -2159,6 +2206,45 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
 
     // Weighted velocity command (only for v_x and v_y as the angular speed is always 0 for our method). Ridgeback platform is holonomic so there is no problem with that
     State cmd_velocity = weighted_mag * weighted_direction;
+
+    // Transition in the [0, end_of_transition_weight] interval
+    float end_of_transition_weight = 0.1;
+
+    // Smooth transition with the "no obstacle in range" area of the workspace
+    if ((mat_weights.size()==1))
+    {
+        Eigen::MatrixXf mat_weights_not_normalized(1, number_obstacles); // "1 x number_of_obstacles"
+        mat_weights_not_normalized = weights_special( state_robot, mat_gamma, method_weights, limit_dist, true);
+
+        if (mat_weights_not_normalized(0,0)<end_of_transition_weight)
+        {
+            // Velocity when there is no obstacle in range
+            State cmd_no_obstacle = state_attractor - state_robot;
+
+            // Normalization of the speed to a default desired speed
+            cmd_no_obstacle = cmd_no_obstacle / (std::sqrt(std::pow(cmd_no_obstacle(0,0),2) + std::pow(cmd_no_obstacle(1,0),2)));
+
+            cmd_no_obstacle(2,0) = std::atan2(cmd_no_obstacle(1,0),cmd_no_obstacle(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+
+            // Decrease speed when the robot get close to the attractor
+            float distance_stop = 0.25;
+            float distance_start_decreasing = 1 / size_of_cells; // numerical value is in meters, converted into the cell world
+            float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2)); // Euclidian distance
+            //std::cout << "Distance to attractor:   " << distance_to_attractor << std::endl;
+            cmd_no_obstacle.block(0,0,3,1) *= std::min(std::max(static_cast<float>(0.0),distance_to_attractor-distance_stop)/(distance_start_decreasing-distance_stop), static_cast<float>(1.0));
+
+            cmd_no_obstacle = speed_limiter(cmd_no_obstacle);
+
+            // Transition equation
+            State cmd_tempo = ((end_of_transition_weight - mat_weights_not_normalized(0,0))/end_of_transition_weight) * cmd_no_obstacle + (mat_weights_not_normalized(0,0)/end_of_transition_weight) * (speed_limiter(weighted_mag * weighted_direction));
+
+            // Normalization
+            //cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
+
+             cmd_velocity = cmd_tempo;
+        }
+
+    }
 
     // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
     cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
@@ -2347,6 +2433,9 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     // Compute attractor function
     f_eps = (attractor_circle_frame - robot_circle_frame);
 
+    // Normalization of the speed to a default desired speed
+    f_eps = f_eps / (std::sqrt(std::pow(f_eps(0,0),2) + std::pow(f_eps(1,0),2)));
+
     // Several steps to get D(epsilon) matrix
     lamb_r = 1 - (1/gamma_circle_frame);
     lamb_e = 1 + (1/gamma_circle_frame);
@@ -2384,7 +2473,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
     }*/
 
-    if (verbose)
+    if (false)
     {
         std::cout << "Distance tot:             " << distances_surface(0,0) << " | Distance min: " << distances_surface(0,1) << std::endl;
         std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;
@@ -2406,6 +2495,37 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         std::cout << circle_tranform.row(0) << "        " << shape_tranform.row(0) << std::endl;
         std::cout << circle_tranform.row(1) << "        " << shape_tranform.row(1) << std::endl;
         std::cout << "Vel shape frame:          "  << velocity_shape_space.block(0,0,2,1).transpose() << std::endl;
+    }
+    if (logging_enabled)
+    {
+        // std::cout << "Logging inside next_step_special" << std::endl;
+        int nb_features = 6;
+        log_matrix.conservativeResize(log_matrix.rows()+nb_features, Eigen::NoChange); // Add 6 rows at the end for features 3 to 8
+        log_matrix.block(log_matrix.rows()-nb_features, 0, nb_features, 1) = current_obstacle * Eigen::MatrixXf::Ones(6, 1); // Numero of obstacle for the 6 features
+
+        // Feature 3: projection of the robot on the boundary in the initial and circle spaces
+        log_matrix(log_matrix.rows()-nb_features, 1) = 3; // Numero of feature
+        log_matrix.block(log_matrix.rows()-nb_features, 2, 1, 5) << proj_robot(0,0),proj_robot(0,1),r_eps_vector(0,0),r_eps_vector(1,0),0.0; // Add data
+
+        // Feature 4: projection of the attractor on the boundary in the initial and circle spaces
+        log_matrix(log_matrix.rows()-nb_features+1, 1) = 4; // Numero of feature
+        log_matrix.block(log_matrix.rows()-nb_features+1, 2, 1, 5) << proj_attractor(0,0),proj_attractor(0,1), 1.0, 0.0, 0.0; // Add data
+
+        // Feature 5: position of the robot in the initial and circle spaces
+        log_matrix(log_matrix.rows()-nb_features+2, 1) = 5; // Numero of feature
+        log_matrix.block(log_matrix.rows()-nb_features+2, 2, 1, 5) << state_robot(0,0),state_robot(1,0),robot_circle_frame(0,0),robot_circle_frame(1,0),0.0; // Add data
+
+        // Feature 6: position of the attractor in the initial and circle spaces
+        log_matrix(log_matrix.rows()-nb_features+3, 1) = 6; // Numero of feature
+        log_matrix.block(log_matrix.rows()-nb_features+3, 2, 1, 5) << state_attractor(0,0),state_attractor(1,0),attractor_circle_frame(0,0),attractor_circle_frame(1,0),0.0; // Add data
+
+        // Feature 7: velocity command in the initial and circle spaces
+        log_matrix(log_matrix.rows()-nb_features+4, 1) = 7; // Numero of feature
+        log_matrix.block(log_matrix.rows()-nb_features+4, 2, 1, 5) << velocity_shape_space(0,0),velocity_shape_space(1,0),velocity_circle_space(0,0),velocity_circle_space(1,0),0.0; // Add data
+
+        // Feature 8: velocity command in the initial and circle spaces
+        log_matrix(log_matrix.rows()-nb_features+5, 1) = 8; // Numero of feature
+        log_matrix.block(log_matrix.rows()-nb_features+5, 2, 1, 5) << gamma_norm_proj(0,0),gamma_circle_frame,0.0,0.0,0.0; // Add data
     }
 
     //Eigen::Matrix<float, 1, 1> norm = velocity_shape_space.colwise().norm();
@@ -2874,10 +2994,20 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    // it should guarantee the continuity of the transform between shape-space and circle-space.
    //float gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
 
+   // Another test, projection to infinity in circle space of the points at the limit distance from the obstacle
+   float denom_r = (limit_dist - gamma_robot);
+   float gamma_circle_space_robot = 0;
+   if (denom_r < 0.0001) {gamma_circle_space_robot = (limit_dist - 1)*10000;} // Avoid division by 0 resulting in NaN
+   else {gamma_circle_space_robot = (limit_dist - 1)/(limit_dist - gamma_robot) ;}
+
+   float denom_a = (limit_dist - gamma_attractor);
+   float gamma_circle_space_attractor = 0;
+   if (denom_a < 0.0001) {gamma_circle_space_attractor = (limit_dist - 1)*10000;} // Avoid division by 0 resulting in NaN
+   else {gamma_circle_space_attractor = (limit_dist - 1)/(limit_dist - gamma_attractor) ;}
 
    // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results
-   float gamma_circle_space_robot = gamma_robot; // /!\ TEST
-   float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
+   //float gamma_circle_space_robot = gamma_robot; // /!\ TEST
+   //float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
    //std::cout << gamma_attractor << std::endl;
    float angle = 3.1415 * ratio_distance * direction;
 
@@ -2960,7 +3090,7 @@ void fillGrid(PointFill orig, Grid & occupancy_grid) // fill the holes in the oc
 
 }
 
-void draw_circle(Grid & grid, int const& x, int const& y, int const& radius)
+void draw_circle(Grid & grid, int const& x, int const& y, int const& radius) // draw a disk of radius 'radius' and centered on (x,y)
 {
     for (int i = (x - radius); i <= (x + radius); i++)
     {
@@ -2972,4 +3102,49 @@ void draw_circle(Grid & grid, int const& x, int const& y, int const& radius)
             }
         }
     }
+}
+
+
+
+Eigen::MatrixXi readMatrix(std::string filename) // read a textfile with 'space'-separated values
+{
+    using namespace std;
+    using namespace Eigen;
+
+    int cols = 0, rows = 0;
+    double buff[1000000];
+
+    // Read numbers from file into buffer.
+    ifstream infile;
+    infile.open(filename);
+    while (! infile.eof())
+    {
+        string line;
+        getline(infile, line);
+
+        int temp_cols = 0;
+        stringstream stream(line);
+        while(! stream.eof())
+            stream >> buff[cols*rows+temp_cols++];
+
+        if (temp_cols == 0)
+            continue;
+
+        if (cols == 0)
+            cols = temp_cols;
+
+        rows++;
+    }
+
+    infile.close();
+
+    rows--;
+
+    // Populate matrix with numbers.
+    MatrixXi result(rows,cols);
+    for (int i = 0; i < rows; i++)
+        for (int j = 0; j < cols; j++)
+            result(i,j) = buff[ cols*i+j ];
+
+    return result;
 }
