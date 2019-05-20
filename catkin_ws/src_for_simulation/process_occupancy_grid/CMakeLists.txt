@@ -15,7 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cmake_modules
   tf
-  geometry_msgs)
+  geometry_msgs
+  rosbag)
 
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
@@ -120,7 +121,7 @@ INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES obstacle_avoidance
-   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs
+   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs rosbag
 #  DEPENDS system_lib
    CATKIN_DEPENDS message_runtime 
    DEPENDS EIGEN3
@@ -230,6 +231,18 @@ target_link_libraries(cmd_vel_listener ${catkin_LIBRARIES})
 
 add_executable(vector_to_posearray_node src/vector_to_posearray_node.cpp)
 target_link_libraries(vector_to_posearray_node ${catkin_LIBRARIES})
+
+add_executable(RVO2_node src/RVO2_Node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp src/RVO/Agent.cpp src/RVO/KdTree.cpp src/RVO/Obstacle.cpp src/RVO/RVOSimulator.cpp)
+target_link_libraries(RVO2_node ${catkin_LIBRARIES} /home/leziart/catkin_ws/src/process_occupancy_grid/src/RVO)
+
+add_executable(log_data_node src/log_data_node.cpp)
+target_link_libraries(log_data_node ${catkin_LIBRARIES})
+
+add_executable(log_data_robot_node src/log_data_robot_node.cpp)
+target_link_libraries(log_data_robot_node ${catkin_LIBRARIES})
+
+add_executable(log_data_sensors_node src/log_data_sensors_node.cpp)
+target_link_libraries(log_data_sensors_node ${catkin_LIBRARIES})
 
 #target_link_libraries (listener_data Eigen3::Eigen)
 #target_link_libraries(listener_data ${mylib_LIBRARIES})

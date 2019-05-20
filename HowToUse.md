@@ -111,6 +111,22 @@ This topic triggers the callback function that computes the velocity command. It
 
 ---
 
+### Logging
+
+There are two logging systems. The first one logs information about the robot. If it is a simulation then set `_is_simulation:=true` to make the system listen to Gazebo. Set `_is_simulation:=false` if it is a real experiment with the Ridgeback platform. Recorded data is in process_occupancy_grid/src/Logging/data_robot_XXX.txt
+
+* rosrun process_occupancy_grid log_data_robot_node _is_simulation:=true
+* rosrun process_occupancy_grid log_data_robot_node _is_simulation:=false
+
+The second logging system records information about the obstacle avoidance algorithm (detected obstacles, boundaries, generated velocities). To use it set `bool logging_enabled = true;` in ObstacleReconstruction.cpp. Recorded data is in process_occupancy_grid/src/Logging/data_obstacles_XXX.txt
+
+There is also a node to log sensors data /velodyne_points, /scan and /camera/color/image_raw. Set to true if you want to record one of them, default recording frequency is 10 Hz.
+
+* rosrun process_occupancy_grid log_data_sensors_node _log_cloud:=false _freq_cloud:=10 _log_laserscan:=false _freq_laserscan:=10 _log_image:=false _freq_image:=10
+
+
+---
+
 ## Removed models
 
 * d415.stl and d435.dae have been removed from realsense2_camera/meshes folder to save storage space
