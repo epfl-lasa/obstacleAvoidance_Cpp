@@ -16,11 +16,13 @@ public:
     {
         ROS_INFO("Starting node");
 
-        bool log_cloud, log_laserscan, log_image;
-        float freq_cloud, freq_laserscan, freq_image;
+        bool log_cloud, log_laserscan, log_image, log_depth, log_hokuyo;
+        float freq_cloud, freq_laserscan, freq_image, freq_depth, freq_hokuyo;
 
         // Time start of node
         int time_start = static_cast<int>(std::round(ros::WallTime::now().toSec()));
+
+        ////////////
 
         // Check if the user wants to record the pointcloud
         n_.param("/log_data_sensors_node/log_cloud", log_cloud, false);
@@ -35,6 +37,8 @@ public:
             bag_cloud.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_cloud_"+std::to_string(time_start)+".bag", rosbag::bagmode::Write);
         }
 
+        ////////////
+
         // Check if the user wants to record the laserscan
         n_.param("/log_data_sensors_node/log_laserscan", log_laserscan, false);
         n_.param("/log_data_sensors_node/freq_laserscan", freq_laserscan, 10.0f);
@@ -48,12 +52,14 @@ public:
             bag_laserscan.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_laserscan_"+std::to_string(time_start)+".bag", rosbag::bagmode::Write);
         }
 
-        // Check if the user wants to record the image
+        ////////////
+
+        // Check if the user wants to record the video stream
         n_.param("/log_data_sensors_node/log_image", log_image, false);
         n_.param("/log_data_sensors_node/freq_image", freq_image, 10.0f);
         period_image = 1 / freq_image;
 
-        // Subscriber to LaserScan topic
+        // Subscriber to Image topic
         if (log_image)
         {
             ROS_INFO("Logging video stream at %f Hz", freq_image);
@@ -61,7 +67,39 @@ public:
             bag_image.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_image_"+std::to_string(time_start)+".bag", rosbag::bagmode::Write);
         }
 
-        timer_cloud = 0; timer_laserscan = 0; timer_image = 0;
+        ////////////
+
+        // Check if the user wants to record the depth stream
+        n_.param("/log_data_sensors_node/log_depth", log_depth, false);
+        n_.param("/log_data_sensors_node/freq_depth", freq_depth, 10.0f);
+        period_depth = 1 / freq_depth;
+
+        // Subscriber to depth stream topic
+        if (log_depth)
+        {
+            ROS_INFO("Logging depth stream at %f Hz", freq_depth);
+            sub_depth = n_.subscribe("/camera/depth_registered/points", 1, &SubscribeAndPublish::callback_depth, this);
+            bag_depth.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_depth_"+std::to_string(time_start)+".bag", rosbag::bagmode::Write);
+        }
+
+        ////////////
+
+        // Check if the user wants to record the laserscan (for hokuyo)
+        n_.param("/log_data_sensors_node/log_hokuyo", log_hokuyo, false);
+        n_.param("/log_data_sensors_node/freq_hokuyo", freq_hokuyo, 10.0f);
+        period_hokuyo = 1 / freq_hokuyo;
+
+        // Subscriber to LaserScan topic (for hokuyo)
+        if (log_hokuyo)
+        {
+            ROS_INFO("Logging hokuyo laserscan at %f Hz", freq_hokuyo);
+            sub_hokuyo = n_.subscribe("/scan_multi", 1, &SubscribeAndPublish::callback_hokuyo, this);
+            bag_hokuyo.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_hokuyo_"+std::to_string(time_start)+".bag", rosbag::bagmode::Write);
+        }
+
+        ////////////
+
+        timer_cloud = 0; timer_laserscan = 0; timer_image = 0; timer_depth = 0; timer_hokuyo = 0;
 
         ROS_INFO("Data files for sensors have been opened");
         ROS_INFO("Recording");
@@ -73,6 +111,8 @@ public:
         bag_cloud.close();
         bag_laserscan.close();
         bag_image.close();
+        bag_depth.close();
+        bag_hokuyo.close();
         ROS_INFO("Data files for sensors have been opened");
     }
 
@@ -106,6 +146,26 @@ public:
         }
     }
 
+    void callback_depth(const sensor_msgs::PointCloud2& input)
+    {
+        t_now = ros::Time::now();
+        if ((t_now.toSec()-timer_depth) > period_depth)
+        {
+            bag_depth.write("/camera/depth_registered/points", t_now, input);
+            timer_depth = t_now.toSec();
+        }
+    }
+
+    void callback_hokuyo(const sensor_msgs::LaserScan& input)
+    {
+        t_now = ros::Time::now();
+        if ((t_now.toSec()-timer_hokuyo) > period_hokuyo)
+        {
+            bag_hokuyo.write("/scan_multi", t_now, input);
+            timer_hokuyo = t_now.toSec();
+        }
+    }
+
 private:
     ros::NodeHandle n_; // ROS node
 
@@ -117,15 +177,23 @@ private:
     ros::Subscriber sub_laserscan;
     rosbag::Bag bag_laserscan;
 
-    // Log am Image stream
+    // Log an Image stream
     ros::Subscriber sub_image;
     rosbag::Bag bag_image;
 
+    // Log a Depth stream
+    ros::Subscriber sub_depth;
+    rosbag::Bag bag_depth;
+
+    // Log another LaserScan
+    ros::Subscriber sub_hokuyo;
+    rosbag::Bag bag_hokuyo;
+
     // Timers
-    float timer_cloud, timer_laserscan, timer_image;
+    float timer_cloud, timer_laserscan, timer_image, timer_depth, timer_hokuyo;
 
     // Periods
-    float period_cloud, period_laserscan, period_image;
+    float period_cloud, period_laserscan, period_image, period_depth, period_hokuyo;
 
     ros::Time t_now;
 
