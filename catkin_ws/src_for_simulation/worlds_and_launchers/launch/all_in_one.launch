@@ -20,14 +20,15 @@
           args="scan:=/scan"
           launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
     <param name="node_start_delay" value="3"/>
-    <param name="delta" value="0.15"/>
-    <param name="map_update_interval" value="0.25"/>
-    <param name="temporalUpdate" value="0.25"/>
+    <param name="delta" value="0.30"/>
+    <param name="map_update_interval" value="1.0"/>
+    <param name="temporalUpdate" value="1.0"/>
     <param name="linearUpdate" value="0.1"/>
     <param name="angularUpdate" value="0.1"/>
     <param name="maxRange" value="10.5"/>
     <param name="maxUrange" value="10.0"/>
     </node>
+
 
     <node name="process_occupancy_grid_node"
           pkg="process_occupancy_grid"
@@ -36,5 +37,19 @@
     <param name="node_start_delay" value="4"/>
     </node>
 
+    <node name="cmd_vel_listener"
+          pkg="process_occupancy_grid"
+          type="cmd_vel_listener"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="5"/>
+    </node>
+
+    <node name="rviz_node"
+          pkg="rviz"
+          type="rviz"
+          args="~/catkin_ws/src/worlds_and_launchers/rviz/config_rviz.rviz"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="6"/>
+    </node>
 
 </launch>
