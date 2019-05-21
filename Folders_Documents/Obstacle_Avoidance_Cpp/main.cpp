@@ -9,6 +9,7 @@
 #include "ObstacleAvoidance.h"
 #include "ObstacleReconstruction.h"
 
+#include <cstdlib>
 
 using namespace std;
 
@@ -18,6 +19,7 @@ float PI = 3.1415;
 int test_functions();         // Lots of stuff that I used to test the functions when I was developing them, to be deleted for the final version
 void trajectory_generation(); // Old function to plot trajectories with ellipses obstacles
 void plot_stream_gazebo();    // Create data to plot a stream with matplotlib for a given set of obstacles
+
 
 // float limit_dist;
 
@@ -179,14 +181,226 @@ void trajectories_border()
     cout << "-- Trajectory files closed --" << endl;
 }
 
+void test_various_functions()
+{
+    float size_cell = 1;
+
+    Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(4) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(5) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(6) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,1,1,1,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy *= 100;
+
+    // State of the robot
+    State state_robot; state_robot << 5, 9, 0;
+
+    // State of the attractor
+    State state_attractor; state_attractor << 5, 3, 0;
+
+    //* Detect expanded obstacles
+    std::vector<Border> storage;
+    storage = detect_borders( occupancy, state_robot);
+
+    /*std::ofstream mystream;
+    mystream.open("/home/leziart/catkin_ws/StreamNode/test_various_functions.txt");
+    for (float x=0; x<11; x+=0.05)
+    {
+        for (float y=0; y<11; y+=0.05)
+        {
+            state_robot << x, y, 0;
+            // Compute velocity command
+            State next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+            //std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+
+            mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+
+        }
+    }
+    mystream.close();*/
+    /*
+    mystream.open("/home/leziart/catkin_ws/StreamNode/test_various_functions_blob.txt");
+    for (int x=0; x<occupancy.rows(); x++)
+    {
+        for (int y=0; y<occupancy.cols(); y++)
+        {
+            if (occupancy(x,y) == 100) {mystream << x << "," << y << "\n";}
+        }
+    }
+    mystream.close();
+
+
+    /*mystream.open("/home/leziart/catkin_ws/StreamNode/test_various_functions_vel.txt");
+    for (float x=7; x<10; x+=0.001)
+    {
+        State next_eps;
+        state_robot << x, 8, 0;
+        next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+        mystream << x << "," << 8 << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+    }
+    mystream.close();*/
+
+    State next_eps;
+    state_robot << 6.2, 8, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+    state_robot << 6.2, 8.98, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+    state_robot << 6.2, 8.986, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+    state_robot <<  6.2, 8.99, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+
+    extern bool logging_enabled;
+    extern Eigen::MatrixXf log_matrix;
+
+    if (logging_enabled)
+    {
+        std::cout << " ###### Log matrix ###### " << std::endl;
+        std::cout << log_matrix << std::endl;
+    }
+
+
+}
+
+
 int main()
 {
-    test_draw_circle();
+    test_various_functions();
+    //test_draw_circle();
     //call_morphing();
     //test_fill_holes();
     //growing_obstacle();
     //trajectories_border();
     //growing_several_obstacle();
+    if (false)
+    {
+        float size_cell = 0.15;
+        float radius_ridgeback = 0.6;
+        int n_expansion = static_cast<int>(std::ceil(radius_ridgeback/size_cell));
+
+        float limit_in_meters = 3;
+        int   limit_in_cells  = static_cast<int>(std::ceil(limit_in_meters/size_cell));
+
+        float start_cell_x = 133;
+        float start_cell_y = 133;
+
+        State state_attractor; state_attractor << 193,133,0;
+
+        Eigen::MatrixXi occupancy_grid, obstacles;
+        int ID_frame = 0;
+        while(ID_frame < 1)
+        {
+            std::cout << "ID FRAME " << ID_frame << std::endl;
+
+            // Declare file for recording
+            std::ofstream mystream;
+            if (ID_frame < 10)
+            {
+                std::cout << "ID FRAME < 10" << std::endl;
+                mystream.open("/home/leziart/catkin_ws/StreamNode/stream_data_node_000" + std::to_string(ID_frame) + ".txt");
+                std::string filename = "/home/leziart/catkin_ws/StreamNode/eigpeople_000" + std::to_string(ID_frame) + ".txt";
+                occupancy_grid = readMatrix(filename);
+                std::string filename2 = "/home/leziart/catkin_ws/StreamNode/obstacles_000" + std::to_string(ID_frame) + ".txt";
+                obstacles = readMatrix(filename2);
+            }
+            else if (ID_frame < 100)
+            {
+                mystream.open("/home/leziart/catkin_ws/StreamNode/stream_data_node_00" + std::to_string(ID_frame) + ".txt");
+                std::string filename = "/home/leziart/catkin_ws/StreamNode/eigpeople_00" + std::to_string(ID_frame) + ".txt";
+                occupancy_grid = readMatrix(filename);
+                filename = "/home/leziart/catkin_ws/StreamNode/obstacles_00" + std::to_string(ID_frame) + ".txt";
+                obstacles = readMatrix(filename);
+            }
+            else if (ID_frame < 1000)
+            {
+                mystream.open("/home/leziart/catkin_ws/StreamNode/stream_data_node_0" + std::to_string(ID_frame) + ".txt");
+                std::string filename = "/home/leziart/catkin_ws/StreamNode/eigpeople_0" + std::to_string(ID_frame) + ".txt";
+                occupancy_grid = readMatrix(filename);
+                filename = "/home/leziart/catkin_ws/StreamNode/obstacles_0" + std::to_string(ID_frame) + ".txt";
+                obstacles = readMatrix(filename);
+            }
+            else
+            {
+                mystream.open("/home/leziart/catkin_ws/StreamNode/stream_data_node_" + std::to_string(ID_frame) + ".txt");
+                std::string filename = "/home/leziart/catkin_ws/StreamNode/eigpeople_" + std::to_string(ID_frame) + ".txt";
+                occupancy_grid = readMatrix(filename);
+                filename = "/home/leziart/catkin_ws/StreamNode/obstacles_" + std::to_string(ID_frame) + ".txt";
+                obstacles = readMatrix(filename);
+            }
+            ID_frame+=1;
+
+            //std::cout << obstacles << std::endl;
+
+            // Limits of stream
+            Eigen::Matrix<float, 5, 1> limits;
+            limits << 0.02, 10.02, -5.02, 5.02, 0.2;
+
+            for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
+            {
+                std::cout << x << std::endl;
+                for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
+                {
+                    float temp_cell_x = start_cell_x + std::round(x / size_cell);
+                    float temp_cell_y = start_cell_y + std::round(y / size_cell);
+
+                    // Position of the point
+                    State state_point;
+                    state_point << temp_cell_x, temp_cell_y, 0;
+
+                    // Expand occupancy grid (obstacles in range)
+                    Grid eig_expanded = expand_occupancy_grid( occupancy_grid, n_expansion, state_point, limit_in_cells, size_cell);
+
+                    // Detect borders of obstacles in range
+                    std::vector<Border> storage;
+                    storage = detect_borders( eig_expanded, state_point );
+
+                    bool flag = true;
+
+                    for (int k=0; k<obstacles.rows(); k++)
+                    {
+                        if ((obstacles(k,0)==temp_cell_x)&&(obstacles(k,1)==temp_cell_y))
+                        {
+                            flag = false;
+                            k=obstacles.rows();
+                        }
+                    }
+
+
+                    if (flag)
+                    {
+
+                    // Compute velocity command
+                    State next_eps;
+                    next_eps = next_step_special_weighted( state_point, state_attractor, storage, size_cell);
+
+                    mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+                    }
+                    else
+                    {
+                       mystream << x << "," << y << "," << 0.0 << "," << 0.0 << "\n"; // write result in text file
+                    }
+                }
+            }
+
+            mystream.close();
+        }
+    }
+
     if (false)
     {
         Grid occupancy_grid(9,13);

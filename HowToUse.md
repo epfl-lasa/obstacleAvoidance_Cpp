@@ -118,9 +118,9 @@ There are two logging systems. The first one logs information about the robot. I
 * rosrun process_occupancy_grid log_data_robot_node _is_simulation:=true
 * rosrun process_occupancy_grid log_data_robot_node _is_simulation:=false
 
-The second logging system records information about the obstacle avoidance algorithm (detected obstacles, boundaries, generated velocities). To use it set `bool logging_enabled = true;` in ObstacleReconstruction.cpp. Recorded data is in process_occupancy_grid/src/Logging/data_obstacles_XXX.txt
+The second logging system records information about the obstacle avoidance algorithm (detected obstacles, boundaries, generated velocities). To use it set `bool logging_enabled = true;` in ObstacleReconstruction.cpp then `catkin_make`. Recorded data is in process_occupancy_grid/src/Logging/data_obstacles_XXX.txt
 
-There is also a node to log sensors data /velodyne_points, /scan and /camera/color/image_raw. Set to true if you want to record one of them, default recording frequency is 10 Hz.
+There is also a node to log sensors data /velodyne_points, /scan and /camera/color/image_raw. Set to true if you want to record one of them, default recording frequency is 10 Hz. Recorded data is in process_occupancy_grid/src/Logging/data_cloud_XXX.txt or data_laserscan_XXX.txt or data_image_XXX.txt
 
 * rosrun process_occupancy_grid log_data_sensors_node _log_cloud:=false _freq_cloud:=10 _log_laserscan:=false _freq_laserscan:=10 _log_image:=false _freq_image:=10
 

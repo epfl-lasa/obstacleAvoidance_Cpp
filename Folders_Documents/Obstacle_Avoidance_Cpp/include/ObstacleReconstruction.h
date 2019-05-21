@@ -7,6 +7,7 @@
 #include <cmath> // Basic math functions
 #include <string>
 #include <queue>
+#include "ObstacleAvoidance.h"
 
 // OpenCV functions
 /*#include "opencv2/opencv.hpp"
@@ -22,7 +23,6 @@ using Border = MatrixX5f;  // [x, y, type, charac_1, charac_2;]
 using Point  = Eigen::Matrix<int, 1, 2>;
 using Grid   = Eigen::MatrixXi;
 using State  = Eigen::Matrix<float, 3, 1>; // State is an alias to represent a column vector with three components
-
 
 struct PointFill // Simple structure of a 2D point
 {
@@ -107,7 +107,7 @@ int other_side_obstacle(Border const& border, int const& row, int const& col); /
 void explore_obstacle( Blob & obstacle, Grid & occupancy_grid, int const& row, int const& col); // explore an obstacle to detect all its cells
 // start from one cell and a recursive function gradually explores nearby cells and checks if they are occupied (i.e part of the obstacle)
 
-Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance); // compute the relative weights of obstacles in the limit range
+Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const& mat_gamma, int const& method, float const& limit_distance, bool const& do_not_normalize=false); // compute the relative weights of obstacles in the limit range
 
 State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells); // compute the velocity command for a given position of the robot/attractor/obstacles
 
@@ -125,5 +125,7 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
 void fillGrid(PointFill orig, Grid & occupancy_grid); // fill the holes in the occupied blobs of an occupancy grid
 
 void draw_circle(Grid & grid, int const& x, int const& y, int const& radius); // draw a disk of occupied cells in an occupancy grid
+
+Eigen::MatrixXi readMatrix(std::string filename);
 
 #endif // OBSTACLERECONSTRUCTION_H_INCLUDED

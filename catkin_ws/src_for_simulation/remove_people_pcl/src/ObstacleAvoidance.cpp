@@ -297,14 +297,14 @@ Eigen::Matrix<float, number_states, number_states> M_epsilon(Eigen::Matrix<float
 State epsilon_dot(Eigen::Matrix<float, number_states, number_states> const& M_eps, State const& f_eps, State const& state_robot, Obstacle const& obs)
 {
     // Version with moving obstacles (defined in the paper)
-    State eps_tilde = state_robot - obs.block(0,0,3,1);
+    /*State eps_tilde = state_robot - obs.block(0,0,3,1);
     State eps_dot_L; eps_dot_L << obs(7,0), obs(8,0), 0; // [v_x, v_y,     0]
     State eps_dot_R; eps_dot_R << 0, 0, obs(9,0);       // [  0,   0, w_rot]
     State eps_tilde_dot = eps_dot_L + eps_dot_R.cwiseProduct(eps_tilde);
-    State eps_dot = M_eps * (f_eps - eps_tilde_dot) + eps_tilde_dot;
+    State eps_dot = M_eps * (f_eps - eps_tilde_dot) + eps_tilde_dot;*/
 
     // Version with non-moving obstacles (simplification)
-    //State eps_dot = M_eps * f_eps;
+    State eps_dot = M_eps * f_eps;
     return eps_dot;
 }
 
@@ -467,16 +467,25 @@ State n_bar_2D(Eigen::MatrixXf const& mat_norm_velocities, Eigen::MatrixXf const
 {
     const int number_obstacles = mat_weights.cols();
 
-    float weighted_angle = 0;
+    /*float weighted_angle = 0;
     for (int i=0; i < number_obstacles; i++)
     {
         weighted_angle += mat_weights(0,i) * std::atan2(mat_norm_velocities(1,i), mat_norm_velocities(0,i)); // simplification of the formula of the paper in the 2D case
-    }
+        std::cout << "Angle: " << std::atan2(mat_norm_velocities(1,i), mat_norm_velocities(0,i)) << std::endl;
+        std::cout << "Sum  : " << weighted_angle << std::endl;
+    }*/
     // For instance if obstacle_0 makes the robot go east (0 angle) and obstacle_1 makes it go north (pi/2 angle),
     // then the robot will go in a direction between 0 and pi/2 depending on the relative distance of the obstacles
 
+    Eigen::Matrix<float, 3, 1> sum_vectors; sum_vectors << 0, 0, 0;
+    for (int i=0; i < number_obstacles; i++)
+    {
+        sum_vectors += mat_weights(0,i) * mat_norm_velocities.col(i); // simplification of the formula of the paper in the 2D case
+    }
+
     State res;
-    res << std::cos(weighted_angle), std::sin(weighted_angle), 0;
+    res = sum_vectors.colwise().normalized();
+    //res << std::cos(weighted_angle), std::sin(weighted_angle), 0;
     return res;
 }
 
@@ -709,8 +718,8 @@ void compute_quiver_multiplication(Eigen::Matrix<float, 5, 1> const& limits, Sta
 
 State speed_limiter(State const& input_speed)
 {
-    const float limit_linear_speed = 0.05; // in meter/second
-    const float limit_angular_speed = 5 * 0.01745; // in rad/second (0.01745 is to convert from degree to radian)
+    const float limit_linear_speed = 0.5; // in meter/second
+    const float limit_angular_speed = 30 * 0.01745; // in rad/second (0.01745 is to convert from degree to radian)
 
     State output_speed = input_speed;
     float norm_speed = std::sqrt(std::pow(output_speed(0,0),2) + std::pow(output_speed(1,0),2)); // speed of the robot

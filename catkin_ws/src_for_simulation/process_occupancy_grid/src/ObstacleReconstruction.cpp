@@ -4,7 +4,7 @@ float myRad = 0.1;
 const float size_cell = 1.0;
 const float margin = 0.25;
 
-bool logging_enabled = true;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
+bool logging_enabled = false;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
 Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 float current_obstacle = 1;
 
