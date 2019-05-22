@@ -6,8 +6,10 @@
 #include <array>
 
 // INCLUDE HEADERS
+#include "BezierInterpolation.h"
 #include "ObstacleAvoidance.h"
 #include "ObstacleReconstruction.h"
+
 
 #include <cstdlib>
 
@@ -30,7 +32,45 @@ void test_draw_circle()
     cout << occupancy << endl;
 }
 
+void test_bezier()
+{
+    Eigen::MatrixXf XY = Eigen::MatrixXf::Zero(4,2);
+    XY.col(0) << 0,1,1,0;
+    XY.col(1) << 0,0,1,1;
 
+    std::vector<Eigen::MatrixXf> res = compute_bezier(XY);
+
+    float size_cell = 1;
+
+    Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(4) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(5) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(6) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy *= 100;
+
+    // State of the robot
+    State state_robot; state_robot << 5, 9, 0;
+
+    // State of the attractor
+    State state_attractor; state_attractor << 5, 3, 0;
+
+    //* Detect expanded obstacles
+    std::vector<Border> storage;
+    storage = detect_borders( occupancy, state_robot);
+
+    Eigen::MatrixXf res_bez = border_to_vertices(storage[0]);
+
+    std::cout << res_bez << std::endl;
+
+}
 void test_fill_holes()
 {
     Grid occupancy = Grid::Zero(14,16);
@@ -186,16 +226,27 @@ void test_various_functions()
     float size_cell = 1;
 
     Grid occupancy = Grid::Zero(11,11);
+    /*occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,1,1,0,0,1,0,0,0;
+    occupancy.row(2) << 0,0,0,1,1,0,0,1,0,0,0;
+    occupancy.row(3) << 0,0,0,1,1,0,0,1,0,0,0;
+    occupancy.row(4) << 0,0,0,0,1,1,1,1,1,0,0;
+    occupancy.row(5) << 0,0,0,0,1,1,1,1,1,0,0;
+    occupancy.row(6) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(7) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(8) << 0,0,0,0,1,1,1,1,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,1,1,1,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(3) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(4) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(4) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(5) << 0,0,0,0,1,1,1,0,0,0,0;
     occupancy.row(6) << 0,0,0,0,1,1,1,0,0,0,0;
-    occupancy.row(7) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,1,1,1,0,0,0,0;
     occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(9) << 0,1,1,1,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
     occupancy *= 100;
 
@@ -209,6 +260,15 @@ void test_various_functions()
     std::vector<Border> storage;
     storage = detect_borders( occupancy, state_robot);
 
+    std::cout << storage[0] << std::endl;
+
+    // define the format you want, you only need one instance of this...
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+
+    std::ofstream mystream;
+    mystream.open("/home/leziart/catkin_ws/StreamNode/test_to_delete.txt");
+    mystream << (storage[0]).format(CSVFormat);
+    mystream.close();
     /*std::ofstream mystream;
     mystream.open("/home/leziart/catkin_ws/StreamNode/test_various_functions.txt");
     for (float x=0; x<11; x+=0.05)
@@ -280,7 +340,8 @@ void test_various_functions()
 
 int main()
 {
-    test_various_functions();
+    test_bezier();
+    //test_various_functions();
     //test_draw_circle();
     //call_morphing();
     //test_fill_holes();
