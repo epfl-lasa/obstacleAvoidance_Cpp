@@ -2,11 +2,6 @@
 
 #include <eigen3/Eigen/LU>
 
-void test_link()
-{
-    int a = 1;
-}
-
 std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
 {
     /* XY is a matrix with the following format
@@ -244,3 +239,79 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
     result.conservativeResize(pt_row, Eigen::NoChange);
     return result;
 }
+
+State get_projection_on_bezier(State const& state_robot, std::vector<Eigen::MatrixXf> const& pts_bezier)
+{
+    Eigen::Matrix<float, 1, 2> robot; robot << state_robot(0,0), state_robot(1,0);
+
+    Eigen::MatrixXf robot_X = state_robot(0,0) * Eigen::MatrixXf::Ones(1,(pts_bezier[0]).cols());
+    Eigen::MatrixXf robot_Y = state_robot(1,0) * Eigen::MatrixXf::Ones(1,(pts_bezier[0]).cols());
+
+    Eigen::MatrixXf dist_X = (robot_X-(pts_bezier[0]).row(0)).cwiseProduct(robot_X-(pts_bezier[0]).row(0));
+    Eigen::MatrixXf dist_Y = (robot_Y-(pts_bezier[1]).row(0)).cwiseProduct(robot_Y-(pts_bezier[1]).row(0));
+    Eigen::MatrixXf dist = (dist_X+dist_Y).array().sqrt().matrix();
+
+    float value_min = dist(0,0);
+    int index_min = 0;
+    for (int i=1; i<dist.cols(); i++)
+    {
+        if (dist(0,i)<value_min)
+        {
+            index_min = i;
+            value_min = dist(0,i);
+        }
+    }
+
+    int index_prev_min = index_min - 1;
+    if (index_prev_min < 0) {index_prev_min = dist.cols()-1;}
+
+    robot_X = state_robot(0,0) * Eigen::MatrixXf::Ones((pts_bezier[0]).rows(),1);
+    robot_Y = state_robot(1,0) * Eigen::MatrixXf::Ones((pts_bezier[0]).rows(),1);
+
+    dist_X = (robot_X-(pts_bezier[0]).col(index_prev_min)).cwiseProduct(robot_X-(pts_bezier[0]).col(index_prev_min));
+    dist_Y = (robot_Y-(pts_bezier[1]).col(index_prev_min)).cwiseProduct(robot_Y-(pts_bezier[1]).col(index_prev_min));
+    Eigen::MatrixXf dist_1 = (dist_X+dist_Y).array().sqrt().matrix();
+
+    dist_X = (robot_X-(pts_bezier[0]).col(index_min)).cwiseProduct(robot_X-(pts_bezier[0]).col(index_min));
+    dist_Y = (robot_Y-(pts_bezier[1]).col(index_min)).cwiseProduct(robot_Y-(pts_bezier[1]).col(index_min));
+    Eigen::MatrixXf dist_2 = (dist_X+dist_Y).array().sqrt().matrix();
+
+    int i_dist = 1;
+    value_min = dist_1(0,0);
+    index_min = 0;
+    for (int i=1; i<dist_1.rows(); i++)
+    {
+        if (dist_1(i,0)<value_min)
+        {
+            index_min = i;
+            value_min = dist_1(i,0);
+        }
+    }
+    for (int i=0; i<dist_2.rows(); i++)
+    {
+        if (dist_2(i,0)<value_min)
+        {
+            i_dist = 2;
+            index_min = i;
+            value_min = dist_2(i,0);
+        }
+    }
+
+    float closest_X, closest_Y;
+    if (i_dist==1)
+    {
+        closest_X = (pts_bezier[0])(index_min,index_prev_min);
+        closest_Y = (pts_bezier[1])(index_min,index_prev_min);
+    }
+    else
+    {
+        closest_X = (pts_bezier[0])(index_min,index_min);
+        closest_Y = (pts_bezier[1])(index_min,index_min);
+    }
+
+    State closest; closest << closest_X, closest_Y, 0;
+
+    return closest;
+}
+
+

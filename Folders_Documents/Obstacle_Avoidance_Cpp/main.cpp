@@ -57,7 +57,7 @@ void test_bezier()
     occupancy *= 100;
 
     // State of the robot
-    State state_robot; state_robot << 5, 9, 0;
+    State state_robot; state_robot << 2, 5.7, 0;
 
     // State of the attractor
     State state_attractor; state_attractor << 5, 3, 0;
@@ -69,6 +69,10 @@ void test_bezier()
     Eigen::MatrixXf res_bez = border_to_vertices(storage[0]);
 
     std::cout << res_bez << std::endl;
+
+    State closest = get_projection_on_bezier(state_robot, compute_bezier(res_bez));
+
+    std::cout << "Closest: " << closest.transpose() << std::endl;
 
 }
 void test_fill_holes()

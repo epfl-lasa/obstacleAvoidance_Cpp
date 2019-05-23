@@ -92,7 +92,7 @@ public:
     ////////////////
 
     // Size of gmapping cells (the one you use for delta in rosrun gmapping slam_gmapping scan:=/scan _delta:=0.3 _map_update_interval:=1.0)
-    float size_cell = 0.15;
+    float size_cell = 0.3;
 
     // Position of the attractor compared to the initial position of the robot (in meters)
     // Consider that the robot starts at position (0,0)
@@ -445,7 +445,9 @@ public:
         matrix << time_matrix, log_matrix;
 	//std::cout << log_matrix << std::endl;
 
-	mylog << matrix << "\n";
+	const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    mylog << matrix.format(CSVFormat) << "\n";
+	//mylog << matrix << "\n";
 
     }
 

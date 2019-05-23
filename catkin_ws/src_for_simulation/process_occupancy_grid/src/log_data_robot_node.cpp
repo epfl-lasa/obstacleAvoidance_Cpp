@@ -8,6 +8,7 @@
 #include <fstream>  // To write data into files
 #include <iomanip>
 #include <algorithm> // For std::min_element
+#include <signal.h> // For custom SIGINT handling
 
 #include "gazebo_msgs/LinkStates.h"     // For /gazebo/link_states subscriber
 #include "geometry_msgs/Twist.h"        // For /cmd_vel            subscriber
@@ -42,6 +43,7 @@ geometry_msgs/Twist[] twist
 */
 
 
+std::ofstream mylog_robot;
 
 class SubscribeAndPublish
 {
@@ -57,7 +59,7 @@ public:
         if (is_simulation)
         {
             ROS_INFO("Simulation mode (Gazebo)");
-            sub_1 = n_.subscribe("/gazebo/joint_states", 1, &SubscribeAndPublish::callback1_simu, this);
+            sub_1 = n_.subscribe("/gazebo/link_states", 1, &SubscribeAndPublish::callback1_simu, this);
         }
         else
         {
@@ -90,10 +92,10 @@ public:
         int time_start = static_cast<int>(std::round(ros::WallTime::now().toSec()));
 
         // Open log file
-        mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(time_start)+".txt", std::ios::out | std::ios_base::app);
+        mylog_robot.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(time_start)+".txt", std::ios::out | std::ios_base::app);
 
         // Check if file has been correctly opened
-        if (mylog.fail())
+        if (mylog_robot.fail())
         {
             throw std::ios_base::failure(std::strerror(errno));
         }
@@ -105,22 +107,20 @@ public:
 
     ~SubscribeAndPublish()
     {
-        ROS_INFO("Terminating node");
-        mylog.close();
-        ROS_INFO("data_robot.txt has been closed");
+
     }
 
     void callback1_simu(const gazebo_msgs::LinkStates& input)
     {
 
         // Check if file has been correctly opened
-        if (mylog.fail())
+        if (mylog_robot.fail())
         {
             throw std::ios_base::failure(std::strerror(errno));
         }
 
         // Make sure write fails with exception if something is wrong
-        mylog.exceptions(mylog.exceptions() | std::ios::failbit | std::ifstream::badbit);
+        mylog_robot.exceptions(mylog_robot.exceptions() | std::ios::failbit | std::ifstream::badbit);
 
         // Searching Ridgeback base_link among all links
         for (int i = 0; i < (input.name).size(); i++)
@@ -163,7 +163,9 @@ public:
         if ((t-time_previous)>0.05)
         {
             log_matrix.col(0) = t * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
-            mylog << log_matrix << "\n";
+            const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+
+            mylog_robot << log_matrix.format(CSVFormat) << "\n";
             time_previous = t;
         }
     }
@@ -172,13 +174,13 @@ public:
     {
 
         // Check if file has been correctly opened
-        if (mylog.fail())
+        if (mylog_robot.fail())
         {
             throw std::ios_base::failure(std::strerror(errno));
         }
 
         // Make sure write fails with exception if something is wrong
-        mylog.exceptions(mylog.exceptions() | std::ios::failbit | std::ifstream::badbit);
+        mylog_robot.exceptions(mylog_robot.exceptions() | std::ios::failbit | std::ifstream::badbit);
 
 
         tf::StampedTransform transform_map_to_base;
@@ -240,7 +242,9 @@ public:
         if ((t-time_previous)>0.05)
         {
             log_matrix.col(0) = t * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
-            mylog << log_matrix << "\n";
+            const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+
+            mylog_robot << log_matrix.format(CSVFormat);
             time_previous = t;
         }
     }
@@ -331,7 +335,7 @@ private:
     float time_previous;
     std::vector<float> x_people, y_people;
     Eigen::MatrixXf log_matrix;
-    std::ofstream mylog;
+
 
     bool is_simulation;
 
@@ -339,12 +343,27 @@ private:
     tf::StampedTransform transform_; // Transform from base_link to map
 };
 
+void mySigintHandler(int sig)
+{
+    // Custom actions
+    ROS_INFO("Terminating node");
+    mylog_robot.close();
+    ROS_INFO("data_robot.txt has been closed");
+
+    // All the default sigint handler does is call shutdown()
+    ros::shutdown();
+}
+
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "log_data_robot_node");
 
     //Create an object of class SubscribeAndPublish that will take care of everything
     SubscribeAndPublish SAPObject;
+
+    // Custom termination function to close the text file
+    signal(SIGINT, mySigintHandler);
 
     ros::spin();
 
