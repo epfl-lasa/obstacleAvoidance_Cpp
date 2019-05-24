@@ -344,13 +344,46 @@ public:
     }
 
 
+
+
     /////////////////////////
     // DETECTING OBSTACLES //
     /////////////////////////
 
+    Grid grid_tempo;
+    if (logging_enabled)
+    {
+        grid_tempo = eig_people;
+    }
+
     // Detect expanded obstacles
     std::vector<Border> storage;
     storage = detect_borders( eig_expanded, state_robot );
+
+    if (logging_enabled)
+    {
+        // Storing all occupied cells of the occupancy grid
+        std::vector<Blob> storage_blobs;
+	    storage_blobs = detect_blobs( grid_tempo );
+	    for (int i=0; i<storage_blobs.size(); i++)
+	    {
+	        int n_rows = log_matrix.rows();
+	        log_matrix.conservativeResize(n_rows+storage_blobs[i].rows(), Eigen::NoChange);
+	        log_matrix.block(n_rows,0,storage_blobs[i].rows(),1) = Eigen::MatrixXf::Zero(storage_blobs[i].rows(),1);
+	        log_matrix.block(n_rows,1,storage_blobs[i].rows(),1) = Eigen::MatrixXf::Ones(storage_blobs[i].rows(),1);
+	        log_matrix.block(n_rows,2,storage_blobs[i].rows(),2) = ((storage_blobs[i]).block(0,0,storage_blobs[i].rows(),2)).template cast<float>();
+	        log_matrix.block(n_rows,4,storage_blobs[i].rows(),3) = Eigen::MatrixXf::Zero(storage_blobs[i].rows(),3);
+	    }
+
+	    // Storing position of the robot in the initial space (feature 5)
+        log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange);
+        log_matrix.row(log_matrix.rows()-1) << 0.0, 5.0, state_robot(0,0), state_robot(1,0), 0.0,0.0,0.0;
+
+        // Storing position of the robot in the initial space (feature 6)
+        log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange);
+        log_matrix.row(log_matrix.rows()-1) << 0.0, 6.0, state_attractor(0,0), state_attractor(1,0), 0.0,0.0,0.0;
+
+    }
 
     if (false) // enable to display detected borders
     {

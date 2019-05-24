@@ -17,10 +17,17 @@ import math
 radius_ridgeback = 0.6;
 size_cell = 0.3;
 radius_in_grid = int(math.ceil(radius_ridgeback/size_cell))
+limit_in_meters = math.sqrt(50-1);
+limit_in_cells  = int(math.ceil(limit_in_meters));
 ####
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558616704.txt")
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558627328.txt")
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558627456.txt")
+# names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558616704.txt")
+# names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558627328.txt")
+# names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558627456.txt")
+# names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558689280.txt")
+# names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558693376.txt")
+# names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558701056.txt")
+names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
+
 names.sort()
 data = np.loadtxt(open(names[0], "rb"), delimiter=",")
 
@@ -42,19 +49,38 @@ class UpdatablePatchCollection(mcollections.PatchCollection):
         return self._paths
         
 
-fig_circle =  plt.figure()
-plt.subplot(211)
-plt.plot(pos[0:3,1], pos[0:3,2], lw=2)
-ax = plt.axis([-4,4,-4,4])
-axes = plt.gca() 
-axes.set_aspect("equal")
-plt.subplot(212)
-plt.plot(pos[0:3,1], pos[0:3,2], lw=2)
-ax = plt.axis([-4,4,-4,4])
-axes = plt.gca() 
-axes.set_aspect("equal")
+# fig_circle =  plt.figure()
+# plt.subplot(211)
+# plt.plot(pos[0:3,1], pos[0:3,2], lw=2)
+# ax = plt.axis([-4,4,-4,4])
+# axes = plt.gca() 
+# axes.set_aspect("equal")
+# plt.subplot(212)
+# plt.plot(pos[0:3,1], pos[0:3,2], lw=2)
+# ax = plt.axis([-4,4,-4,4])
+# axes = plt.gca() 
+# axes.set_aspect("equal")
 
+circle_figs = []
+circle_axes = []
 
+sub_fig, axs = plt.subplots(int(np.max(data[:,1])))
+for i in range(int(np.max(data[:,1]))):
+    axs[i].set_aspect("equal")
+    axs[i].set_xlim([-4,4])
+    axs[i].set_ylim([-4,4])
+    circle_axes.append(axs[i])
+    
+
+# for i in range(int(np.max(data[:,1]))):
+#     fig = plt.figure()
+#     ax = plt.axis([-4,4,-4,4])
+#     axes = plt.gca() 
+#     axes.set_aspect("equal")
+#     circle_figs.append(fig)
+#     circle_axes.append(axes)
+    
+#pl.figure(f1.number)
 fig, ax = plt.subplots()
 
 l, = plt.plot(pos[0:1,1], pos[0:1,2], lw=2)
@@ -70,7 +96,7 @@ collection_feat1 = UpdatablePatchCollection([])
 collection_feat2 = UpdatablePatchCollection([])
 ax.add_collection(collection_feat2)
 
-ax = plt.axis([330,375,300,355])
+ax = plt.axis([325,370,315,355])
 
 axes = plt.gca() 
 axes.set_aspect("equal")
@@ -96,16 +122,26 @@ def update(val):
     ellipse1.set_center((person1[cursor,1],person1[cursor,2]))
     ellipse2.set_center((person2[cursor,1],person2[cursor,2]))
     
-    # Update features data
-    data_feat1 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==1)]
-    data_feat2 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==2)]
-    data_feat3 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==3)]
-    data_feat4 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==4)]
-    data_feat5 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==5)]
-    data_feat6 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==6)]
-    data_feat7 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==7)]
-    data_feat8 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==8)]
+    # Update
+    data_feat1_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==1) & (data[:,1]==0)]
+    data_feat5_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==5) & (data[:,1]==0)]
+    data_feat6_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==6) & (data[:,1]==0)]
     
+    # Update features data
+    data_feat1 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==1) & (data[:,1]!=0)]
+    data_feat2 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==2) & (data[:,1]!=0)]
+    data_feat3 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==3) & (data[:,1]!=0)]
+    data_feat4 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==4) & (data[:,1]!=0)]
+    data_feat5 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==5) & (data[:,1]!=0)]
+    data_feat6 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==6) & (data[:,1]!=0)]
+    data_feat7 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==7) & (data[:,1]!=0)]
+    data_feat8 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==8) & (data[:,1]!=0)]
+    
+    # Update occupied cells (in range and out of range)
+    for i in range(data_feat1_all.shape[0]):
+        occupied_cell = mpatches.Rectangle([data_feat1_all[i,3]-0.5,data_feat1_all[i,4]-0.5], 1, 1, facecolor="lightsteelblue", zorder=1)
+        axes.add_artist(occupied_cell)
+        
     # Update occupied cells (feature 1)
     for i in range(data_feat1.shape[0]):
         occupied_cell = mpatches.Rectangle([data_feat1[i,3]-0.5,data_feat1[i,4]-0.5], 1, 1)
@@ -142,22 +178,32 @@ def update(val):
             
     # Update position of the projection of the robot in initial space (feature 3)
     for i in range(data_feat3.shape[0]):
-        circle = mpatches.Ellipse([data_feat3[i,3],data_feat3[i,4]], 1, 1, facecolor="red")        
+        circle = mpatches.Ellipse([data_feat3[i,3],data_feat3[i,4]], 1, 1, facecolor="red", edgecolor="k", zorder=3)        
         axes.add_artist(circle)
     
     # Update position of the projection of the attractor in initial space (feature 4)
     for i in range(data_feat4.shape[0]):
-        circle = mpatches.Ellipse([data_feat4[i,3],data_feat4[i,4]], 1, 1, facecolor="forestgreen")        
+        circle = mpatches.Ellipse([data_feat4[i,3],data_feat4[i,4]], 1, 1, facecolor="forestgreen", edgecolor="k", zorder=2)        
         axes.add_artist(circle)
     
     # Update position of the robot in initial space (feature 5)
     if (data_feat5.shape[0] > 0):
-        circle = mpatches.Ellipse([data_feat5[0,3],data_feat5[0,4]], 2*radius_in_grid, 2*radius_in_grid, facecolor="coral")        
+        circle = mpatches.Ellipse([data_feat5[0,3],data_feat5[0,4]], 1, 1, facecolor="red", edgecolor="k", zorder=4)        
+        axes.add_artist(circle)
+        circle = mpatches.Ellipse([data_feat5[0,3],data_feat5[0,4]], 2*radius_in_grid, 2*radius_in_grid, fill=False, linestyle="--", edgecolor="k", zorder=4)        
+        axes.add_artist(circle)
+    else:
+        circle = mpatches.Ellipse([data_feat5_all[0,3],data_feat5_all[0,4]], 1, 1, facecolor="red", edgecolor="k", zorder=4)        
+        axes.add_artist(circle)
+        circle = mpatches.Ellipse([data_feat5_all[0,3],data_feat5_all[0,4]], 2*radius_in_grid, 2*radius_in_grid, fill=False, linestyle="--", edgecolor="k", zorder=4)        
         axes.add_artist(circle)
         
     # Update position of the attractor in initial space (feature 6)
     if (data_feat6.shape[0] > 0):
-        circle = mpatches.Ellipse([data_feat6[0,3],data_feat6[0,4]], 1, 1, facecolor="forestgreen")       
+        circle = mpatches.Ellipse([data_feat6[0,3],data_feat6[0,4]], 1, 1, facecolor="forestgreen", edgecolor="k", zorder=2)       
+        axes.add_artist(circle)
+    else:
+        circle = mpatches.Ellipse([data_feat6_all[0,3],data_feat6_all[0,4]], 1, 1, facecolor="forestgreen", edgecolor="k", zorder=2)       
         axes.add_artist(circle)
      
     # Draw projection line of robot
@@ -177,14 +223,19 @@ def update(val):
         for i in range(data_feat7.shape[0]):
             K_mult = 3
             norm_vec = np.sqrt(np.sum(np.power(data_feat7[i,3:5],2)))
-            arrow = mpatches.FancyArrow(data_feat5[0,3],data_feat5[0,4], (K_mult/norm_vec)*data_feat7[i,3], (K_mult/norm_vec)*data_feat7[i,4], length_includes_head=True, head_width=0.4, Linewidth=2, facecolor="rebeccapurple")
+            arrow = mpatches.FancyArrow(data_feat5[0,3],data_feat5[0,4], K_mult*data_feat7[i,3], K_mult*data_feat7[i,4], length_includes_head=True, head_width=0.4, Linewidth=2, facecolor="rebeccapurple", zorder=5)
             axes.add_artist(arrow)
     
     # Update trajectory of the robot in initial space (since its starting position)
-    data_feat5_prev = data[(data[:,0]<=timestamps[cursor]) & (data[:,2]==5)]
+    data_feat5_prev = data[(data[:,0]<=timestamps[cursor]) & (data[:,2]==5) & (data[:,2]!=0)]
     if (data_feat5.shape[0] > 0):
         line = mlines.Line2D(data_feat5_prev[:,3],data_feat5_prev[:,4], Linewidth=2, Linestyle="--",color='darkorange')
         axes.add_artist(line)
+    else:
+        data_feat5_prev = data[(data[:,0]<=timestamps[cursor]) & (data[:,2]==5) & (data[:,2]==0)]
+        line = mlines.Line2D(data_feat5_prev[:,3],data_feat5_prev[:,4], Linewidth=2, Linestyle="--",color='darkorange')
+        axes.add_artist(line)
+        
         
     # Update Gamma distance of the robot (feature 7)
     for i in range(data_feat8.shape[0]):
@@ -193,12 +244,77 @@ def update(val):
         text = mtext.Text(x,y,str(data_feat8[i,3]))
         axes.add_artist(text)
 
+    # Update limit range to consider obstacles
+    if (data_feat5.shape[0] > 0):
+        circle = mpatches.Ellipse([data_feat5[0,3],data_feat5[0,4]], 2*limit_in_cells, 2*limit_in_cells, fill=False, edgecolor="k", zorder=2)       
+        axes.add_artist(circle)
+        rec = mpatches.Rectangle([data_feat5[0,3]-limit_in_cells,data_feat5[0,4]-limit_in_cells], 2*limit_in_cells, 2*limit_in_cells, fill=False, edgecolor="k", zorder=2)       
+        axes.add_artist(rec)
+                
+
     # Update title
     fig.canvas.set_window_title("Time [s]: " + str(round(timestamps[cursor],3)))
     axes.set_title("Time [s]: " + str(round(timestamps[cursor],3)))
-        
+    
     # Redraw canvas while idle
     fig.canvas.draw_idle()
+    
+    # Update circle figures
+    for i in range(len(circle_axes)): 
+        #fig_circle = circle_figs[i]
+        axes_circle = circle_axes[i] 
+        axes_circle.artists = []
+        if np.any(data_feat3[:,1]==(i+1)):
+            #plt.figure(fig_circle.number)
+            
+            # Plot the unit circle
+            unit_circle = mpatches.Ellipse([0,0], 2, 2, facecolor="royalblue", edgecolor="k", zorder=1) 
+            axes_circle.add_artist(unit_circle)
+            
+            # Update position of the projection of the robot in circle space for this obstacle (feature 3)
+            circle = mpatches.Ellipse([data_feat3[i,5],data_feat3[i,6]], 0.2, 0.2, facecolor="red", edgecolor="k", zorder=3)         
+            axes_circle.add_artist(circle)
+            
+            # Update position of the projection of the attractor in circle space for this obstacle (feature 4)
+            circle = mpatches.Ellipse([data_feat4[i,5],data_feat4[i,6]], 0.2, 0.2, facecolor="forestgreen", edgecolor="k", zorder=2)         
+            axes_circle.add_artist(circle)
+            
+            # Update position of the robot in circle space for this obstacle (feature 5)
+            circle = mpatches.Ellipse([data_feat5[i,5],data_feat5[i,6]], 0.2, 0.2, facecolor="red", edgecolor="k", zorder=4)          
+            axes_circle.add_artist(circle)
+                
+            # Update position of the attractor in circle space for this obstacle (feature 6)
+            circle = mpatches.Ellipse([data_feat6[i,5],data_feat6[i,6]], 0.2, 0.2, facecolor="forestgreen", edgecolor="k", zorder=2)         
+            axes_circle.add_artist(circle)
+        
+            # Draw projection line of robot
+            line = mlines.Line2D([data_feat5[i,5],data_feat3[i,5]],[data_feat5[i,6],data_feat3[i,6]], Linewidth=2, Linestyle="--",    color='k')
+            axes_circle.add_artist(line)
+                
+            # Draw projection line of attractor    
+            line = mlines.Line2D([data_feat6[i,5],data_feat4[i,5]],[data_feat6[i,6],data_feat4[i,6]], Linewidth=2, Linestyle="--", color='k')
+            axes_circle.add_artist(line)
+            
+            # Update velocity command of the robot (feature 7)
+            K_mult = 0.7
+            norm_vec = np.sqrt(np.sum(np.power(data_feat7[i,5:7],2)))
+            arrow = mpatches.FancyArrow(data_feat5[i,5],data_feat5[i,6], K_mult*data_feat7[i,5], K_mult*data_feat7[i,6], length_includes_head=True, head_width=0.2, Linewidth=2, facecolor="rebeccapurple", zorder=5)
+            axes_circle.add_artist(arrow)
+            
+            # Update trajectory of the robot in initial space (since its starting position)
+            data_feat5_prev = data[(data[:,0]<=timestamps[cursor]) & (data[:,2]==5) & (data[:,1]==(i+1))]
+            line = mlines.Line2D(data_feat5_prev[:,5],data_feat5_prev[:,6], Linewidth=2, Linestyle="--",color='darkorange')
+            axes_circle.add_artist(line)
+            
+            # Update title
+            #fig_circle.canvas.set_window_title("Time [s]: " + str(round(timestamps[cursor],3)))
+            axes_circle.set_title("Time [s]: " + str(round(timestamps[cursor],3)) + " | Obstacle " + str(i+1) + " | Distance: " + str(data_feat8[i,4]))
+    
+        #fig_circle.canvas.draw_idle()
+    sub_fig.canvas.draw_idle()
+        
+    # Go back to main figure
+    plt.figure(fig.number)
 
 # call update function on slider value change
 samp.on_changed(update)
