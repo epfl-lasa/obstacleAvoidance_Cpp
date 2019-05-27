@@ -26,10 +26,14 @@ limit_in_cells  = int(math.ceil(limit_in_meters));
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558689280.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558693376.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558701056.txt")
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
-
+# names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
+names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558950016.txt")
 names.sort()
 data = np.loadtxt(open(names[0], "rb"), delimiter=",")
+
+names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_1558950028.txt")
+names.sort()
+robot = np.loadtxt(open(names[0], "rb"), delimiter=",")
 
 
 timestamps = np.unique(data[:,0])
@@ -127,7 +131,7 @@ def update(val):
     data_feat5_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==5) & (data[:,1]==0)]
     data_feat6_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==6) & (data[:,1]==0)]
     
-    # Update features data
+    # Update features from data_obstacles_XXX.txt
     data_feat1 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==1) & (data[:,1]!=0)]
     data_feat2 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==2) & (data[:,1]!=0)]
     data_feat3 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==3) & (data[:,1]!=0)]
@@ -137,14 +141,18 @@ def update(val):
     data_feat7 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==7) & (data[:,1]!=0)]
     data_feat8 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==8) & (data[:,1]!=0)]
     
+    # Update features from data_robot_XXX.txt
+    timestamp_for_robot = robot[np.argmin(np.abs(robot[:,0]-timestamps[cursor])),0]
+    robot_feat6 = robot[(robot[:,0]==timestamp_for_robot) & (robot[:,1]==6)]
+    
     # Update occupied cells (in range and out of range)
     for i in range(data_feat1_all.shape[0]):
-        occupied_cell = mpatches.Rectangle([data_feat1_all[i,3]-0.5,data_feat1_all[i,4]-0.5], 1, 1, facecolor="lightsteelblue", zorder=1)
+        occupied_cell = mpatches.Rectangle([data_feat1_all[i,3]-0.5,data_feat1_all[i,4]-0.5], 1, 1, facecolor="c", zorder=2)
         axes.add_artist(occupied_cell)
         
     # Update occupied cells (feature 1)
     for i in range(data_feat1.shape[0]):
-        occupied_cell = mpatches.Rectangle([data_feat1[i,3]-0.5,data_feat1[i,4]-0.5], 1, 1)
+        occupied_cell = mpatches.Rectangle([data_feat1[i,3]-0.5,data_feat1[i,4]-0.5], 1, 1,zorder=1)
         axes.add_artist(occupied_cell)
 
     # Update boundary cells (feature 2)
@@ -223,7 +231,7 @@ def update(val):
         for i in range(data_feat7.shape[0]):
             K_mult = 3
             norm_vec = np.sqrt(np.sum(np.power(data_feat7[i,3:5],2)))
-            arrow = mpatches.FancyArrow(data_feat5[0,3],data_feat5[0,4], K_mult*data_feat7[i,3], K_mult*data_feat7[i,4], length_includes_head=True, head_width=0.4, Linewidth=2, facecolor="rebeccapurple", zorder=5)
+            arrow = mpatches.FancyArrow(data_feat5[0,3],data_feat5[0,4], K_mult*data_feat7[i,3], K_mult*data_feat7[i,4], length_includes_head=True, width=0.1, Linewidth=2, facecolor="rebeccapurple", zorder=5)
             axes.add_artist(arrow)
     
     # Update trajectory of the robot in initial space (since its starting position)
@@ -239,8 +247,8 @@ def update(val):
         
     # Update Gamma distance of the robot (feature 7)
     for i in range(data_feat8.shape[0]):
-        x = (data_feat5[0,3]+data_feat3[i,3]) * 0.5
-        y = (data_feat5[0,4]+data_feat3[i,4]) * 0.5
+        x = (data_feat5[0,3]+data_feat3[i,3]) * 0.5 + 1
+        y = (data_feat5[0,4]+data_feat3[i,4]) * 0.5 + 0.5
         text = mtext.Text(x,y,str(data_feat8[i,3]))
         axes.add_artist(text)
 
@@ -251,6 +259,13 @@ def update(val):
         rec = mpatches.Rectangle([data_feat5[0,3]-limit_in_cells,data_feat5[0,4]-limit_in_cells], 2*limit_in_cells, 2*limit_in_cells, fill=False, edgecolor="k", zorder=2)       
         axes.add_artist(rec)
                 
+
+    # Update velocity command sent to the robot (feature 6 of data_robot)
+    if (robot_feat6.shape[0] > 0) and (data_feat5_all.shape[0] > 0):
+        K_mult = 3
+        arrow = mpatches.FancyArrow(data_feat5_all[0,3],data_feat5_all[0,4], K_mult*robot_feat6[0,2], K_mult*robot_feat6[0,3], length_includes_head=True, width=0.1, Linewidth=2, facecolor="orange", edgecolor="k", zorder=6)
+        axes.add_artist(arrow)
+
 
     # Update title
     fig.canvas.set_window_title("Time [s]: " + str(round(timestamps[cursor],3)))
@@ -298,7 +313,7 @@ def update(val):
             # Update velocity command of the robot (feature 7)
             K_mult = 0.7
             norm_vec = np.sqrt(np.sum(np.power(data_feat7[i,5:7],2)))
-            arrow = mpatches.FancyArrow(data_feat5[i,5],data_feat5[i,6], K_mult*data_feat7[i,5], K_mult*data_feat7[i,6], length_includes_head=True, head_width=0.2, Linewidth=2, facecolor="rebeccapurple", zorder=5)
+            arrow = mpatches.FancyArrow(data_feat5[i,5],data_feat5[i,6], K_mult*data_feat7[i,5], K_mult*data_feat7[i,6], length_includes_head=True, width=0.07, Linewidth=2, facecolor="rebeccapurple", zorder=5)
             axes_circle.add_artist(arrow)
             
             # Update trajectory of the robot in initial space (since its starting position)

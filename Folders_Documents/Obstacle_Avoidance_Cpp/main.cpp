@@ -60,7 +60,7 @@ void test_bezier()
     State state_robot; state_robot << 2, 5.7, 0;
 
     // State of the attractor
-    State state_attractor; state_attractor << 5, 3, 0;
+    State state_attractor; state_attractor << 2, 6.51, 0;
 
     //* Detect expanded obstacles
     std::vector<Border> storage;
@@ -68,12 +68,29 @@ void test_bezier()
 
     Eigen::MatrixXf res_bez = border_to_vertices(storage[0]);
 
-    std::cout << res_bez << std::endl;
+    //std::cout << res_bez << std::endl;
 
-    State closest = get_projection_on_bezier(state_robot, compute_bezier(res_bez));
+    State closest_robot = get_projection_on_bezier(state_robot, compute_bezier(res_bez));
+    std::cout << "Closest from robot: " << closest_robot.transpose() << std::endl;
 
-    std::cout << "Closest: " << closest.transpose() << std::endl;
+    State closest_attractor = get_projection_on_bezier(state_attractor, compute_bezier(res_bez));
+    std::cout << "Closest from attractor: " << closest_attractor.transpose() << std::endl;
 
+    Eigen::Matrix<float, 1, 2> proj_robot; proj_robot << closest_robot(0,0), closest_robot(1,0);
+    Eigen::Matrix<float, 1, 2> proj_attractor; proj_attractor << closest_attractor(0,0), closest_attractor(1,0);
+
+    Eigen::Matrix<float, 1, 3> distances = get_distances_surface_bezier( proj_robot, proj_attractor, compute_bezier(res_bez));
+
+    std::cout << "Distance tot: " << distances(0,0) << std::endl;
+    std::cout << "Distance min: " << distances(0,1) << std::endl;
+    std::cout << "Direction: " << distances(0,2) << std::endl;
+
+    Eigen::Matrix<float, 1, 2> normal; normal << state_robot(0,0) - proj_robot(0,0), state_robot(1,0) - proj_robot(0,1);
+    normal = normal / std::sqrt(std::pow(normal(0,0),2) + std::pow(normal(0,1),2));
+
+    float max_gamma = get_max_gamma_distance_bezier( proj_robot, normal, compute_bezier(res_bez));
+
+    std::cout << "Gamma: " << max_gamma << std::endl;
 }
 void test_fill_holes()
 {
