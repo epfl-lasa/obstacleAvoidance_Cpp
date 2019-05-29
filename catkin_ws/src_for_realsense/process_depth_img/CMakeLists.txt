@@ -15,8 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cmake_modules
   tf
-  geometry_msgs
-  darknet_ros_msgs)
+  geometry_msgs)
 
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
@@ -85,7 +84,6 @@ INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 generate_messages(
   DEPENDENCIES
   std_msgs
-  darknet_ros_msgs
 )
 
 ################################################
@@ -122,7 +120,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES obstacle_avoidance
-   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs darknet_ros_msgs
+   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs
 #  DEPENDS system_lib
    CATKIN_DEPENDS message_runtime 
    DEPENDS EIGEN3
