@@ -4,7 +4,7 @@ float myRad = 0.1;
 const float size_cell = 1.0;
 const float margin = 0.25;
 
-bool logging_enabled = false;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
+bool logging_enabled = true;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
 Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 float current_obstacle = 1;
 
@@ -780,13 +780,13 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
         mycount += 1;
     }
 
-    std::cout << " PASS 1" << std::endl;
+    //std::cout << " PASS 1" << std::endl;
 
     // TODO: Only do fillgrid for the square that include all obstacles partly inside the limit
     // Set limits inside fillGrid for the flood
     // IMPLEMENTATION BELOW
-    Eigen::MatrixXi col_sum = output.colwise().sum();
-    Eigen::MatrixXi row_sum = output.rowwise().sum();
+    Eigen::MatrixXi col_sum = output.colwise().maxCoeff();
+    Eigen::MatrixXi row_sum = output.rowwise().maxCoeff();
 
     //std::cout << "Cols: " << col_sum << std::endl;
     //std::cout << "Rows: " << row_sum.transpose() << std::endl;
@@ -796,49 +796,86 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     int i_row_min = row_sum.cols();
     int i_row_max = 0;
 
-    // Get the index of the first column with a non-zero element
+    /*// Get the index of the first column with a non-zero element
     int k = 0;
-    while (((k+1)<col_sum.cols()) && (col_sum(0,k+1)==0)) {k++;}
+    while (((k+1)<col_sum.cols()) && (col_sum(0,k+1)<=0)) {k++;}
     if ((k+1)!=col_sum.cols()){k++;}
     i_col_min = k;
 
     // Get the index of the last column with a non-zero element
     k = col_sum.cols()-1;
-    while (((k-1)>=0) && (col_sum(0,k-1)==0)) {k--;}
+    while (((k-1)>=0) && (col_sum(0,k-1)<=0)) {k--;}
     if ((k-1)>=0){k--;}
     i_col_max = k;
 
     // Get the index of the first row with a non-zero element
     k = 0;
-    while (((k+1)<row_sum.rows()) && (row_sum(k+1,0)==0)) {k++;}
+    while (((k+1)<row_sum.rows()) && (row_sum(k+1,0)<=0)) {k++;}
     if ((k+1)<row_sum.rows()){k++;}
     i_row_min = k;
 
     // Get the index of the last row with a non-zero element
     k = row_sum.rows()-1;
-    while (((k-1)>=0) && (row_sum(k-1,0)==0)) {k--;}
+    while (((k-1)>=0) && (row_sum(k-1,0)<=0)) {k--;}
     if ((k-1)>=0){k--;}
+    i_row_max = k;*/
+
+    // Get the index of the first column with a non-zero element
+    int k = 0;
+    while ((col_sum(0,k)<=0) && ((k+1)<col_sum.cols())) {k++;}
+    i_col_min = k;
+
+    // Get the index of the last column with a non-zero element
+    k = col_sum.cols()-1;
+    while (((k-1)>=0) && (col_sum(0,k)<=0)) {k--;}
+    i_col_max = k;
+
+    // Get the index of the first row with a non-zero element
+    k = 0;
+    while (((k+1)<row_sum.rows()) && (row_sum(k+1,0)<=0)) {k++;}
+    i_row_min = k;
+
+    // Get the index of the last row with a non-zero element
+    k = row_sum.rows()-1;
+    while (((k-1)>=0) && (row_sum(k-1,0)<=0)) {k--;}
     i_row_max = k;
 
-    std::cout << " PASS 1.5" << std::endl;
+    //std::cout << " PASS 1.5" << std::endl;
 
     // TODO: Sum can be 0 if there is just the right number of unknown cells (-1) to nullify the occupied cells (100)
 
     //std::cout << row_sum << std::endl;
 
-    std::cout << output.rows() << " " << output.cols() << std::endl;
-    std::cout << i_row_min << " | " << i_row_max << " | " << i_col_min << " | " << i_col_max << std::endl;
+    //std::cout << output.rows() << " " << output.cols() << std::endl;
+    //std::cout << i_row_min << " | " << i_row_max << " | " << i_col_min << " | " << i_col_max << std::endl;
 
-    Grid toBeFilled = output.block(i_row_min, i_col_min, (i_row_max-i_row_min)+1, (i_col_max-i_col_min)+1);
+    //Grid toBeFilled = output.block(i_row_min, i_col_min, (i_row_max-i_row_min)+1, (i_col_max-i_col_min)+1);
+    Grid toBeFilled = output.block(i_row_min-2, i_col_min-2, (i_row_max-i_row_min)+5, (i_col_max-i_col_min)+5);
     PointFill origin_toBeFilled;
-    origin_toBeFilled.x = static_cast<int>(origin.x-i_row_min);
-    origin_toBeFilled.y = static_cast<int>(origin.y-i_col_min);
-    std::cout << " PASS 2" << std::endl;
+    origin_toBeFilled.x = static_cast<int>(origin.x-i_row_min+2);
+    origin_toBeFilled.y = static_cast<int>(origin.y-i_col_min+2);
 
+    if (origin_toBeFilled.x<0)
+        {origin_toBeFilled.x=0;}
+    else if (origin_toBeFilled.x > (toBeFilled.rows()-1))
+        {origin_toBeFilled.x=toBeFilled.rows()-1;}
+
+    if (origin_toBeFilled.y<0)
+        {origin_toBeFilled.y=0;}
+    else if (origin_toBeFilled.y > (toBeFilled.cols()-1))
+        {origin_toBeFilled.y=toBeFilled.cols()-1;}
+
+    toBeFilled(origin_toBeFilled.x,origin_toBeFilled.y) = 3;
+    std::cout << origin.x-(i_row_min-2) << " & " << origin.y-(i_col_min-2) << std::endl;
+    //std::cout << " PASS 2" << std::endl;
+
+    //std::cout << "Before fillGrid: " << std::endl << toBeFilled << std::endl;
     fillGrid(origin_toBeFilled, toBeFilled); // function that performs the flood on the area of interest
-    output.block(i_row_min, i_col_min, (i_row_max-i_row_min)+1, (i_col_max-i_col_min)+1) = toBeFilled;
+    //std::cout << "After fillGrid: " << std::endl << toBeFilled << std::endl;
+    output.block(i_row_min-2, i_col_min-2, (i_row_max-i_row_min)+5, (i_col_max-i_col_min)+5) = toBeFilled;
 
-    std::cout << " PASS 3" << std::endl;
+    //std::cout << " PASS 3" << std::endl;
+
     //std::cout << "Before fillGrid: " << std::endl << occupancy_res << std::endl;
 
     //fillGrid(origin, output); // function that performs the flood
@@ -2414,7 +2451,6 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     // Get the maximum gamma distance in the initial space for the attractor
     float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
 
-
     // Get the position of the robot in the circle space
     Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
     float gamma_circle_frame = point_circle_space(0,0);
@@ -2604,6 +2640,7 @@ Eigen::Matrix<float, 6, 1> gamma_normal_projection(Eigen::Matrix<float,1,2> cons
 
     output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + euclidian_distance^2
     // TODO: Call a general function that compute the gamma function
+
 
     //std::cout << "Gamma: " << output(0,0) << std::endl;
     return output;

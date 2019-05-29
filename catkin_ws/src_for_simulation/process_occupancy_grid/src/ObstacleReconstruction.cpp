@@ -4,7 +4,7 @@ float myRad = 0.1;
 const float size_cell = 1.0;
 const float margin = 0.25;
 
-bool logging_enabled = true;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
+bool logging_enabled = false;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
 Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 float current_obstacle = 1;
 
@@ -869,10 +869,10 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     std::cout << origin.x-(i_row_min-2) << " & " << origin.y-(i_col_min-2) << std::endl;
     //std::cout << " PASS 2" << std::endl;
 
-    /*std::cout << "Before fillGrid: " << std::endl << toBeFilled << std::endl;
+    //std::cout << "Before fillGrid: " << std::endl << toBeFilled << std::endl;
     fillGrid(origin_toBeFilled, toBeFilled); // function that performs the flood on the area of interest
-    std::cout << "After fillGrid: " << std::endl << toBeFilled << std::endl;
-    output.block(i_row_min-2, i_col_min-2, (i_row_max-i_row_min)+5, (i_col_max-i_col_min)+5) = toBeFilled;*/
+    //std::cout << "After fillGrid: " << std::endl << toBeFilled << std::endl;
+    output.block(i_row_min-2, i_col_min-2, (i_row_max-i_row_min)+5, (i_col_max-i_col_min)+5) = toBeFilled;
 
     //std::cout << " PASS 3" << std::endl;
 

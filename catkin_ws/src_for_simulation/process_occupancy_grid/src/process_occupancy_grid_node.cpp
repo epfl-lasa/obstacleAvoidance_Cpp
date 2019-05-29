@@ -20,12 +20,19 @@
 #include <eigen3/Eigen/Core>
 #include "ObstacleReconstruction.h"
 #include "ObstacleAvoidance.h"
+#include "BezierInterpolation.h"
 
 #include <fstream>  // To write data into files
+
+// Packages to run time related functions
+#include <iostream>
+#include <chrono>
+#include <ctime>
 
 typedef Eigen::Matrix<int8_t, Eigen::Dynamic, Eigen::Dynamic> MatrixXi8; // Dynamic Eigen matrix with type int8_t since OccupancyGrid contains int8_t values
 typedef Eigen::Matrix<int8_t, 1, Eigen::Dynamic> MatrixXi8_layer;
 typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> myMap;
+
 
 class SubscribeAndPublish
 {
@@ -47,6 +54,9 @@ public:
     //Another topic you want to subscribe (attractor control with keyboard)
     sub_key = n_.subscribe("/cmd_key", 2, &SubscribeAndPublish::callback_for_key, this);
 
+    //Another topic you want to subscribe (map topic to avoid service call)
+    sub_map = n_.subscribe("/map", 2, &SubscribeAndPublish::callback_for_map, this);
+
     // Client of dynamic_map service of gmapping (to get the occupancy grid)
     client_map_ = n_.serviceClient<nav_msgs::GetMap>("dynamic_map");
 
@@ -65,6 +75,8 @@ public:
     // Time start of node
     time_start = ros::WallTime::now().toSec();
 
+    //p0 = std::chrono::high_resolution_clock::now();
+
     extern bool logging_enabled;
     if (logging_enabled)
     {
@@ -72,6 +84,11 @@ public:
         mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
     }
 
+    if (true)
+    {
+        std::cout << "Opening timing file" << std::endl;
+        my_timing.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+    }
 
   }
 
@@ -83,16 +100,24 @@ public:
          std::cout << "Closing log file" << std::endl;
          mylog.close();
      }
+     if (true)
+     {
+         my_timing.close();
+     }
   }
 
   void callback(const geometry_msgs::Twist& input) // callback is triggered by /test topic
   {
+
+     auto t_start = std::chrono::high_resolution_clock::now();
+
+
     ////////////////
     // PARAMETERS //
     ////////////////
 
     // Size of gmapping cells (the one you use for delta in rosrun gmapping slam_gmapping scan:=/scan _delta:=0.3 _map_update_interval:=1.0)
-    float size_cell = 0.3;
+    float size_cell = 0.2;
 
     // Position of the attractor compared to the initial position of the robot (in meters)
     // Consider that the robot starts at position (0,0)
@@ -101,8 +126,8 @@ public:
     //float position_goal_world_frame_y = -11;//-2.56;//-7.3; //5   ; // 0;
 
     int max_num_attractor = 4;
-    float position_goal_world_frame_x =  9;
-    float position_goal_world_frame_y =  0;
+    float position_goal_world_frame_x =  10;
+    float position_goal_world_frame_y =  3;
     /*switch (num_attractor)
     {
      case 0:
@@ -139,10 +164,12 @@ public:
     extern bool logging_enabled;
     extern Eigen::MatrixXf log_matrix;
 
+    auto t_parameters = std::chrono::high_resolution_clock::now();
     //////////////////////////////////
     // RETRIEVING MAP FROM GMAPPING //
     //////////////////////////////////
 
+    /* MAP IS NOW RECEIVED WITH CALLBACK_FOR_MAP
     // Call gmapping service to get the occupancy grid
     nav_msgs::GetMap srv_map;
     if (client_map_.call(srv_map))
@@ -157,6 +184,7 @@ public:
     // Retrieving OccupancyGrid data that has been received
     std::vector<int8_t> test_vector = (srv_map.response.map.data); // get map into a std container
 
+
     // Occupancy grid is now stored in the vector (1 dimension) with type int8_t
     // Convert std container to type int
     std::vector<int> int_vector(test_vector.begin(), test_vector.end());
@@ -170,14 +198,33 @@ public:
     float resolution = srv_map.response.map.info.resolution;
     float x_pose = srv_map.response.map.info.origin.position.x;
     float y_pose = srv_map.response.map.info.origin.position.y;
-    // ROS_INFO("Map origin: %f %f", x_pose, y_pose);
+    // ROS_INFO("Map origin: %f %f", x_pose, y_pose);*/
 
     // NO NEED SINCE THE MAP IS USED AS THE REFERENCE FRAME
     /*tfScalar roll, pitch, yaw;
     tf::Matrix3x3 mat(srv_map.response.map.info.origin.orientation);
     mat.getRPY(roll, pitch, yaw);
     float phi_pose = yaw;*/
+    //////
 
+    // Retrieving OccupancyGrid data that has been received
+    std::vector<int8_t> test_vector = map_gmapping.data; // get map into a std container
+
+    // Occupancy grid is now stored in the vector (1 dimension) with type int8_t
+    // Convert std container to type int
+    std::vector<int> int_vector(test_vector.begin(), test_vector.end());
+
+    // Get std container into an Eigen matrix with the right width and height
+    Eigen::Map<Eigen::MatrixXi> eig_test( int_vector.data(), map_gmapping.info.height, map_gmapping.info.width);
+
+    // The occupancy grid has been reshaped to be able to use C++ algorithms with it
+
+    // Retrieving Resolution and Pose of the map in the world frame
+    float resolution = map_gmapping.info.resolution;
+    float x_pose = map_gmapping.info.origin.position.x;
+    float y_pose = map_gmapping.info.origin.position.y;
+
+    auto t_retrieve_map = std::chrono::high_resolution_clock::now();
     //////////////////////////////////////
     // PROCESSING POSITION OF THE ROBOT //
     //////////////////////////////////////
@@ -205,13 +252,14 @@ public:
     ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
 
+    auto t_process_robot = std::chrono::high_resolution_clock::now();
     //////////////////////////////////////////
     // PROCESSING POSITION OF THE ATTRACTOR //
     //////////////////////////////////////////
 
     // Get the (x,y) coordinates in the world frame of the cell (0,0)
-    float start_cell_x = (-1 * std::round(srv_map.response.map.info.origin.position.x / size_cell));
-    float start_cell_y = (-1 * std::round(srv_map.response.map.info.origin.position.y / size_cell));
+    float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
+    float start_cell_y = (-1 * std::round(map_gmapping.info.origin.position.y / size_cell));
     ROS_INFO("Start cell | %f %f", start_cell_x, start_cell_y);
 
     // Convert the position of the attractor into the occupancy map frame
@@ -260,7 +308,7 @@ public:
     }
 
     geometry_msgs::PointStamped pt_attrac;
-    pt_attrac.header = srv_map.response.map.header;
+    pt_attrac.header = map_gmapping.header;
     pt_attrac.point.x = (state_attractor(0,0) + (x_pose / size_cell))*size_cell;
     pt_attrac.point.y = (state_attractor(1,0) + (y_pose / size_cell))*size_cell;
     pt_attrac.point.z = 0.05;
@@ -277,6 +325,7 @@ public:
 	num_attractor = 0;
     }
 
+    auto t_process_attractor = std::chrono::high_resolution_clock::now();
     /////////////////////////////////////
     // ADDING PEOPLE TO OCCUPANCY GRID //
     /////////////////////////////////////
@@ -305,11 +354,12 @@ public:
 
     if (false) // enable to display a part of the occupancy map centered on the robot in the console
     {
-	int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
+        int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
         int corner_square_y = static_cast<int>(std::floor((transform_.getOrigin().getY() - y_pose)/size_cell)-25);
-	std::cout << eig_people.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
+        std::cout << eig_people.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
     }
 
+    auto t_adding_people = std::chrono::high_resolution_clock::now();
     ///////////////////////////////
     // PROCESSING OCCUPANCY GRID //
     ///////////////////////////////
@@ -317,11 +367,13 @@ public:
     // Expand obstacles to get a security margin
     Eigen::MatrixXi eig_expanded = expand_occupancy_grid( eig_people, n_expansion, state_robot, limit_in_cells, size_cell);
 
-    if (false) // enable to display a part of the occupancy map centered on the robot in the console
+    if (true) // enable to display a part of the occupancy map centered on the robot in the console
     {
-	int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
+        eig_expanded(state_robot(0,0),state_robot(1,0)) = -2;
+        eig_expanded(state_attractor(0,0),state_attractor(1,0)) = -2;
+        int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
         int corner_square_y = static_cast<int>(std::floor((transform_.getOrigin().getY() - y_pose)/size_cell)-25);
-	std::cout << eig_expanded.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
+        std::cout << eig_expanded.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
     }
 
     if (false) // enable to save the expanded occupancy grid to "expanded_mapo.txt"
@@ -345,7 +397,7 @@ public:
 
 
 
-
+    auto t_process_grid = std::chrono::high_resolution_clock::now();
     /////////////////////////
     // DETECTING OBSTACLES //
     /////////////////////////
@@ -437,7 +489,7 @@ public:
     }
 
 
-
+    auto t_detect_obs = std::chrono::high_resolution_clock::now();
     ///////////////////////////////////
     // COMPUTE NEXT VELOCITY COMMAND //
     ///////////////////////////////////
@@ -463,9 +515,10 @@ public:
     State next_eps = next_step_special( state_robot, state_attractor, storage[closest_i]); */
 
     // Compute velocity command based on the detected obstacles (new version, all obstacles within limit range)
-    State next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    State next_eps = test_next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     ROS_INFO("VelCmd in map frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 
+    auto t_compute_vel = std::chrono::high_resolution_clock::now();
     ///////////////////////////////
     // SAVING data_obstacles.txt //
     ///////////////////////////////
@@ -671,9 +724,42 @@ public:
             ROS_ERROR("Cannot tramsform velocity vector from map to base_link");
     }
 
+    auto t_send_vel = std::chrono::high_resolution_clock::now();
     //////////////////////////
     // END OF MAIN CALLBACK //
     //////////////////////////
+
+     float timestamp_timing = ros::Time::now().toSec();
+
+     std::chrono::duration<double> diff = t_parameters - t_start;
+     std::cout << "T parameters:        " << diff.count() << std::endl;
+     my_timing << 0 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_retrieve_map - t_parameters;
+     std::cout << "T retrieve map:      " << diff.count() << std::endl;
+     my_timing << 1 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_process_robot - t_retrieve_map;
+     std::cout << "T process robot:     " << diff.count() << std::endl;
+     my_timing << 2 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_process_attractor - t_process_robot;
+     std::cout << "T process attractor: " << diff.count() << std::endl;
+     my_timing << 3 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_adding_people - t_process_attractor;
+     std::cout << "T adding people:     " << diff.count() << std::endl;
+     my_timing << 4 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_process_grid - t_adding_people;
+     std::cout << "T process grid:      " << diff.count() << std::endl;
+     my_timing << 5 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_detect_obs - t_process_grid;
+     std::cout << "T detect obstacles:  " << diff.count() << std::endl;
+     my_timing << 6 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_compute_vel - t_detect_obs;
+     std::cout << "T compute cmd_vel:   " << diff.count() << std::endl;
+     my_timing << 7 << "," << timestamp_timing << "," << diff.count() << "\n";
+     diff = t_send_vel - t_compute_vel;
+     std::cout << "T send cmd_vel:      " << diff.count() << std::endl;
+     my_timing << 8 << "," << timestamp_timing << "," << diff.count() << "\n";
+
+
   }
 
 void callback_for_people(const geometry_msgs::PoseArray& people) // Callback triggered by the /pose_people_map topic
@@ -737,6 +823,11 @@ void callback_for_key(const geometry_msgs::Twist& input) // Callback triggered b
 	key_command = input.linear.x;
 }
 
+void callback_for_map(const nav_msgs::OccupancyGrid& input) // Callback triggered by /map topic
+{
+	map_gmapping = input;
+}
+
 private:
   ros::NodeHandle n_;
   ros::Publisher pub_;  // To publish the velocity command
@@ -744,6 +835,7 @@ private:
   ros::Subscriber sub_; // To listen to the trigger topic
   ros::Subscriber sub_people; // To listen to the pose_people topic
   ros::Subscriber sub_key;    // To listen to the cmd_key topic
+  ros::Subscriber sub_map;    // To listen to the map topic
   tf::TransformListener listener_; // To listen to transforms
   tf::StampedTransform transform_; // Transform from map to base_link
   ros::ServiceClient client_map_;  // To call dynamic_map service of gmapping
@@ -754,8 +846,13 @@ private:
   int ID_frame; // for stream recording
   float time_start; // to know when the node has been launched
   std::ofstream mylog;
+  std::ofstream my_timing;
+
+  nav_msgs::OccupancyGrid map_gmapping;
 
 };//End of class SubscribeAndPublish
+
+
 
 int main(int argc, char **argv)
 {
