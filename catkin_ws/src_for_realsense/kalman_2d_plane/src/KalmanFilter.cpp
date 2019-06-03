@@ -68,4 +68,15 @@ void KalmanFilter::correct ( VectorXf Z ) {
   P0 = P;
 }
 
+void KalmanFilter::correct (void) {
+  //K = ( P * H.transpose() ) * ( H * P * H.transpose() + R).inverse();
+
+  //X = X + K*(Z - H * X);
+
+  //P = (I - K * H) * P;
+
+  X0 = X;
+  P0 = P;
+}
+
 

@@ -1,6 +1,6 @@
 
 //#include "/usr/local/Cellar/eigen/3.3.1/include/eigen3/Eigen/Dense" //Include Eigen Library
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 using namespace Eigen;
 
 /*
@@ -56,6 +56,7 @@ class KalmanFilter {
 		* _m: control vector dimension (if there is not input, set to zero)
 		*/
 		KalmanFilter(int _n,  int _m);
+                KalmanFilter();
 
 		/* Set Fixed Matrix (NO INPUT) */
 		void setFixed ( MatrixXf _A, MatrixXf _H, MatrixXf _Q, MatrixXf _R );

@@ -156,7 +156,6 @@ public:
 
         for (int i=0; i < tracked_people.size(); i++)
         {
-
             (tracked_people[i]).has_been_updated = false;
             (tracked_people[i]).age += 1;
 	    ROS_INFO("Filter %i is now %i steps old", i, (tracked_people[i]).age);
@@ -266,7 +265,7 @@ public:
 
         // Correction Step
         ((tracked_people[index_match[i]]).filter_person).correct( Z );
-        ((tracked_people[index_match[i]]).has_been_updated = true;
+         (tracked_people[index_match[i]]).has_been_updated = true;
         x_pred = (((tracked_people[index_match[i]]).filter_person).X)[0];
         y_pred = (((tracked_people[index_match[i]]).filter_person).X)[1];
 

@@ -31,6 +31,7 @@
 using namespace message_filters;
 
 bool flag_write = false;
+bool flag_write_in_box = false;
 std::ofstream myfile;
 int counter_frame_accuracy = 0;
 
@@ -152,7 +153,7 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 				memcpy(&Y_tempo, &pc2->data[arrayPosoY], sizeof(float));
 				memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
 				
-				myfile << i << "," << j << "," << Z_tempo << "\n";	
+				myfile << i << "," << j << "," << X_tempo << "," << Y_tempo << "," << Z_tempo << "\n";	
 			}
 		}
 		myfile.close();		
@@ -338,7 +339,44 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 			}
 		
 		} while (flag_run);*/
+		
+
+
 	}
+	if (flag_write_in_box)
+	{
+		flag_write_in_box = false;
+                myfile.open("data_process_depth_img_all.txt");
+
+
+		for (int i= 0 ; i < 640; i++)
+		{
+			for (int j= 0 ; j < 480; j++)
+			{
+				
+				// Extract depth from pixel (i,j)				
+				float Z_tempo = 0;
+				int arrayPoso = (j) * pc2->row_step + (i) * pc2->point_step;
+				int arrayPosoZ = arrayPoso + pc2->fields[2].offset;
+				memcpy(&Z_tempo, &pc2->data[arrayPosoZ], sizeof(float));
+				
+					// Read X and Y
+					float X_tempo = 0;			
+					float Y_tempo = 0;
+					int arrayPosoX = arrayPoso + pc2->fields[0].offset;
+					int arrayPosoY = arrayPoso + pc2->fields[1].offset;
+					memcpy(&X_tempo, &pc2->data[arrayPosoX], sizeof(float));
+					memcpy(&Y_tempo, &pc2->data[arrayPosoY], sizeof(float));
+
+					myfile << i << "," << j << "," << X_tempo << "," << Y_tempo << "," << Z_tempo << "\n";	
+				
+				
+			}
+		}
+
+                myfile.close();
+	}
+
 
 
 	if (false) // Mean of the depth over 9 points
@@ -394,6 +432,10 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
         pose_person.position.y = Y_pos;
         pose_person.position.z = Z_pos;
         people.poses.push_back(pose_person);
+
+	/*myfile.open("./Data_Reconstruct_Trajectory/data_reconstrutct_trajectory.txt", std::ios_base::app | std::ios_base::out);
+	myfile << X_pos << "," << Y_pos << "," << Z_pos << "\n";
+	myfile.close();*/
     }
     // TODO: Fill a PoseArray with all detected people and broadcast it
 

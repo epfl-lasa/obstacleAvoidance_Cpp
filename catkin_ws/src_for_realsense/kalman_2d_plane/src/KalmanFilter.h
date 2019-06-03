@@ -76,6 +76,10 @@ class KalmanFilter {
 		/* Do correction */
 		void correct ( VectorXf Z );
 
+                /* Do correction (NO MEASURE)*/
+                void correct (void);
+
+
 };
 
 

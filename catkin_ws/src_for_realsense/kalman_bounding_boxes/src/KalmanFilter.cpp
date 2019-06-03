@@ -2,6 +2,12 @@
 #include "KalmanFilter.h"
 using namespace std;
 
+/* Empty constructor: */
+KalmanFilter::KalmanFilter() {
+	n = 0;
+	m = 0;
+}
+
 /* Constructor: */
 KalmanFilter::KalmanFilter(int _n,  int _m) {
 	n = _n;

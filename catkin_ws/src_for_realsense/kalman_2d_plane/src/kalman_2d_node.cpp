@@ -39,7 +39,7 @@ void init_parameters_kalman()
     sigma_vx = 0.3;
     sigma_vy = 0.3;
     sigma_0 = 0.5;
-    h = 0.1;
+    h = 0.125f;
 
     /* Set Matrix and Vector for Kalman Filter: */
 
@@ -55,23 +55,22 @@ void init_parameters_kalman()
     0, 0, 0, 1;
 
 
-    Q << h*sigma_vx,          0,        0,        0,
-                  0, h*sigma_vy,        0,        0,
-                  0,          0, sigma_vx,        0,
-                  0,          0,        0, sigma_vy;
+        Q << std::pow(h*sigma_vx,2),          0,        0,        0,
+                                  0, std::pow(h*sigma_vy,2),        0,        0,
+                                  0,          0, std::pow(sigma_vx,2),        0,
+                                  0,          0,        0, std::pow(sigma_vy,2);
 
+        R << std::pow(sigma_1,2),       0,         0,         0,
+                               0, std::pow(sigma_2,2),        0,         0,
+                               0,       0, std::pow(sigma_1/h,2),        0,
+                               0,       0,         0,  std::pow(sigma_2/h,2);
 
-    R << sigma_1,       0,         0,         0,
-               0, sigma_2,         0,         0,
-               0,       0, sigma_1/h,         0,
-               0,       0,         0, sigma_2/h;
+        X0 << 0, 0, 0, 0; // default position
 
-    X0 << 100,150,0,0;
-
-    P0 << 0, 0,       0,       0,
-          0, 0,       0,       0,
-          0, 0, sigma_0,       0,
-          0, 0,       0, sigma_0;
+        P0 << 0, 0,       0,       0,
+              0, 0,       0,       0,
+              0, 0, std::pow(sigma_0,2),       0,
+              0, 0,       0, std::pow(sigma_0,2);
 
 }
 
@@ -82,6 +81,7 @@ struct tracked_person
     float info[2]; // [x, y] position of the person in the 2D horizontal plane
     KalmanFilter filter_person;
     float x_prev, y_prev;
+    bool has_been_updated = false;
 
     tracked_person(float x, float y);
 };
@@ -156,6 +156,7 @@ public:
 
         for (int i=0; i < tracked_people.size(); i++)
         {
+            (tracked_people[i]).has_been_updated = false;
             (tracked_people[i]).age += 1;
             if (verbose) {ROS_INFO("Filter %i is now %i steps old", i, (tracked_people[i]).age);}
             if (((tracked_people[i]).age) > limit_age)
@@ -265,6 +266,7 @@ public:
 
                 // Correction Step
                 ((tracked_people[index_match[i]]).filter_person).correct( Z );
+                 (tracked_people[index_match[i]]).has_been_updated = true;
                 x_pred = (((tracked_people[index_match[i]]).filter_person).X)[0];
                 y_pred = (((tracked_people[index_match[i]]).filter_person).X)[1];
 
@@ -273,6 +275,15 @@ public:
                 (only_trackers[index_match[i]]).position.y = (y_pred);
             }
 
+
+	for (int i=0; i < tracked_people.size(); i++)
+    {
+        if ((tracked_people[i]).has_been_updated == false)
+        {
+            ((tracked_people[i]).filter_person).correct(); // no measurement
+            (tracked_people[i]).has_been_updated = true;
+        }
+    }
 
         }
         else

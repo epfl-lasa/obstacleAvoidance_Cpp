@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_gmapping_*.txt")
+names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_gmapping_*.txt")
 names.sort()
 data_gmapping = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_*.txt")
+names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_*.txt")
 names.sort()
 data_functions = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
