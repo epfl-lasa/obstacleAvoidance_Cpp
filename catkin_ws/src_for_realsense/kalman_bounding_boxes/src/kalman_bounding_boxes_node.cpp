@@ -36,7 +36,7 @@ void init_parameters_kalman()
 	sigma_vx =  25;
 	sigma_vy =  25;
 	sigma_0 = 50;
-	h = 0.1;
+	h = 0.125f;
 
         /* Set Matrix and Vector for Kalman Filter: */
 
@@ -52,23 +52,22 @@ void init_parameters_kalman()
              0, 0, 0, 1;
 
 
-        Q << h*sigma_vx,          0,        0,        0,
-             0, h*sigma_vy,        0,        0,
-             0,          0, sigma_vx,        0,
-             0,          0,        0, sigma_vy;
+        Q << std::pow(h*sigma_vx,2),          0,        0,        0,
+                                  0, std::pow(h*sigma_vy,2),        0,        0,
+                                  0,          0, std::pow(sigma_vx,2),        0,
+                                  0,          0,        0, std::pow(sigma_vy,2);
 
+        R << std::pow(sigma_1,2),       0,         0,         0,
+                               0, std::pow(sigma_2,2),        0,         0,
+                               0,       0, std::pow(sigma_1/h,2),        0,
+                               0,       0,         0,  std::pow(sigma_2/h,2);
 
-        R << sigma_1,       0,         0,         0,
-             0, sigma_2,         0,         0,
-             0,       0, sigma_1/h,         0,
-             0,       0,         0, sigma_2/h;
-
-        X0 << 100,150,0,0;
+        X0 << 240,320,0,0; // middle of frame for 640 x 480 resolution
 
         P0 << 0, 0,       0,       0,
               0, 0,       0,       0,
-              0, 0, sigma_0,       0,
-              0, 0,       0, sigma_0;
+              0, 0, std::pow(sigma_0,2),       0,
+              0, 0,       0, std::pow(sigma_0,2);
 
 }
 
@@ -79,6 +78,7 @@ struct tracked_person
    float info[4]; // [x, y, height, width] vector of the bounding box
    KalmanFilter filter_person;
    float x_prev, y_prev;
+   bool has_been_updated = false;
 
    tracked_person(float x, float y, float h, float w);
 };
@@ -156,6 +156,8 @@ public:
 
         for (int i=0; i < tracked_people.size(); i++)
         {
+
+            (tracked_people[i]).has_been_updated = false;
             (tracked_people[i]).age += 1;
 	    ROS_INFO("Filter %i is now %i steps old", i, (tracked_people[i]).age);
             if (((tracked_people[i]).age) > limit_age)
@@ -250,30 +252,39 @@ public:
 		(tracked_people[index_match[i]]).age = 0;
 	    }
 
-	    // Measurement Step
-	    x_box = static_cast<float>((only_people[i]).roi.x_offset);
-            y_box = static_cast<float>((only_people[i]).roi.y_offset);
-            vx_box = (x_box - (tracked_people[index_match[i]]).x_prev)/h * 0.1;
-            vy_box = (y_box - (tracked_people[index_match[i]]).y_prev)/h * 0.1;
-	    Z << x_box, y_box, vx_box, vy_box;
-            (tracked_people[index_match[i]]).x_prev = x_box;
-            (tracked_people[index_match[i]]).y_prev = y_box;
+        // Measurement Step
+        x_box = static_cast<float>((only_people[i]).roi.x_offset);
+        y_box = static_cast<float>((only_people[i]).roi.y_offset);
+        vx_box = (x_box - (tracked_people[index_match[i]]).x_prev)/h;
+        vy_box = (y_box - (tracked_people[index_match[i]]).y_prev)/h;
+        Z << x_box, y_box, vx_box, vy_box;
+        (tracked_people[index_match[i]]).x_prev = x_box;
+        (tracked_people[index_match[i]]).y_prev = y_box;
 
-	    // Prediction Step
-            ((tracked_people[index_match[i]]).filter_person).predict();
+        // Prediction Step
+        ((tracked_people[index_match[i]]).filter_person).predict();
 
-	    // Correction Step
-            ((tracked_people[index_match[i]]).filter_person).correct( Z );
-            x_pred = (((tracked_people[index_match[i]]).filter_person).X)[0];
-            y_pred = (((tracked_people[index_match[i]]).filter_person).X)[1];
+        // Correction Step
+        ((tracked_people[index_match[i]]).filter_person).correct( Z );
+        ((tracked_people[index_match[i]]).has_been_updated = true;
+        x_pred = (((tracked_people[index_match[i]]).filter_person).X)[0];
+        y_pred = (((tracked_people[index_match[i]]).filter_person).X)[1];
 
-	    // Update output
-            (only_trackers[index_match[i]]).roi.x_offset = static_cast<int>(std::round(x_pred));
-            (only_trackers[index_match[i]]).roi.y_offset = static_cast<int>(std::round(y_pred));
-            (only_trackers[index_match[i]]).roi.height = (only_people[i]).roi.height;
-            (only_trackers[index_match[i]]).roi.width  = (only_people[i]).roi.width;
+        // Update output
+        (only_trackers[index_match[i]]).roi.x_offset = static_cast<int>(std::round(x_pred));
+        (only_trackers[index_match[i]]).roi.y_offset = static_cast<int>(std::round(y_pred));
+        (only_trackers[index_match[i]]).roi.height = (only_people[i]).roi.height;
+        (only_trackers[index_match[i]]).roi.width  = (only_people[i]).roi.width;
 	}
 
+	for (int i=0; i < tracked_people.size(); i++)
+    {
+        if ((tracked_people[i]).has_been_updated == false)
+        {
+            ((tracked_people[i]).filter_person).correct(); // no measurement
+            (tracked_people[i]).has_been_updated = true;
+        }
+    }
 
         }
         else

@@ -1,14 +1,14 @@
 
 //#include "/usr/local/Cellar/eigen/3.3.1/include/eigen3/Eigen/Dense" //Include Eigen Library
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 using namespace Eigen;
 
 /*
 *	Kalman Filter Class Definition.
-*	
+*
 *	by Fabio Carbone, 23/12/2016
 *   www.fabiocarbone.org
-*	
+*
 *	Matrix Dimension must be:
 *
 *	A: n x n
@@ -35,7 +35,7 @@ class KalmanFilter {
 
 		/* Fixed Matrix */
 		MatrixXf A; //System dynamics matrix
-		MatrixXf B; //Control matrix 
+		MatrixXf B; //Control matrix
 		MatrixXf H; //Mesaurement Adaptation matrix
 		MatrixXf Q; //Process Noise Covariance matrix
 		MatrixXf R; //Measurement Noise Covariance matrix
@@ -49,14 +49,13 @@ class KalmanFilter {
 		/* Inizial Value */
 		VectorXf X0; //Initial State vector
 		MatrixXf P0; //Initial State Covariance matrix
-		
-		/* 
-		* Constructor 
+
+		/*
+		* Constructor
 		* _n: state vector dimension
 		* _m: control vector dimension (if there is not input, set to zero)
 		*/
 		KalmanFilter(int _n,  int _m);
-                KalmanFilter();
 
 		/* Set Fixed Matrix (NO INPUT) */
 		void setFixed ( MatrixXf _A, MatrixXf _H, MatrixXf _Q, MatrixXf _R );
@@ -66,7 +65,7 @@ class KalmanFilter {
 
 		/* Set Initial Value */
 		void setInitial( VectorXf _X0, MatrixXf _P0 );
-		
+
 		/* Do prediction (NO INPUT) */
 		void predict ( void );
 
@@ -76,6 +75,8 @@ class KalmanFilter {
 		/* Do correction */
 		void correct ( VectorXf Z );
 
+		/* Do correction (NO MEASURE)*/
+		void correct (void);
 };
 
 

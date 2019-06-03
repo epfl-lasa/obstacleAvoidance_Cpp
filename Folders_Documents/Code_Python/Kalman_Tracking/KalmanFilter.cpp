@@ -34,7 +34,7 @@ void KalmanFilter::setInitial( VectorXf _X0, MatrixXf _P0 ){
 }
 
 /* Do prediction based of physical system (No external input)
-*/	 
+*/
 void KalmanFilter::predict(void){
   X = (A * X0);
   P = (A * P0 * A.transpose()) + Q;
@@ -42,21 +42,32 @@ void KalmanFilter::predict(void){
 
 /* Do prediction based of physical system (with external input)
 * U: Control vector
-*/	 
+*/
 void KalmanFilter::predict( VectorXf U ){
   X = (A * X0) + (B * U);
   P = (A * P0 * A.transpose()) + Q;
 }
 
-/* Correct the prediction, using mesaurement 
+/* Correct the prediction, using mesaurement
 *  Z: mesaure vector
 */
 void KalmanFilter::correct ( VectorXf Z ) {
   K = ( P * H.transpose() ) * ( H * P * H.transpose() + R).inverse();
 
   X = X + K*(Z - H * X);
-  
+
   P = (I - K * H) * P;
+
+  X0 = X;
+  P0 = P;
+}
+
+void KalmanFilter::correct (void) {
+  //K = ( P * H.transpose() ) * ( H * P * H.transpose() + R).inverse();
+
+  //X = X + K*(Z - H * X);
+
+  //P = (I - K * H) * P;
 
   X0 = X;
   P0 = P;

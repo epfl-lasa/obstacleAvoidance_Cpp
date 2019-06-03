@@ -62,10 +62,10 @@ int main(int argc, char const *argv[])
   /* Set the parameters (standard deviations) */
   float sigma_1 = 5;
   float sigma_2 = 5;
-  float sigma_vx =  25;
-  float sigma_vy =  25;
+  float sigma_vx =  5;
+  float sigma_vy =  5;
   float sigma_0 = 50;
-  float h = 0.1;
+  float h = 0.125f;
 
   /* Set Matrix and Vector for Kalman Filter: */
   const int n = 4;
@@ -79,20 +79,20 @@ int main(int argc, char const *argv[])
                          0, 0, 1, 0,
                          0, 0, 0, 1;
 
-  MatrixXf Q(n, n); Q << h*sigma_vx,          0,        0,        0,
-                                  0, h*sigma_vy,        0,        0,
-                                  0,          0, sigma_vx,        0,
-                                  0,          0,        0, sigma_vy;
+  MatrixXf Q(n, n); Q << std::pow(h*sigma_vx,2),          0,        0,        0,
+                                  0, std::pow(h*sigma_vy,2),        0,        0,
+                                  0,          0, std::pow(sigma_vx,2),        0,
+                                  0,          0,        0, std::pow(sigma_vy,2);
 
-  MatrixXf R(n, n); R << sigma_1,       0,         0,         0,
-                               0, sigma_2,         0,         0,
-                               0,       0, sigma_1/h,         0,
-                               0,       0,         0, sigma_2/h;
-  VectorXf X0(n); X0 << 100,150,0,0;
+  MatrixXf R(n, n); R << std::pow(sigma_1,2),       0,         0,         0,
+                                           0, std::pow(sigma_2,2),        0,         0,
+                                           0,       0, std::pow(sigma_1/h,2),        0,
+                                           0,       0,         0,  std::pow(sigma_2/h,2);
+  VectorXf X0(n); X0 << 100,100,0,0;
   MatrixXf P0(n, n); P0 << 0, 0,       0,       0,
                            0, 0,       0,       0,
-                           0, 0, sigma_0,       0,
-                           0, 0,       0, sigma_0;
+                           0, 0, std::pow(sigma_0,2),       0,
+                           0, 0,       0, std::pow(sigma_0,2);
 
   /* Create The Filter */
   KalmanFilter filter1(n, 0);
@@ -103,7 +103,7 @@ int main(int argc, char const *argv[])
 
   /* Create measure vector, and store measure value */
     VectorXf Z(4);
-    Eigen::MatrixXf measures(90,4);
+    Eigen::MatrixXf measures(64,4);
 
     std::ifstream infile("data_from_python.txt");
     float a, b, c, d;
@@ -123,6 +123,8 @@ int main(int argc, char const *argv[])
     my_predicted.open("Data_Kalman_Predicted.txt");
     //myfile << X0[0] << "," << X0[1] << "," << X0[2] << "," << X0[3] << "\n";
 
+    std::srand(42);
+
     /* This loop simulate the measure/prediction process */
     for (int i = 0; i < measures.rows(); ++i)
     {
@@ -132,10 +134,23 @@ int main(int argc, char const *argv[])
 
         Z = (measures.row(i)).transpose();
         //cout << "Z" << i << ": " << Z << endl;
-        filter1.correct( Z ); //Correction phase
 
+        int random_variable = std::rand();
+        if (true)//((random_variable%4) != 0)//((i<40)||((i>=43)&&(i<45))||(i>=48))
+        {
+            filter1.correct( Z ); //Correction phase
+            my_corrected << (filter1.X)[0] << "," << (filter1.X)[1] << "," << (filter1.X)[2] << "," << (filter1.X)[3] << "\n";
+        }
+        else
+        {
+            filter1.correct(); //Correction phase
+            my_corrected << (filter1.X)[0] << "," << (filter1.X)[1] << "," << (filter1.X)[2] << "," << (filter1.X)[3] << "\n";
+            cout << "Predicted: " << (filter1.X).transpose() << endl;
+        }
+
+        //filter1.correct( Z ); //Correction phase
         //cout << "X" << i << ": " << (filter1.X).transpose() << endl;
-        my_corrected << (filter1.X)[0] << "," << (filter1.X)[1] << "," << (filter1.X)[2] << "," << (filter1.X)[3] << "\n";
+        //my_corrected << (filter1.X)[0] << "," << (filter1.X)[1] << "," << (filter1.X)[2] << "," << (filter1.X)[3] << "\n";
 
     }
     my_corrected.close();
