@@ -2,6 +2,10 @@
 
 #include <eigen3/Eigen/LU>
 
+extern bool logging_enabled;
+extern Eigen::MatrixXf log_matrix;
+extern float current_obstacle;
+
 std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
 {
     /* XY is a matrix with the following format
@@ -762,9 +766,9 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
 State test_next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells)
 {   // compute the velocity command for a given position of the robot/attractor/obstacles
 
-    if (false)
+    if (logging_enabled)
     {
-        //current_obstacle = 1; // Init obstacle counter
+        current_obstacle = 1; // Init obstacle counter
 
 
         //log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add a new row at the end
@@ -788,6 +792,13 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
             log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 1, (borders[i]).rows(), 1) = 2 * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of feature
             log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 2, (borders[i]).rows(), 5) = borders[i]; // Add border information
         }*/
+        if (logging_enabled)
+        {
+            log_matrix.conservativeResize(log_matrix.rows()+(borders[i]).rows(), Eigen::NoChange); // Add rows at the end
+            log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 0, (borders[i]).rows(), 1) = current_obstacle * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of obstacle
+            log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 1, (borders[i]).rows(), 1) = 2 * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of feature
+            log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 2, (borders[i]).rows(), 5) = borders[i]; // Add border information
+        }
 
         Eigen::Matrix<float, 4, 1> output = test_next_step_special(state_robot, state_attractor, borders[i]); // compute velocity command for each obstacle
         mat_velocities(0,i) = output(0,0);
