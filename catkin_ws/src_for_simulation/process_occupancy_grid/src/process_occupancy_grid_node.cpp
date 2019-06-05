@@ -375,7 +375,7 @@ public:
 
     // Expand obstacles to get a security margin
     //Eigen::MatrixXi eig_expanded = expand_occupancy_grid( eig_people, n_expansion, state_robot, limit_in_cells, size_cell);
-    Eigen::MatrixXi eig_expanded_log = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
+    //Eigen::MatrixXi eig_expanded_log = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
 
     if (false) // enable to display a part of the occupancy map centered on the robot in the console
     {
@@ -543,6 +543,7 @@ public:
 
 	const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
     mylog << matrix.format(CSVFormat) << "\n";
+    log_matrix = Eigen::MatrixXf::Zero(1,7);
 	//mylog << matrix << "\n";
 
     }
@@ -898,6 +899,15 @@ void callback_for_map(const nav_msgs::OccupancyGrid& input) // Callback triggere
 
     // Expand obstacles to get a security margin
     eig_expanded = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
+
+    if (true) // enable to display a part of the occupancy map centered on the robot in the console
+    {
+        eig_expanded(state_robot(0,0),state_robot(1,0)) = -2;
+        //eig_expanded(state_attractor(0,0),state_attractor(1,0)) = -2;
+        int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
+        int corner_square_y = static_cast<int>(std::floor((transform_.getOrigin().getY() - y_pose)/size_cell)-25);
+        std::cout << eig_expanded.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
+    }
 
     auto t_process_grid = std::chrono::high_resolution_clock::now();
 

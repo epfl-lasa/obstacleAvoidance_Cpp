@@ -2,11 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 
-names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_gmapping_*.txt")
+names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_gmapping_*.txt")
 names.sort()
 data_gmapping = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_*.txt")
+names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_*.txt")
 names.sort()
 data_functions = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
@@ -39,11 +39,13 @@ plt.show()
 
 ## Average time of the loop
 
-timestamps = np.unique(data_functions[:,1])
+timestamps = np.unique(data_functions[data_functions[:,0]==0,1])
 data_functions_sum = np.zeros(len(timestamps))
 for i in range(len(timestamps)):
-    data = data_functions[data_functions[:,1]==timestamps[i]]
+    data = data_functions[(data_functions[:,1]==timestamps[i]) & (data_functions[:,0]!=5) & (data_functions[:,0]!=6)]
     data_functions_sum[i] = np.sum(data[:,2])
+    
+data_functions_sum[0] = data_functions_sum[1] # Fix problem for first value
 
 average = np.mean(data_functions_sum)    
 percentile95 = np.percentile(data_functions_sum,99)

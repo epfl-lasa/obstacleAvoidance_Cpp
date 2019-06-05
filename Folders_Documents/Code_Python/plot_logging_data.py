@@ -27,13 +27,13 @@ limit_in_cells  = int(math.ceil(limit_in_meters));
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558693376.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558701056.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558950016.txt")
+names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_*.txt")
 names.sort()
-data = np.loadtxt(open(names[0], "rb"), delimiter=",")
+data = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_1558950028.txt")
+names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_*.txt")
 names.sort()
-robot = np.loadtxt(open(names[0], "rb"), delimiter=",")
+robot = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
 
 timestamps = np.unique(data[:,0])
@@ -53,6 +53,21 @@ class UpdatablePatchCollection(mcollections.PatchCollection):
         return self._paths
         
 
+vel_cmd_data = robot[(robot[:,1]==6)]
+vel_robot_data = robot[(robot[:,1]==3)]
+
+fig_vel, (ax1_vel, ax2_vel) = plt.subplots(2)
+ax1_vel.plot(vel_cmd_data[:,0],vel_cmd_data[:,2], color="orangered")
+ax1_vel.plot(vel_robot_data[:,0],vel_robot_data[:,2], color="forestgreen")
+ax1_vel.set(xlabel='Time [s]', ylabel='Velocity along X [m/s]')
+ax1_vel.legend(["Velocity command", "Velocity of the robot"])
+ax2_vel.plot(vel_cmd_data[:,0],vel_cmd_data[:,3], color="orangered")
+ax2_vel.plot(vel_robot_data[:,0],vel_robot_data[:,3], color="forestgreen")
+ax2_vel.set(xlabel='Time [s]', ylabel='Velocity along Y [m/s]')   
+ax2_vel.legend(["Velocity command", "Velocity of the robot"])
+plt.show()
+
+colors = ['r','b','m','y','violet','orange','pink']*3
 # fig_circle =  plt.figure()
 # plt.subplot(211)
 # plt.plot(pos[0:3,1], pos[0:3,2], lw=2)
@@ -64,6 +79,7 @@ class UpdatablePatchCollection(mcollections.PatchCollection):
 # ax = plt.axis([-4,4,-4,4])
 # axes = plt.gca() 
 # axes.set_aspect("equal")
+
 
 circle_figs = []
 circle_axes = []
@@ -132,8 +148,11 @@ def update(val):
     data_feat6_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==6) & (data[:,1]==0)]
     
     # Update features from data_obstacles_XXX.txt
-    data_feat1 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==1) & (data[:,1]!=0)]
-    data_feat2 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==2) & (data[:,1]!=0)]
+    temp_sync = data[((data[:,2]==1) & (data[:,1]!=0)),0]
+    bool_sync = (data[((data[:,2]==1) & (data[:,1]!=0)),0])<=timestamps[cursor]
+    timestamp_sync = np.max(temp_sync[bool_sync])
+    data_feat1 = data[(data[:,0]==timestamp_sync) & (data[:,2]==1) & (data[:,1]!=0)]
+    data_feat2 = data[(data[:,0]==timestamp_sync) & (data[:,2]==2) & (data[:,1]!=0)]
     data_feat3 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==3) & (data[:,1]!=0)]
     data_feat4 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==4) & (data[:,1]!=0)]
     data_feat5 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==5) & (data[:,1]!=0)]
@@ -152,7 +171,7 @@ def update(val):
         
     # Update occupied cells (feature 1)
     for i in range(data_feat1.shape[0]):
-        occupied_cell = mpatches.Rectangle([data_feat1[i,3]-0.5,data_feat1[i,4]-0.5], 1, 1,zorder=1)
+        occupied_cell = mpatches.Rectangle([data_feat1[i,3]-0.5,data_feat1[i,4]-0.5], 1, 1,zorder=1, facecolor=colors[int(data_feat1[i,1])])
         axes.add_artist(occupied_cell)
 
     # Update boundary cells (feature 2)
@@ -327,7 +346,23 @@ def update(val):
     
         #fig_circle.canvas.draw_idle()
     sub_fig.canvas.draw_idle()
-        
+    
+    
+    # Draw a cursor on the plot with velocity along X and Y
+    lim_X = ax1_vel.get_xlim()
+    lim_Y = ax1_vel.get_ylim()
+    circle = mpatches.Ellipse([timestamps[cursor],robot_feat6[0,2]],(lim_X[1]-lim_X[0])/120, (lim_Y[1]-lim_Y[0])/40, facecolor="red", edgecolor="k", zorder=4)          
+    ax1_vel.artists = []
+    ax1_vel.add_artist(circle)
+    
+    lim_X = ax2_vel.get_xlim()
+    lim_Y = ax2_vel.get_ylim()
+    circle = mpatches.Ellipse([timestamps[cursor],robot_feat6[0,3]], (lim_X[1]-lim_X[0])/120, (lim_Y[1]-lim_Y[0])/40, facecolor="red", edgecolor="k", zorder=4)          
+    ax2_vel.artists = []
+    ax2_vel.add_artist(circle)
+    ax1_vel.get_aspect
+    fig_vel.canvas.draw_idle()
+    
     # Go back to main figure
     plt.figure(fig.number)
 
@@ -335,4 +370,8 @@ def update(val):
 samp.on_changed(update)
 
 plt.show()
+
+from matplotlib.widgets import Cursor
+import numpy as np
+import matplotlib.pyplot as plt
 

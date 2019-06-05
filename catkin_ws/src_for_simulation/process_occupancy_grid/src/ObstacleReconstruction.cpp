@@ -1738,10 +1738,10 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
     Border border_obstacle;
 
     int current_blob = 1; // used if logging_enabled
-    if (logging_enabled)
+    /*if (logging_enabled)
     {
         log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix initialization [ID obs, ID feature, 5 slots for data]
-    }
+    }*/
 
     for (int cursor_row=0; cursor_row < occupancy_grid.rows(); cursor_row++) // scan each row
     {
