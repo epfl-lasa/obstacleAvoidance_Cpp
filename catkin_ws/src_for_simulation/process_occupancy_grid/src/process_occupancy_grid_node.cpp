@@ -75,6 +75,12 @@ public:
     // Time start of node
     time_start = ros::WallTime::now().toSec();
 
+    // Flag to initialize the position of the attractor depending on the initial position of the Ridgeback in the map
+    // Because of odometry drift the Ridgeback never starts at the same position in the map.
+    init_attractor = true;
+    drift_odometry_x = 0.0;
+    drift_odometry_y = 0.0;
+ 
     state_robot << 0, 0, -42;
 
     ////////////////
@@ -98,13 +104,13 @@ public:
     if (logging_enabled)
     {
         std::cout << "Opening log file" << std::endl;
-        mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        mylog.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
     }
 
     if (true)
     {
         std::cout << "Opening timing file" << std::endl;
-        my_timing.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        my_timing.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
     }
 
   }
@@ -242,6 +248,15 @@ public:
     {
       listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
       ROS_INFO("Transform is ready");
+
+      if (init_attractor)
+      {
+         init_attractor = false;
+         drift_odometry_x = transform_.getOrigin().getX();
+         drift_odometry_y = transform_.getOrigin().getY();
+         ROS_INFO("Drift     | %f %f", drift_odometry_x, drift_odometry_y);
+      }
+
     }
     catch (tf::TransformException &ex)
     {
@@ -271,8 +286,8 @@ public:
     ROS_INFO("Start cell | %f %f", start_cell_x, start_cell_y);
 
     // Convert the position of the attractor into the occupancy map frame
-    float target_cell_x = start_cell_x + std::round(position_goal_world_frame_x / size_cell);
-    float target_cell_y = start_cell_y + std::round(position_goal_world_frame_y / size_cell);
+    float target_cell_x = start_cell_x + std::round((position_goal_world_frame_x+drift_odometry_x) / size_cell);
+    float target_cell_y = start_cell_y + std::round((position_goal_world_frame_y+drift_odometry_y) / size_cell);
     //ROS_INFO("Starting cell %f %f",start_cell_x, start_cell_y);
     //ROS_INFO("Target cell %f %f",target_cell_x, target_cell_y);
 
@@ -380,7 +395,7 @@ public:
     if (false) // enable to display a part of the occupancy map centered on the robot in the console
     {
         eig_expanded(state_robot(0,0),state_robot(1,0)) = -2;
-        eig_expanded(state_attractor(0,0),state_attractor(1,0)) = -2;
+        eig_expanded(state_attractor(0,0),state_attractor(1,0)) = -3;
         int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
         int corner_square_y = static_cast<int>(std::floor((transform_.getOrigin().getY() - y_pose)/size_cell)-25);
         std::cout << eig_expanded.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
@@ -963,6 +978,9 @@ private:
   int limit_in_cells;
   float size_cell;
 
+  bool init_attractor;
+  float drift_odometry_x;
+  float drift_odometry_y;
 };//End of class SubscribeAndPublish
 
 
