@@ -16,7 +16,9 @@
 #include "geometry_msgs/PointStamped.h" // For /attractor          subscriber
 #include "geometry_msgs/PoseArray.h"    // For /pose_people_map    subscriber
 #include "nav_msgs/Odometry.h"          // For /odometry_filtered  subscriber
+#include "std_msgs/Float32.h"    // For /clock_logging    subscriber
 #include <eigen3/Eigen/Core>
+
 
 /* Layout of a gazebo_msgs::LinkStates message
 
@@ -53,7 +55,7 @@ public:
         ROS_INFO("Starting node");
 
         // Check if the user has set the simulation variable
-        n_.param("/log_data_robot_node/is_simulation", is_simulation, true);
+        n_.param("/log_data_robot_node/is_simulation", is_simulation, false);
 
         // Listening to link_states emitted by the Ridgeback for features 1, 2, 3, 4 and 5
         if (is_simulation)
@@ -64,7 +66,7 @@ public:
         else
         {
             ROS_INFO("Real experiment mode (Ridgeback)");
-            sub_1 = n_.subscribe("/odometry_filtered", 1, &SubscribeAndPublish::callback1_robot, this);
+            sub_1 = n_.subscribe("/odometry/filtered", 1, &SubscribeAndPublish::callback1_robot, this);
         }
 
         // Listening to velocity command sent to the robot for features 6, 7 and 8
@@ -82,17 +84,21 @@ public:
         // Listening to the predicted position of people in (x,y) plane for feature 12
         // sub_6 = ...
 
+        // Listening to the clock emitted by the main loop to synchronise logging
+        sub_clock = n_.subscribe("/clock_logging", 1, &SubscribeAndPublish::callback_clock, this);
+        clock_from_main_loop = 0.0;
+
         // Log matrix
         log_matrix = Eigen::MatrixXf::Zero(10,5);
 
         // For callback 1
-        time_previous = 0.0;
+        time_previous = (ros::WallTime::now()).toNSec() * 0.000000001;
 
         // Time start of node
-        int time_start = static_cast<int>(std::round(ros::WallTime::now().toSec()));
+        time_start = std::round(ros::WallTime::now().toSec());
 
         // Open log file
-        mylog_robot.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(time_start)+".txt", std::ios::out | std::ios_base::app);
+        mylog_robot.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(static_cast<int>(time_start))+".txt", std::ios::out | std::ios_base::app);
 
         // Check if file has been correctly opened
         if (mylog_robot.fail())
@@ -158,6 +164,7 @@ public:
         ros::Time time_ros = ros::Time::now();
         uint64_t  t_n = time_ros.toNSec();
         float t = static_cast<float>(t_n) * 0.000000001;
+
 
         // Write new data
         if ((t-time_previous)>0.05)
@@ -232,20 +239,29 @@ public:
         // Velocity of the robot in /base_link frame
         log_matrix.row(4) << 0, 5.0, round3(input.twist.twist.linear.x), round3(input.twist.twist.linear.y), round3(input.twist.twist.angular.z);
 
+	ROS_INFO("After row 5");
+	std::cout << log_matrix << std::endl;
 
         // Get current time
         ros::Time time_ros = ros::Time::now();
         uint64_t  t_n = time_ros.toNSec();
-        float t = static_cast<float>(t_n) * 0.000000001;
-
+        double t = static_cast<double>(t_n) * 0.000000001;
+        t = (ros::WallTime::now()).toNSec() * 0.000000001;
+        /*std::cout << "t: " << t << std::endl;    
+        std::cout << "t_prev: " << (time_previous) << std::endl;    
+        std::cout << (t-time_previous) << std::endl;*/
+ 
         // Write new data
-        if ((t-time_previous)>0.05)
+        if (((t-time_previous)>0.05) && (clock_from_main_loop > 0.0))
         {
-            log_matrix.col(0) = t * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
-            const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+            log_matrix.col(0) = (t-time_start) * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
+            log_matrix.col(0) = clock_from_main_loop * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
 
-            mylog_robot << log_matrix.format(CSVFormat);
+            const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
+
+            mylog_robot << log_matrix.format(CSVFormat) << "\n";
             time_previous = t;
+            log_matrix = Eigen::MatrixXf::Zero(10,5);
         }
     }
 
@@ -326,18 +342,31 @@ public:
 
             // Velocity of the robot in /map frame
             log_matrix.row(i_row) << 0.0, static_cast<float>(i_row+1), round3(vec3_stamped_transformed.x()), round3(vec3_stamped_transformed.y()), round3(z);
+            //ROS_INFO("Logged feature %f", static_cast<float>(i_row+1));
+	    //std::cout << log_matrix << std::endl;
         }
+        else
+        {
+            ROS_INFO("Cannot transform feature %f", static_cast<float>(i_row+1));
+        }
+    }
+    void callback_clock(const std_msgs::Float32& input)
+    {
+        clock_from_main_loop = input.data;
     }
 
 private:
     ros::NodeHandle n_; // ROS node
     ros::Subscriber sub_1, sub_2, sub_3, sub_4, sub_5, sub_6; // Subscribers
-    float time_previous;
+    double time_previous;
     std::vector<float> x_people, y_people;
     Eigen::MatrixXf log_matrix;
-
-
+    float time_start;
+    
     bool is_simulation;
+
+    float clock_from_main_loop;
+    ros::Subscriber sub_clock;
 
     tf::TransformListener listener_; // To listen to transforms
     tf::StampedTransform transform_; // Transform from base_link to map

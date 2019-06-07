@@ -232,8 +232,6 @@ target_link_libraries(cmd_vel_listener ${catkin_LIBRARIES})
 add_executable(vector_to_posearray_node src/vector_to_posearray_node.cpp)
 target_link_libraries(vector_to_posearray_node ${catkin_LIBRARIES})
 
-add_executable(RVO2_node src/RVO2_Node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp src/RVO/Agent.cpp src/RVO/KdTree.cpp src/RVO/Obstacle.cpp src/RVO/RVOSimulator.cpp)
-target_link_libraries(RVO2_node ${catkin_LIBRARIES} /home/leziart/catkin_ws/src/process_occupancy_grid/src/RVO)
 
 add_executable(log_data_node src/log_data_node.cpp)
 target_link_libraries(log_data_node ${catkin_LIBRARIES})
@@ -243,6 +241,9 @@ target_link_libraries(log_data_robot_node ${catkin_LIBRARIES})
 
 add_executable(log_data_sensors_node src/log_data_sensors_node.cpp)
 target_link_libraries(log_data_sensors_node ${catkin_LIBRARIES})
+
+add_executable(refresh_occupancy_grid_node src/refresh_occupancy_grid_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp)
+target_link_libraries(refresh_occupancy_grid_node ${catkin_LIBRARIES})
 
 #target_link_libraries (listener_data Eigen3::Eigen)
 #target_link_libraries(listener_data ${mylib_LIBRARIES})

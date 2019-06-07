@@ -12,7 +12,7 @@
 #include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Vector3Stamped.h"
-
+#include "std_msgs/Float32MultiArray.h"
 //#include "obstacle_avoidance/GetObstacles.h"
 #include <cstdlib>
 
@@ -20,7 +20,7 @@
 #include <eigen3/Eigen/Core>
 #include "ObstacleReconstruction.h"
 #include "ObstacleAvoidance.h"
-#include "BezierInterpolation.h"
+//#include "BezierInterpolation.h"
 
 #include <fstream>  // To write data into files
 
@@ -45,6 +45,9 @@ public:
     //Topic you want to publish (velocity command for the robot)
     pub_attractor = n_.advertise<geometry_msgs::PointStamped>("/attractor", 10);
 
+    //Topic you want to publish (logging clock for log_data_robot_node)
+    pub_clock = n_.advertise<std_msgs::Float32>("/clock_logging", 10);
+
     //Topic you want to subscribe (trigger signal)
     sub_ = n_.subscribe("/test", 1, &SubscribeAndPublish::callback, this);
 
@@ -55,8 +58,8 @@ public:
     sub_key = n_.subscribe("/cmd_key", 2, &SubscribeAndPublish::callback_for_key, this);
 
     //Another topic you want to subscribe (map topic to avoid service call)
-    sub_map = n_.subscribe("/map", 2, &SubscribeAndPublish::callback_for_map, this);
-
+    // sub_map = n_.subscribe("/map", 2, &SubscribeAndPublish::callback_for_map, this);
+    sub_boundary = n_.subscribe("/boundary_cells", 1, &SubscribeAndPublish::callback_for_boundary, this);
     // Client of dynamic_map service of gmapping (to get the occupancy grid)
     client_map_ = n_.serviceClient<nav_msgs::GetMap>("dynamic_map");
 
@@ -148,8 +151,8 @@ public:
     //float position_goal_world_frame_y = -11;//-2.56;//-7.3; //5   ; // 0;
 
     int max_num_attractor = 4;
-    float position_goal_world_frame_x =  10;
-    float position_goal_world_frame_y =  3;
+    float position_goal_world_frame_x =  2;
+    float position_goal_world_frame_y =  1.3;
     /*switch (num_attractor)
     {
      case 0:
@@ -550,7 +553,7 @@ public:
 
     if (logging_enabled)
     {
-        float timestamp = ros::Time::now().toSec();
+        float timestamp = ros::Time::now().toSec() - time_start;
 	Eigen::MatrixXf time_matrix = timestamp * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
         Eigen::MatrixXf matrix(log_matrix.rows(), 1+log_matrix.cols());
         matrix << time_matrix, log_matrix;
@@ -560,6 +563,10 @@ public:
     mylog << matrix.format(CSVFormat) << "\n";
     log_matrix = Eigen::MatrixXf::Zero(1,7);
 	//mylog << matrix << "\n";
+
+        std_msgs::Float32 clock_msg;
+        clock_msg.data = timestamp;
+        pub_clock.publish(clock_msg);
 
     }
 
@@ -731,8 +738,8 @@ public:
 
 	    // Creating velocity message
 	    geometry_msgs::Twist output;
-	    output.linear.x = vec3_stamped_transformed.x();
-	    output.linear.y = vec3_stamped_transformed.y();
+	    output.linear.x =  vec3_stamped_transformed.x();
+	    output.linear.y =  vec3_stamped_transformed.y();
 	    output.linear.z =  0.0;
 	    output.angular.x = 0.0;
 	    output.angular.y = 0.0;
@@ -741,7 +748,7 @@ public:
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 	    //if ((static_cast<int>(key_command)!=5)&&(static_cast<int>(key_command)!=-1)) // if we press 5, the robot should not move
 	   // {
-	        pub_.publish(output);
+	        ///pub_.publish(output);
 	    //}
 
     }
@@ -915,7 +922,7 @@ void callback_for_map(const nav_msgs::OccupancyGrid& input) // Callback triggere
     // Expand obstacles to get a security margin
     eig_expanded = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
 
-    if (true) // enable to display a part of the occupancy map centered on the robot in the console
+    if (false) // enable to display a part of the occupancy map centered on the robot in the console
     {
         eig_expanded(state_robot(0,0),state_robot(1,0)) = -2;
         //eig_expanded(state_attractor(0,0),state_attractor(1,0)) = -2;
@@ -946,14 +953,60 @@ void callback_for_map(const nav_msgs::OccupancyGrid& input) // Callback triggere
     }
 }
 
+
+void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback triggered by /boundary_cells topic
+{
+	int max_obs = static_cast<int>(input.layout.dim[0].size);
+        int max_row = static_cast<int>(input.layout.dim[1].size);
+        
+        // Erase old content of storage and fill it with the new content
+        storage.clear();
+	for (int i=0; i<max_obs; i++)
+        {
+	    Border boundary;
+
+            int num_of_rows = 0;
+            float charac1, charac2;
+            do { 
+                charac1 = input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*num_of_rows + 3)];
+                charac2 = input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*num_of_rows + 4)];
+                num_of_rows += 1;
+            } while (((charac1!=0)||(charac2!=0))&&(num_of_rows<=max_row));
+            num_of_rows -= 1;
+
+            std::cout << "Boundary " << i << " has " << num_of_rows << " cells." << std::endl;
+
+            boundary = Eigen::MatrixXf::Zero(num_of_rows,5);
+	    for (int j=0; j<num_of_rows; j++)
+            {
+                    boundary.row(j) << 
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 0)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 1)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 2)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 3)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 4)];
+            }
+            storage.push_back(boundary);
+        }
+
+        std::cout << "Displaying result" << std::endl;
+        for (int i=0; i<storage.size(); i++)
+        {
+            std::cout << storage[i] << std::endl;
+        }
+
+}
+
 private:
   ros::NodeHandle n_;
   ros::Publisher pub_;  // To publish the velocity command
   ros::Publisher pub_attractor;  // To publish the position of the attractor (for display)
+  ros::Publisher pub_clock;  // To publish logging clock for log_data_robot_node
   ros::Subscriber sub_; // To listen to the trigger topic
   ros::Subscriber sub_people; // To listen to the pose_people topic
   ros::Subscriber sub_key;    // To listen to the cmd_key topic
   ros::Subscriber sub_map;    // To listen to the map topic
+  ros::Subscriber sub_boundary; // To listen to the boundary_cells topic
   tf::TransformListener listener_; // To listen to transforms
   tf::StampedTransform transform_; // Transform from map to base_link
   ros::ServiceClient client_map_;  // To call dynamic_map service of gmapping
