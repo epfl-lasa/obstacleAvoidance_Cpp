@@ -152,7 +152,7 @@ public:
 
     int max_num_attractor = 4;
     float position_goal_world_frame_x =  2;
-    float position_goal_world_frame_y =  1.3;
+    float position_goal_world_frame_y =  0.75;
     /*switch (num_attractor)
     {
      case 0:
@@ -334,7 +334,8 @@ public:
     }
 
     geometry_msgs::PointStamped pt_attrac;
-    pt_attrac.header = map_gmapping.header;
+    pt_attrac.header.frame_id = "map";//map_gmapping.header;
+    pt_attrac.header.stamp = ros::Time(0);
     pt_attrac.point.x = (state_attractor(0,0) + (x_pose / size_cell))*size_cell;
     pt_attrac.point.y = (state_attractor(1,0) + (y_pose / size_cell))*size_cell;
     pt_attrac.point.z = 0.05;
@@ -748,7 +749,7 @@ public:
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 	    //if ((static_cast<int>(key_command)!=5)&&(static_cast<int>(key_command)!=-1)) // if we press 5, the robot should not move
 	   // {
-	        ///pub_.publish(output);
+	        pub_.publish(output);
 	    //}
 
     }
@@ -777,9 +778,9 @@ public:
      diff = t_process_attractor - t_process_robot;
      std::cout << "T process attractor: " << diff.count() << std::endl;
      my_timing << 3 << "," << timestamp_timing << "," << diff.count() << "\n";
-     diff = t_adding_people - t_process_attractor;
+     /*diff = t_adding_people - t_process_attractor;
      std::cout << "T adding people:     " << diff.count() << std::endl;
-     my_timing << 4 << "," << timestamp_timing << "," << diff.count() << "\n";
+     my_timing << 4 << "," << timestamp_timing << "," << diff.count() << "\n";*/
      /*diff = t_process_grid - t_adding_people;
      std::cout << "T process grid:      " << diff.count() << std::endl;
      my_timing << 5 << "," << timestamp_timing << "," << diff.count() << "\n";
@@ -792,6 +793,9 @@ public:
      diff = t_send_vel - t_compute_vel;
      std::cout << "T send cmd_vel:      " << diff.count() << std::endl;
      my_timing << 8 << "," << timestamp_timing << "," << diff.count() << "\n";
+
+     diff = t_send_vel - t_start;
+     std::cout << "T all loop:          " << diff.count() << std::endl;
     }
 
   }
@@ -965,35 +969,47 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
         {
 	    Border boundary;
 
-            int num_of_rows = 0;
+            /*int num_of_rows = 0;
             float charac1, charac2;
             do { 
                 charac1 = input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*num_of_rows + 3)];
                 charac2 = input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*num_of_rows + 4)];
                 num_of_rows += 1;
             } while (((charac1!=0)||(charac2!=0))&&(num_of_rows<=max_row));
+            num_of_rows -= 1;*/
+
+            int num_of_rows = 0;
+            float charac;
+            do { 
+                charac = input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*num_of_rows + 2)];
+                num_of_rows += 1;
+            } while ((charac!=0)&&(num_of_rows<=max_row));
             num_of_rows -= 1;
 
-            std::cout << "Boundary " << i << " has " << num_of_rows << " cells." << std::endl;
+            //std::cout << "Boundary " << i << " has " << num_of_rows << " cells." << std::endl;
 
             boundary = Eigen::MatrixXf::Zero(num_of_rows,5);
+            //std::cout << static_cast<int>(input.layout.data_offset + max_row*i*5 + 0 + 0) << std::endl;
 	    for (int j=0; j<num_of_rows; j++)
             {
                     boundary.row(j) << 
-                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 0)],
-                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 1)],
-                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 2)],
-                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 3)],
-                    input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*j + 4)];
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 0)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 1)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 2)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 3)],
+                    input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 4)];
             }
             storage.push_back(boundary);
         }
 
-        std::cout << "Displaying result" << std::endl;
+        /*std::cout << "Displaying result" << std::endl;
         for (int i=0; i<storage.size(); i++)
         {
-            std::cout << storage[i] << std::endl;
-        }
+            //std::cout << "Row 0: " << (storage[i]).row(0) << std::endl;
+            std::cout << "Obstacle " << i << std::endl;
+            if ((storage[i]).rows()>5) {std::cout << (storage[i]).block(0,0,5,5) << std::endl;}
+            else {std::cout << (storage[i]).row(0) << std::endl;}
+        }*/
 
 }
 

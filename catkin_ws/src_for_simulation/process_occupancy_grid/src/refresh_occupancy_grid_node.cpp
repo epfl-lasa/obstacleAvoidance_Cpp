@@ -5,16 +5,12 @@
 #include "tf/LinearMath/Matrix3x3.h"
 #include "tf/LinearMath/Scalar.h"
 #include "tf/LinearMath/Vector3.h"
-#include "std_msgs/Float32.h"
-#include "nav_msgs/GetMap.h"
-#include "sensor_msgs/LaserScan.h"
+
+// Info about OccupancyGrid and Float32MultiArray messages
 #include "nav_msgs/OccupancyGrid.h"
-#include "geometry_msgs/PoseArray.h"
-#include "geometry_msgs/Pose.h"
-#include "geometry_msgs/Vector3Stamped.h"
 #include "std_msgs/Float32MultiArray.h"
 
-//#include "obstacle_avoidance/GetObstacles.h"
+// Standard C library
 #include <cstdlib>
 
 // Eigen library and the header that contains my functions
@@ -23,17 +19,13 @@
 #include "ObstacleAvoidance.h"
 //#include "BezierInterpolation.h"
 
-#include <fstream>  // To write data into files
+// To write data into files
+#include <fstream>  
 
 // Packages to run time related functions
 #include <iostream>
 #include <chrono>
 #include <ctime>
-
-typedef Eigen::Matrix<int8_t, Eigen::Dynamic, Eigen::Dynamic> MatrixXi8; // Dynamic Eigen matrix with type int8_t since OccupancyGrid contains int8_t values
-typedef Eigen::Matrix<int8_t, 1, Eigen::Dynamic> MatrixXi8_layer;
-typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> myMap;
-
 
 class SubscribeAndPublish
 {
@@ -86,7 +78,7 @@ public:
         // PROCESSING MAP INTO SOMETHING THAT CAN BE USED MORE EASILY //
         ////////////////////////////////////////////////////////////////
 
-        std::cout << " == Map received from Gmapping node == " << std::endl;
+        // std::cout << " == Map received from Gmapping node == " << std::endl;
         map_gmapping = input;
 
         // Retrieving OccupancyGrid data that has been received
@@ -129,7 +121,7 @@ public:
             try
             {
                 listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
-                ROS_INFO("Transform is ready");
+                // ROS_INFO("Transform is ready");
             }
             catch (tf::TransformException &ex)
             {
@@ -150,14 +142,14 @@ public:
                     yaw;
 
 
-        ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
+        // ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
 
         ///////////////////////////////
         // PROCESSING OCCUPANCY GRID //
         ///////////////////////////////
 
-        std::cout << " PROCESSING OCCUPANCY GRID " << std::endl;
+        //std::cout << " PROCESSING OCCUPANCY GRID " << std::endl;
 
         // Expand obstacles to get a security margin
         eig_expanded = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
@@ -168,7 +160,7 @@ public:
         // DETECTING OBSTACLES //
         /////////////////////////
 
-        std::cout << " DETECTING OBSTACLES " << std::endl;
+        //std::cout << " DETECTING OBSTACLES " << std::endl;
 
         // Detect expanded obstacles
         storage = detect_borders( eig_expanded, state_robot );
@@ -183,7 +175,7 @@ public:
             if ((storage[i]).rows() > max_num_row) {max_num_row = (storage[i]).rows();}
         }
 
-        std::cout << " PASS " << std::endl;
+        //std::cout << " PASS " << std::endl;
 
         // Padding at the beginning of the array
         array_msg.layout.data_offset = 0;
@@ -205,18 +197,21 @@ public:
         // Fill data field
         for (int i=0; i<storage.size(); i++)
         {
-            for (int j=0; j<max_num_row; j++)
+            //std::cout << "Obstacle " << i << " has " << (storage[i]).rows() << "cells" << std::endl;
+            //std::cout << (storage[i]).block(0,0,5,5) << std::endl;
+            Border tempo = storage[i];
+	    for (int j=0; j<max_num_row; j++)
             {
                 for (int k=0; k<5; k++)
                 {
                     if (j<(storage[i]).rows())
                     {
-			Border tempo = storage[i];
+			//Border tempo = storage[i];
                         array_msg.data.push_back(tempo(j,k));
                     }
                     else
                     {
-                        array_msg.data.push_back(0);
+                        array_msg.data.push_back(0.0);
                     }
                 }
             }
@@ -229,8 +224,6 @@ public:
 
         // Publish message
         pub_boundary.publish(array_msg);
-
-
 
     }
 
