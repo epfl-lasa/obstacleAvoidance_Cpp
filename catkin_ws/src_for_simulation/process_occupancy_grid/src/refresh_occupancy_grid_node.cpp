@@ -8,10 +8,12 @@
 
 // Info about OccupancyGrid and Float32MultiArray messages
 #include "nav_msgs/OccupancyGrid.h"
+#include "std_msgs/Float32.h"
 #include "std_msgs/Float32MultiArray.h"
 
 // Standard C library
 #include <cstdlib>
+#include <cmath>
 
 // Eigen library and the header that contains my functions
 #include <eigen3/Eigen/Core>
@@ -35,6 +37,9 @@ public:
         // Topic you want to publish (array containing boundary cells)
         pub_boundary = n_.advertise<std_msgs::Float32MultiArray>("/boundary_cells", 1);
 
+        // Topic you want to publish (Occupancy Grid without data field)
+        pub_map_info = n_.advertise<nav_msgs::OccupancyGrid>("map_info", 1);
+
         // Topic you want to subscribe (map topic to avoid service call)
         sub_map = n_.subscribe("/map", 3, &SubscribeAndPublish::callback_for_map, this);
 
@@ -43,6 +48,19 @@ public:
 
         // State vector of the robot
         state_robot << 0, 0, -42;
+
+        // Flag to initialize the position of the attractor depending on the initial position of the Ridgeback in the map
+       // Because of odometry drift the Ridgeback never starts at the same position in the map.
+       init_attractor = true;
+       drift_odometry_x = 0.0;
+       drift_odometry_y = 0.0;
+       drift_odometry_yaw = 0.0;
+
+        // Listening to the clock emitted by the main loop to synchronise logging
+        sub_clock = n_.subscribe("/clock_logging", 1, &SubscribeAndPublish::callback_clock, this);
+        clock_from_main_loop = 0.0;
+
+        timing_enabled = true;
 
         ////////////////
         // PARAMETERS //
@@ -61,16 +79,43 @@ public:
         float limit_in_meters = 3;
         limit_in_cells  = static_cast<int>(std::ceil(limit_in_meters/size_cell));
 
+        extern bool logging_enabled;
+	if (logging_enabled)
+	{
+             std::cout << "Opening log file" << std::endl;
+	     mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_blobs_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+	}
+
+        if (timing_enabled)
+        {
+        std::cout << "Opening timing file" << std::endl;
+        my_timing.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_refresh_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        }
+
     }
 
     ~SubscribeAndPublish()
     {
         // Destructor
+        extern bool logging_enabled;
+        if (logging_enabled)
+        {
+            std::cout << "Closing log file" << std::endl;
+            mylog.close();
+        }
+	if (timing_enabled)
+	{
+	    my_timing.close();
+	}
     }
 
     void callback_for_map(const nav_msgs::OccupancyGrid& input) // Callback triggered by /map topic
     {
-        float timestamp_timing = ros::Time::now().toSec();
+	std::cout << "Clock: " << clock_from_main_loop << std::endl;
+        extern bool logging_enabled;
+        extern Eigen::MatrixXf log_refresh;
+
+        //float timestamp_timing = ros::Time::now().toSec();
 
         auto t_start = std::chrono::high_resolution_clock::now();
 
@@ -131,6 +176,19 @@ public:
         }
         while (has_map);
 
+         if (init_attractor)
+         {
+            init_attractor = false;
+            drift_odometry_x = transform_.getOrigin().getX();
+            drift_odometry_y = transform_.getOrigin().getY();
+            // Get rotation information between "map" and "base_link"
+            tfScalar yaw, pitch, roll;
+            tf::Matrix3x3 mat(transform_.getRotation());
+            mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
+            drift_odometry_yaw = yaw;
+            ROS_INFO("Drift     | %f %f %f", drift_odometry_x, drift_odometry_y, drift_odometry_yaw);
+         }
+
         // Get rotation information between "map" and "base_link"
         tfScalar yaw, pitch, roll;
         tf::Matrix3x3 mat(transform_.getRotation());
@@ -144,6 +202,79 @@ public:
 
         // ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
+       //////////////////////////////////////////
+       // PROCESSING POSITION OF THE ATTRACTOR //
+       //////////////////////////////////////////
+
+       float position_goal_world_frame_x =  -8;
+       float position_goal_world_frame_y =  0;
+
+       // Get the (x,y) coordinates in the world frame of the cell (0,0)
+       float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
+       float start_cell_y = (-1 * std::round(map_gmapping.info.origin.position.y / size_cell));
+
+       float position_goal_world_frame_corrected_x =  position_goal_world_frame_x * std::cos(-drift_odometry_yaw) + position_goal_world_frame_y * std::sin(-drift_odometry_yaw);
+       float position_goal_world_frame_corrected_y =  position_goal_world_frame_x * (-1) * std::sin(-drift_odometry_yaw) + position_goal_world_frame_y * std::cos(-drift_odometry_yaw);
+       std::cout << position_goal_world_frame_corrected_x << " " << position_goal_world_frame_corrected_y << std::endl;
+ 
+       // Convert the position of the attractor into the occupancy map frame
+       float target_cell_x = start_cell_x + std::round((position_goal_world_frame_corrected_x+drift_odometry_x) / size_cell);
+       float target_cell_y = start_cell_y + std::round((position_goal_world_frame_corrected_y+drift_odometry_y) / size_cell);
+
+       // Set state of the attractor
+       State state_attractor;
+       state_attractor << target_cell_x, target_cell_y, 0;
+       ROS_INFO("Attractor | %f %f %f", target_cell_x, target_cell_y, 0.0);
+
+        ////////////////////////////////////
+        // SAVING SOME DATA IN LOG MATRIX //
+        ////////////////////////////////////
+
+	// Detecting all blobs of occupied cells
+        Grid grid_tempo;
+        if ((logging_enabled)&&(clock_from_main_loop>0))
+        {
+           /*grid_tempo = eig_test;
+        
+        // Storing all occupied cells of the occupancy grid
+        std::vector<Blob> storage_blobs;
+        storage_blobs = detect_blobs( grid_tempo );
+        for (int i=0; i<storage_blobs.size(); i++)
+        {
+           int n_rows = log_refresh.rows();
+           log_refresh.conservativeResize(n_rows+storage_blobs[i].rows(), Eigen::NoChange);
+           log_refresh.block(n_rows,0,storage_blobs[i].rows(),1) = Eigen::MatrixXf::Zero(storage_blobs[i].rows(),1);
+           log_refresh.block(n_rows,1,storage_blobs[i].rows(),1) = Eigen::MatrixXf::Ones(storage_blobs[i].rows(),1);
+           log_refresh.block(n_rows,2,storage_blobs[i].rows(),2) = ((storage_blobs[i]).block(0,0,storage_blobs[i].rows(),2)).template cast<float>();
+           log_refresh.block(n_rows,4,storage_blobs[i].rows(),3) = Eigen::MatrixXf::Zero(storage_blobs[i].rows(),3);
+        }*/
+
+        for (int i=0; i<eig_test.rows(); i++)
+        {
+            for (int j=0; j<eig_test.cols(); j++) 
+	    {
+                 if (eig_test(i,j)==100)
+                 {
+                     int n_rows = log_refresh.rows();
+                     log_refresh.conservativeResize(n_rows+1, Eigen::NoChange);
+                     log_refresh.block(n_rows,0,1,1) << 0.0f;
+                     log_refresh.block(n_rows,1,1,1) << 1.0f;
+                     log_refresh.block(n_rows,2,1,2) << static_cast<float>(i), static_cast<float>(j);
+                     log_refresh.block(n_rows,4,1,3) << 0.0f,0.0f,0.0f;
+                 }
+            }
+        }
+         
+
+        // Storing position of the robot in the initial space (feature 5)
+        log_refresh.conservativeResize(log_refresh.rows()+1, Eigen::NoChange);
+        log_refresh.row(log_refresh.rows()-1) << 0.0, 5.0, state_robot(0,0), state_robot(1,0), 0.0,0.0,0.0;
+
+        // Storing position of the robot in the initial space (feature 6)
+        log_refresh.conservativeResize(log_refresh.rows()+1, Eigen::NoChange);
+        log_refresh.row(log_refresh.rows()-1) << 0.0, 6.0, state_attractor(0,0), state_attractor(1,0), 0.0,0.0,0.0;
+
+        }
 
         ///////////////////////////////
         // PROCESSING OCCUPANCY GRID //
@@ -153,6 +284,16 @@ public:
 
         // Expand obstacles to get a security margin
         eig_expanded = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
+
+
+        if (false) // to display a part of the occupancy map centered on the robot in the console
+        {
+           eig_expanded(state_robot(0,0),state_robot(1,0)) = -2;
+           eig_expanded(state_attractor(0,0),state_attractor(1,0)) = -3;
+           int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
+           int corner_square_y = static_cast<int>(std::floor((transform_.getOrigin().getY() - y_pose)/size_cell)-25);
+           std::cout << eig_expanded.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
+        }
 
         auto t_process_grid = std::chrono::high_resolution_clock::now();
 
@@ -165,7 +306,26 @@ public:
         // Detect expanded obstacles
         storage = detect_borders( eig_expanded, state_robot );
 
-        auto t_detect_obs = std::chrono::high_resolution_clock::now();
+        // Erase obstacles that are too small to be real obstacles (problem with detection algo)
+	int num_of_obstacles = storage.size()  ;     
+	for (int i=num_of_obstacles-1; i >= 0; i--)
+        {
+            if (storage[i].rows()< (8*n_expansion+4)) { storage.erase(storage.begin()+i);}
+        }
+
+        for (int i=0; i < storage.size(); i++)
+        {
+        if ((logging_enabled)&&(clock_from_main_loop>0))
+        {   
+            int current_obstacle = i + 1;
+            std::cout << "Logging border information " << i << std::endl;
+            log_refresh.conservativeResize(log_refresh.rows()+(storage[i]).rows(), Eigen::NoChange); // Add rows at the end
+            log_refresh.block(log_refresh.rows()-(storage[i]).rows(), 0, (storage[i]).rows(), 1) = current_obstacle * Eigen::MatrixXf::Ones((storage[i]).rows(), 1); // Numero of obstacle
+            log_refresh.block(log_refresh.rows()-(storage[i]).rows(), 1, (storage[i]).rows(), 1) = 2 * Eigen::MatrixXf::Ones((storage[i]).rows(), 1); // Numero of feature
+            log_refresh.block(log_refresh.rows()-(storage[i]).rows(), 2, (storage[i]).rows(), 5) = storage[i]; // Add border information
+        }
+        }
+        //auto t_detect_obs = std::chrono::high_resolution_clock::now();
 
         std_msgs::Float32MultiArray array_msg;
 
@@ -216,20 +376,64 @@ public:
                 }
             }
         }
+        
+        auto t_detect_obs = std::chrono::high_resolution_clock::now();
 
         /*for (int i=0; i<storage.size(); i++)
         {
             std::cout << storage[i] << std::endl;
         }*/
 
+        if ((timing_enabled)&&(clock_from_main_loop>0))
+        {
+             //diff = t_adding_people - t_process_attractor;
+             //std::cout << "T adding people:     " << diff.count() << std::endl;
+             my_timing << 4 << "," << clock_from_main_loop << "," << 0.0 << "\n";
+
+             std::chrono::duration<double> diff = t_process_grid - t_start;
+             std::cout << "T process grid:      " << diff.count() << std::endl;
+             my_timing << 5 << "," << clock_from_main_loop << "," << diff.count() << "\n";
+             diff = t_detect_obs - t_process_grid;
+             std::cout << "T detect obstacles:  " << diff.count() << std::endl;
+             my_timing << 6 << "," << clock_from_main_loop << "," << diff.count() << "\n";
+        }
+
         // Publish message
         pub_boundary.publish(array_msg);
 
+        nav_msgs::OccupancyGrid map_just_info;
+	map_just_info.header = input.header;
+	map_just_info.info = input.info;
+        
+        // map_just_info.data is left empty
+        // Publish message
+        pub_map_info.publish(map_just_info);
+
+    // Saving data in log_refresh
+    if ((logging_enabled)&&(clock_from_main_loop>0))
+    {
+        float timestamp = clock_from_main_loop;//ros::Time::now().toSec() - time_start;
+	Eigen::MatrixXf time_matrix = timestamp * Eigen::MatrixXf::Ones(log_refresh.rows(),1);
+        Eigen::MatrixXf matrix(log_refresh.rows(), 1+log_refresh.cols());
+        matrix << time_matrix, log_refresh;
+	//std::cout << log_refresh << std::endl;
+
+	const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+        mylog << matrix.format(CSVFormat) << "\n";
+        log_refresh = Eigen::MatrixXf::Zero(1,7);
+    }
+    }
+
+
+    void callback_clock(const std_msgs::Float32& input)
+    {
+        clock_from_main_loop = input.data;
     }
 
 private:
     ros::NodeHandle n_;
     ros::Publisher pub_boundary;  // To publish the velocity command
+    ros::Publisher pub_map_info;  // To publish map info for main loop
     ros::Subscriber sub_map;    // To listen to the map topic
     tf::TransformListener listener_; // To listen to transforms
     tf::StampedTransform transform_; // Transform from map to base_link
@@ -251,6 +455,15 @@ private:
     int limit_in_cells;
     float size_cell;
 
+    bool init_attractor;
+    float drift_odometry_x;
+    float drift_odometry_y;
+    float drift_odometry_yaw;
+
+    float clock_from_main_loop;
+    ros::Subscriber sub_clock;
+
+    bool timing_enabled;
 };//End of class SubscribeAndPublish
 
 

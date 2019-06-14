@@ -3,13 +3,23 @@ import matplotlib.pyplot as plt
 import glob
 
 names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_gmapping_*.txt")
-names.sort()
-#data_gmapping = np.loadtxt(open(names[-1], "rb"), delimiter=",")
-data_gmapping = [0,0]
+names = np.sort(names)
+data_gmapping = np.loadtxt(open(names[-1], "rb"), delimiter=",")
+#data_gmapping = [0,0]
 
 names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_*.txt")
-names.sort()
+names = np.sort(names)
 data_functions = np.loadtxt(open(names[-1], "rb"), delimiter=",")
+
+names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_refresh_*.txt")
+names = np.sort(names)
+data_refresh = np.loadtxt(open(names[-1], "rb"), delimiter=",")
+data_refresh = data_refresh[data_refresh[:,1]>0.0]
+data_functions = np.vstack((data_functions,data_refresh))
+
+#data_gmapping[:,0] = data_gmapping[:,0] - data_gmapping[0,0]
+data_gmapping = data_gmapping[(data_gmapping[:,0]>=data_functions[0,1]) & (data_gmapping[:,0]<=data_functions[-1,1])]
+#data_gmapping[:,1] *= 0.02
 
 plt.figure()
 plt.plot(data_gmapping[1:,0],data_gmapping[1:,1])
@@ -31,7 +41,8 @@ for i in range(9):
     data_functions_mean[i] = np.mean(data[:,2])
 
 plt.figure()
-plt.plot(["Parameters", "Retrieving map by\n calling gmapping service", "Processing\n robot pos", "Processing\n attrac pos", "Drawing\n people on map", "Processing\n occupancy grid", "Detecting\n obstacles + boundaries", "Computing\n velocity command", "Sending\n velocity command"], data_functions_mean, 'o')
+#plt.plot(["Parameters", "Retrieving map by\n calling gmapping service", "Processing\n robot pos", "Processing\n attrac pos", "Drawing\n people on map", "Processing\n occupancy grid", "Detecting\n obstacles + boundaries", "Computing\n velocity command", "Sending\n velocity command"], data_functions_mean, 'o')
+plt.plot(data_functions_mean, 'o')
 plt.grid(True)
 plt.xlabel("Name of the step")
 plt.ylabel("Processing time [s]")
@@ -40,6 +51,7 @@ plt.show()
 
 ## Average time of the loop
 
+timestamps = np.unique(data_functions[data_functions[:,0]==0,1])
 timestamps = np.unique(data_functions[data_functions[:,0]==0,1])
 data_functions_sum = np.zeros(len(timestamps))
 for i in range(len(timestamps)):

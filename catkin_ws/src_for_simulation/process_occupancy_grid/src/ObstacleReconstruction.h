@@ -128,4 +128,8 @@ void draw_circle(Grid & grid, int const& x, int const& y, int const& radius); //
 
 Eigen::MatrixXi readMatrix(std::string filename);
 
+Eigen::MatrixXi Line( float x1, float y1, float x2, float y2);
+
+bool check_if_on_way(Eigen::MatrixXi const& line, Border const& border);
+
 #endif // OBSTACLERECONSTRUCTION_H_INCLUDED

@@ -85,20 +85,20 @@ public:
         // sub_6 = ...
 
         // Listening to the clock emitted by the main loop to synchronise logging
-        sub_clock = n_.subscribe("/clock_logging", 1, &SubscribeAndPublish::callback_clock, this);
+        sub_clock = n_.subscribe("/clock_logging", 3, &SubscribeAndPublish::callback_clock, this);
         clock_from_main_loop = 0.0;
 
         // Log matrix
         log_matrix = Eigen::MatrixXf::Zero(10,5);
 
         // For callback 1
-        time_previous = (ros::WallTime::now()).toNSec() * 0.000000001;
+        time_previous = 0.0;//(ros::WallTime::now()).toNSec() * 0.000000001;
 
         // Time start of node
         time_start = std::round(ros::WallTime::now().toSec());
 
         // Open log file
-        mylog_robot.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(static_cast<int>(time_start))+".txt", std::ios::out | std::ios_base::app);
+        mylog_robot.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(static_cast<int>(time_start))+".txt", std::ios::out | std::ios_base::app);
 
         // Check if file has been correctly opened
         if (mylog_robot.fail())
@@ -163,17 +163,24 @@ public:
         // Get current time
         ros::Time time_ros = ros::Time::now();
         uint64_t  t_n = time_ros.toNSec();
-        float t = static_cast<float>(t_n) * 0.000000001;
-
+        double t = static_cast<double>(t_n) * 0.000000001;
+        t = (ros::WallTime::now()).toNSec() * 0.000000001;
+        /*std::cout << "t: " << t << std::endl;    
+        std::cout << "t_prev: " << (time_previous) << std::endl;    
+        std::cout << (t-time_previous) << std::endl;*/
+        std::cout << "Clock: " << clock_from_main_loop << std::endl;
 
         // Write new data
-        if ((t-time_previous)>0.05)
+        if (((clock_from_main_loop-time_previous)>0.05) && (clock_from_main_loop > 0.0))
         {
-            log_matrix.col(0) = t * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
-            const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+            log_matrix.col(0) = (t-time_start) * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
+            log_matrix.col(0) = clock_from_main_loop * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
+
+            const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
 
             mylog_robot << log_matrix.format(CSVFormat) << "\n";
-            time_previous = t;
+            time_previous = clock_from_main_loop;
+            log_matrix = Eigen::MatrixXf::Zero(10,5);
         }
     }
 
@@ -239,8 +246,8 @@ public:
         // Velocity of the robot in /base_link frame
         log_matrix.row(4) << 0, 5.0, round3(input.twist.twist.linear.x), round3(input.twist.twist.linear.y), round3(input.twist.twist.angular.z);
 
-	ROS_INFO("After row 5");
-	std::cout << log_matrix << std::endl;
+	//ROS_INFO("After row 5");
+	//std::cout << log_matrix << std::endl;
 
         // Get current time
         ros::Time time_ros = ros::Time::now();
@@ -250,9 +257,10 @@ public:
         /*std::cout << "t: " << t << std::endl;    
         std::cout << "t_prev: " << (time_previous) << std::endl;    
         std::cout << (t-time_previous) << std::endl;*/
- 
+        std::cout << "Clock: " << clock_from_main_loop << std::endl;
+
         // Write new data
-        if (((t-time_previous)>0.05) && (clock_from_main_loop > 0.0))
+        if (((clock_from_main_loop-time_previous)>0.05) && (clock_from_main_loop > 0.0))
         {
             log_matrix.col(0) = (t-time_start) * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
             log_matrix.col(0) = clock_from_main_loop * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
@@ -260,7 +268,7 @@ public:
             const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
 
             mylog_robot << log_matrix.format(CSVFormat) << "\n";
-            time_previous = t;
+            time_previous = clock_from_main_loop;
             log_matrix = Eigen::MatrixXf::Zero(10,5);
         }
     }

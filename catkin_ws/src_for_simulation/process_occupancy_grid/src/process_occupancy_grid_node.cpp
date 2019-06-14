@@ -15,6 +15,7 @@
 #include "std_msgs/Float32MultiArray.h"
 //#include "obstacle_avoidance/GetObstacles.h"
 #include <cstdlib>
+#include <cmath>
 
 // Eigen library and the header that contains my functions
 #include <eigen3/Eigen/Core>
@@ -60,6 +61,11 @@ public:
     //Another topic you want to subscribe (map topic to avoid service call)
     // sub_map = n_.subscribe("/map", 2, &SubscribeAndPublish::callback_for_map, this);
     sub_boundary = n_.subscribe("/boundary_cells", 1, &SubscribeAndPublish::callback_for_boundary, this);
+
+    //Another topic you want to subscribe (map_info topic)
+    sub_map_info = n_.subscribe("/map_info", 1, &SubscribeAndPublish::callback_for_map_info, this);
+    // /map_metadata is already published by gmapping but need to adapt code for nav_msgs::Metadata
+
     // Client of dynamic_map service of gmapping (to get the occupancy grid)
     client_map_ = n_.serviceClient<nav_msgs::GetMap>("dynamic_map");
 
@@ -77,13 +83,15 @@ public:
 
     // Time start of node
     time_start = ros::WallTime::now().toSec();
+    time_start_clock = ros::Time::now().toSec();
 
     // Flag to initialize the position of the attractor depending on the initial position of the Ridgeback in the map
     // Because of odometry drift the Ridgeback never starts at the same position in the map.
     init_attractor = true;
     drift_odometry_x = 0.0;
     drift_odometry_y = 0.0;
- 
+    drift_odometry_yaw = 0.0;
+
     state_robot << 0, 0, -42;
 
     ////////////////
@@ -107,13 +115,13 @@ public:
     if (logging_enabled)
     {
         std::cout << "Opening log file" << std::endl;
-        mylog.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
     }
 
     if (true)
     {
         std::cout << "Opening timing file" << std::endl;
-        my_timing.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        my_timing.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
     }
 
   }
@@ -151,8 +159,8 @@ public:
     //float position_goal_world_frame_y = -11;//-2.56;//-7.3; //5   ; // 0;
 
     int max_num_attractor = 4;
-    float position_goal_world_frame_x =  2;
-    float position_goal_world_frame_y =  0.75;
+    float position_goal_world_frame_x =    -8;
+    float position_goal_world_frame_y =    0;
     /*switch (num_attractor)
     {
      case 0:
@@ -179,6 +187,7 @@ public:
     // Variables used for logging when logging_enabled is set to true (in ObstacleReconstruction.cpp)
     extern bool logging_enabled;
     extern Eigen::MatrixXf log_matrix;
+    //Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 
     auto t_parameters = std::chrono::high_resolution_clock::now();
     //////////////////////////////////
@@ -237,9 +246,9 @@ public:
     // The occupancy grid has been reshaped to be able to use C++ algorithms with it
 
     // Retrieving Resolution and Pose of the map in the world frame
-    float resolution = map_gmapping.info.resolution;
+    float resolution = map_gmapping.info.resolution;*/
     float x_pose = map_gmapping.info.origin.position.x;
-    float y_pose = map_gmapping.info.origin.position.y;*/
+    float y_pose = map_gmapping.info.origin.position.y;
 
     auto t_retrieve_map = std::chrono::high_resolution_clock::now();
     //////////////////////////////////////
@@ -257,7 +266,12 @@ public:
          init_attractor = false;
          drift_odometry_x = transform_.getOrigin().getX();
          drift_odometry_y = transform_.getOrigin().getY();
-         ROS_INFO("Drift     | %f %f", drift_odometry_x, drift_odometry_y);
+         // Get rotation information between "map" and "base_link"
+         tfScalar yaw, pitch, roll;
+         tf::Matrix3x3 mat(transform_.getRotation());
+         mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
+         drift_odometry_yaw = yaw;
+         ROS_INFO("Drift     | %f %f %f", drift_odometry_x, drift_odometry_y, drift_odometry_yaw);
       }
 
     }
@@ -265,16 +279,19 @@ public:
     {
       ROS_ERROR("%s",ex.what());
     }
-
+    
     // Get rotation information between "map" and "base_link"
     tfScalar yaw, pitch, roll;
     tf::Matrix3x3 mat(transform_.getRotation());
     mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
 
+    std::cout << transform_.getOrigin().getX() << " | " << x_pose << " | " << size_cell << std::endl; 
+    std::cout << transform_.getOrigin().getY() << " | " << y_pose << " | " << size_cell << std::endl; 
+    
     // Create robot state vector and fill it
     state_robot << (transform_.getOrigin().getX() - x_pose)/ size_cell,
-                                      (transform_.getOrigin().getY() - y_pose)/ size_cell,
-                                      yaw;
+                   (transform_.getOrigin().getY() - y_pose)/ size_cell,
+                   yaw;
     ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
 
@@ -286,11 +303,14 @@ public:
     // Get the (x,y) coordinates in the world frame of the cell (0,0)
     float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
     float start_cell_y = (-1 * std::round(map_gmapping.info.origin.position.y / size_cell));
-    ROS_INFO("Start cell | %f %f", start_cell_x, start_cell_y);
+    ROS_INFO("Start cell of attractor | %f %f", start_cell_x, start_cell_y);
 
     // Convert the position of the attractor into the occupancy map frame
-    float target_cell_x = start_cell_x + std::round((position_goal_world_frame_x+drift_odometry_x) / size_cell);
-    float target_cell_y = start_cell_y + std::round((position_goal_world_frame_y+drift_odometry_y) / size_cell);
+    float position_goal_world_frame_corrected_x =  position_goal_world_frame_x * std::cos(-drift_odometry_yaw) + position_goal_world_frame_y * std::sin(-drift_odometry_yaw);
+    float position_goal_world_frame_corrected_y =  position_goal_world_frame_x * (-1) * std::sin(-drift_odometry_yaw) + position_goal_world_frame_y * std::cos(-drift_odometry_yaw);
+    std::cout << position_goal_world_frame_corrected_x << " " << position_goal_world_frame_corrected_y << std::endl;
+    float target_cell_x = start_cell_x + std::round((position_goal_world_frame_corrected_x+drift_odometry_x) / size_cell);
+    float target_cell_y = start_cell_y + std::round((position_goal_world_frame_corrected_y+drift_odometry_y) / size_cell);
     //ROS_INFO("Starting cell %f %f",start_cell_x, start_cell_y);
     //ROS_INFO("Target cell %f %f",target_cell_x, target_cell_y);
 
@@ -431,11 +451,11 @@ public:
     // DETECTING OBSTACLES //
     /////////////////////////
 
-    Grid grid_tempo;
+    /*Grid grid_tempo;
     if (logging_enabled)
     {
         grid_tempo = eig_test;
-    }
+    }*/
 
     // Detect expanded obstacles
     //std::vector<Border> storage;
@@ -444,7 +464,7 @@ public:
     if (logging_enabled)
     {
         // Storing all occupied cells of the occupancy grid
-        std::vector<Blob> storage_blobs;
+        /*std::vector<Blob> storage_blobs;
 	    storage_blobs = detect_blobs( grid_tempo );
 	    for (int i=0; i<storage_blobs.size(); i++)
 	    {
@@ -454,7 +474,7 @@ public:
 	        log_matrix.block(n_rows,1,storage_blobs[i].rows(),1) = Eigen::MatrixXf::Ones(storage_blobs[i].rows(),1);
 	        log_matrix.block(n_rows,2,storage_blobs[i].rows(),2) = ((storage_blobs[i]).block(0,0,storage_blobs[i].rows(),2)).template cast<float>();
 	        log_matrix.block(n_rows,4,storage_blobs[i].rows(),3) = Eigen::MatrixXf::Zero(storage_blobs[i].rows(),3);
-	    }
+	    }*/
 
 	    // Storing position of the robot in the initial space (feature 5)
         log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange);
@@ -548,28 +568,7 @@ public:
     ROS_INFO("VelCmd in map frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 
     auto t_compute_vel = std::chrono::high_resolution_clock::now();
-    ///////////////////////////////
-    // SAVING data_obstacles.txt //
-    ///////////////////////////////
 
-    if (logging_enabled)
-    {
-        float timestamp = ros::Time::now().toSec() - time_start;
-	Eigen::MatrixXf time_matrix = timestamp * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
-        Eigen::MatrixXf matrix(log_matrix.rows(), 1+log_matrix.cols());
-        matrix << time_matrix, log_matrix;
-	//std::cout << log_matrix << std::endl;
-
-	const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    mylog << matrix.format(CSVFormat) << "\n";
-    log_matrix = Eigen::MatrixXf::Zero(1,7);
-	//mylog << matrix << "\n";
-
-        std_msgs::Float32 clock_msg;
-        clock_msg.data = timestamp;
-        pub_clock.publish(clock_msg);
-
-    }
 
     /////////////////////////////////////////
     // COMPUTING DATA TO GET A STREAM PLOT //
@@ -745,12 +744,21 @@ public:
 	    output.angular.x = 0.0;
 	    output.angular.y = 0.0;
 	    output.angular.z = next_eps(2,0);
-
+ 
+            // Check if there is a NaN value in the velocity command
+            // Suprisingly the Ridgeback is not protected against that and just goes to its max speed...
+            if ((std::isnan(output.linear.x))||(std::isnan(output.linear.y))||(std::isnan(output.angular.z)))
+            {
+		 output.linear.x = 0.0; output.linear.y = 0.0; output.angular.z = 0.0;
+                 ROS_WARN("NaN value detected in the final velocity command.");
+                 ROS_INFO("VelCmd in base_link frame: %f %f %f", output.linear.x, output.linear.y, output.angular.z);
+            }
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 	    //if ((static_cast<int>(key_command)!=5)&&(static_cast<int>(key_command)!=-1)) // if we press 5, the robot should not move
 	   // {
-	        pub_.publish(output);
+	       pub_.publish(output);
 	    //}
+            
 
     }
     else
@@ -759,11 +767,37 @@ public:
     }
 
     auto t_send_vel = std::chrono::high_resolution_clock::now();
+
+    ///////////////////////////////
+    // SAVING data_obstacles.txt //
+    ///////////////////////////////
+    float timestamp = 0.0;
+    if (logging_enabled)
+    {
+	std::cout << ros::Time::now().toSec() << " VS " << time_start_clock << std::endl;
+        timestamp = static_cast<float>(ros::Time::now().toSec() - time_start_clock);
+	Eigen::MatrixXf time_matrix = timestamp * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
+        Eigen::MatrixXf matrix(log_matrix.rows(), 1+log_matrix.cols());
+        matrix << time_matrix, log_matrix;
+	//std::cout << log_matrix << std::endl;
+
+	const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    mylog << matrix.format(CSVFormat) << "\n";
+    log_matrix = Eigen::MatrixXf::Zero(1,7);
+	//mylog << matrix << "\n";
+
+        std_msgs::Float32 clock_msg;
+        clock_msg.data = timestamp;
+        pub_clock.publish(clock_msg);
+
+    }
+
+
     //////////////////////////
     // END OF MAIN CALLBACK //
     //////////////////////////
 
-     float timestamp_timing = ros::Time::now().toSec();
+     float timestamp_timing = timestamp;//ros::Time::now().toSec();
     if (true)
     {
      std::chrono::duration<double> diff = t_parameters - t_start;
@@ -1013,6 +1047,11 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
 
 }
 
+void callback_for_map_info(const nav_msgs::OccupancyGrid& input) // Callback triggered by /map_info topic
+{
+	map_gmapping = input;
+}
+
 private:
   ros::NodeHandle n_;
   ros::Publisher pub_;  // To publish the velocity command
@@ -1023,6 +1062,7 @@ private:
   ros::Subscriber sub_key;    // To listen to the cmd_key topic
   ros::Subscriber sub_map;    // To listen to the map topic
   ros::Subscriber sub_boundary; // To listen to the boundary_cells topic
+  ros::Subscriber sub_map_info; // To listen to map_info topic
   tf::TransformListener listener_; // To listen to transforms
   tf::StampedTransform transform_; // Transform from map to base_link
   ros::ServiceClient client_map_;  // To call dynamic_map service of gmapping
@@ -1031,7 +1071,8 @@ private:
   int num_attractor; // numero of the attractor that is currently being followed
 
   int ID_frame; // for stream recording
-  float time_start; // to know when the node has been launched
+  float time_start;
+  double time_start_clock; // to know when the node has been launched
   std::ofstream mylog;
   std::ofstream my_timing;
 
@@ -1050,6 +1091,7 @@ private:
   bool init_attractor;
   float drift_odometry_x;
   float drift_odometry_y;
+  float drift_odometry_yaw;
 };//End of class SubscribeAndPublish
 
 

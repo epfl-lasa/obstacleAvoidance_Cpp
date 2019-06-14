@@ -14,11 +14,12 @@ import math
 
 ## Parameters
 
-radius_ridgeback = 0.6;
-size_cell = 0.3;
+radius_ridgeback = 0.6
+size_cell = 0.2
 radius_in_grid = int(math.ceil(radius_ridgeback/size_cell))
-limit_in_meters = math.sqrt(50-1);
-limit_in_cells  = int(math.ceil(limit_in_meters));
+limit_in_meters = math.sqrt(50-1)
+limit_in_cells  = int(math.ceil(limit_in_meters))
+
 
 ## Loading files
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558616704.txt")
@@ -28,12 +29,18 @@ limit_in_cells  = int(math.ceil(limit_in_meters));
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558693376.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558701056.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
-names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_*.txt")
-names.sort()
+num = str(1560418816)
+system_name = "leziart"
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_*.txt")
+names = np.sort(names)
 data = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_*.txt")
-names.sort()
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_blobs_*.txt")
+names = np.sort(names)
+refresh_node = np.loadtxt(open(names[-1], "rb"), delimiter=",")
+
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_*.txt")
+names = np.sort(names)
 robot = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
 timestamps = np.unique(data[:,0])
@@ -67,7 +74,7 @@ plt.show()
 ## Second figure to display the position of the robot in circle space
 
 circle_axes = []
-data = data[data[:,1]<=2]
+#data = data[data[:,1]<=2] # Remove false obstacles (I will need to fix that)
 
 sub_fig, axs = plt.subplots(int(np.max(data[:,1])))
 if int(np.max(data[:,1])) == 1: axs = [axs]
@@ -91,27 +98,34 @@ colors = ['r','b','m','y','violet','orange','pink']
 
 ## Main loop to update what is displayed
 
+init_limits = True
+
 # Slider
 initial_cursor = 0
 samp = Slider(axamp, 'Step', 0, len(timestamps)-1, valinit=initial_cursor)
 
 def update(val):
+    global init_limits
     axes.artists = []
     
     # cursor is the current value of the slider
     cursor = int(samp.val)
 
+    temp_sync = refresh_node[((refresh_node[:,2]==1) & (refresh_node[:,1]!=0)),0]
+    bool_sync = (refresh_node[((refresh_node[:,2]==1) & (refresh_node[:,1]!=0)),0])<=timestamps[cursor]
+    timestamp_sync = np.max(temp_sync[bool_sync])
+ 
     # Update
-    data_feat1_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==1) & (data[:,1]==0)]
+    data_feat1_all = refresh_node[(refresh_node[:,0]==timestamp_sync) & (refresh_node[:,2]==1) & (refresh_node[:,1]==0)]
     data_feat5_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==5) & (data[:,1]==0)]
     data_feat6_all = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==6) & (data[:,1]==0)]
+    #data_feat5_all = refresh_node[(refresh_node[:,0]==timestamp_sync) & (refresh_node[:,2]==5) & (refresh_node[:,1]==0)]
+    #data_feat6_all = refresh_node[(refresh_node[:,0]==timestamp_sync) & (refresh_node[:,2]==6) & (refresh_node[:,1]==0)]
     
     # Update features from data_obstacles_XXX.txt
-    temp_sync = data[((data[:,2]==1) & (data[:,1]!=0)),0]
-    bool_sync = (data[((data[:,2]==1) & (data[:,1]!=0)),0])<=timestamps[cursor]
-    timestamp_sync = np.max(temp_sync[bool_sync])
-    data_feat1 = data[(data[:,0]==timestamp_sync) & (data[:,2]==1) & (data[:,1]!=0)]
-    data_feat2 = data[(data[:,0]==timestamp_sync) & (data[:,2]==2) & (data[:,1]!=0)]
+    
+    data_feat1 = refresh_node[(refresh_node[:,0]==timestamp_sync) & (refresh_node[:,2]==1) & (refresh_node[:,1]!=0)]
+    data_feat2 = refresh_node[(refresh_node[:,0]==timestamp_sync) & (refresh_node[:,2]==2) & (refresh_node[:,1]!=0)]
     data_feat3 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==3) & (data[:,1]!=0)]
     data_feat4 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==4) & (data[:,1]!=0)]
     data_feat5 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==5) & (data[:,1]!=0)]
@@ -127,8 +141,12 @@ def update(val):
     
     # Update occupied cells (in range and out of range)
     for i in range(data_feat1_all.shape[0]):
-        occupied_cell = mpatches.Rectangle([data_feat1_all[i,3]-0.5,data_feat1_all[i,4]-0.5], 1, 1, facecolor="c", zorder=2)
+        occupied_cell = mpatches.Rectangle([data_feat1_all[i,3]-0.5,data_feat1_all[i,4]-0.5], 1, 1, facecolor="c", zorder=5)
         axes.add_artist(occupied_cell)
+    if (data_feat1_all.shape[0])>0 and (init_limits):
+        axes.set_xlim([np.min(data_feat1_all[:,3])-8, np.max(data_feat1_all[:,3])+8])
+        axes.set_ylim([np.min(data_feat1_all[:,4])-8, np.max(data_feat1_all[:,4])+8])
+        init_limits = False
         
     # Update occupied cells (feature 1)
     for i in range(data_feat1.shape[0]):
@@ -241,7 +259,7 @@ def update(val):
                 
 
     # Update velocity command sent to the robot (feature 6 of data_robot)
-    if (robot_feat6.shape[0] > 0) and (data_feat5_all.shape[0] > 0):
+    if (robot_feat6.shape[0] > 0) and (data_feat5_all.shape[0] > 0) and not ((robot_feat6[0,2]==0)and(robot_feat6[0,3]==0)):
         K_mult = 3
         arrow = mpatches.FancyArrow(data_feat5_all[0,3],data_feat5_all[0,4], K_mult*robot_feat6[0,2], K_mult*robot_feat6[0,3], length_includes_head=True, width=0.1, Linewidth=2, facecolor="orange", edgecolor="k", zorder=6)
         axes.add_artist(arrow)
