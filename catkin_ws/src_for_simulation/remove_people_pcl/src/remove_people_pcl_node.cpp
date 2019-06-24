@@ -6,46 +6,53 @@
 #include "geometry_msgs/PoseStamped.h"
 #include <cstdlib>
 #include <cmath>
+#include <tf/tf.h>
 #include <tf/transform_listener.h>
 
 // For synchronization of subscribed topics
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
+//#include <message_filters/subscriber.h>
+//#include <message_filters/synchronizer.h>
+//#include <message_filters/sync_policies/approximate_time.h>
 
-using namespace message_filters;
 
-ros::Publisher pub;
-ros::Publisher pub_debug;
-
-void callback(const geometry_msgs::PoseArray::ConstPtr& people, const sensor_msgs::PointCloud2::ConstPtr& pc2)
+class SubscribeAndPublish
 {
+public:
+    SubscribeAndPublish()
+    {
+        //Topic you want to publish
+        pub_ = n_.advertise<sensor_msgs::PointCloud2>("/cloud_without_people", 1);
 
-    //std::cout << "Triggered" << std::endl; 
+        //Topic you want to subscribe
+        sub_poses_ = n_.subscribe("/pose_people_velodyne_filtered", 2, &SubscribeAndPublish::callback_poses, this);
+   
+        //Topic you want to subscribe
+        sub_pcl_ = n_.subscribe("/cloud_for_static", 2, &SubscribeAndPublish::callback_pcl, this);
+        
+        ROS_INFO("remove_people_plc_node node has been initialized.");
+    }
+
+    void callback_pcl(const sensor_msgs::PointCloud2& input)
+    {
 
     // Point cloud that will be published after filtering
-    sensor_msgs::PointCloud2 output = *pc2;
+    sensor_msgs::PointCloud2 output = input;
 
-    for (int i=0; i<people->poses.size(); i++)
+    for (int i=0; i<people.poses.size(); i++)
     {
-        // TODO: test implementation of tranformPose once it is done
-        geometry_msgs::PoseStamped pose_person;
-        pose_person.header = people->header;
-        pose_person.pose = people->poses[i];
+        // TODO: implement for loop that read content of people array and test for each one of them
+        /*geometry_msgs::PoseStamped pose_person;
+        pose_person.header = people.header;
+        pose_person.pose = people.poses[i];
         geometry_msgs::PoseStamped pose_person_in_map;
-        pose_person_in_map.header = people->header;
-        //listener.tranformPose("map", pose_person, pose_person_in_map)
+        pose_person_in_map.header = people.header;*/
+        //transform_.tranformPose("map", pose_person, pose_person_in_map)
 
-        float personX = pose_person.pose.position.x;
-        float personY = pose_person.pose.position.y;
-        float personZ = pose_person.pose.position.z;
+        float personX = (people.poses[i]).position.x;
+        float personY = (people.poses[i]).position.y;
+        float personZ = (people.poses[i]).position.z;
 
         std::cout << "Remove around (X,Y,Z) = (" << personX << "," << personY << "," << personZ << ")" << std::endl;
-
-        geometry_msgs::PointStamped pointo;
-        pointo.header = pose_person_in_map.header;
-        pointo.point.x = personX; pointo.point.y = personY; pointo.point.z = personZ;
-        if (i==0) {pub_debug.publish(pointo);}
 
         for (sensor_msgs::PointCloud2Iterator<float> it(output, "x"); it != it.end(); ++it)
         {
@@ -57,7 +64,7 @@ void callback(const geometry_msgs::PoseArray::ConstPtr& people, const sensor_msg
             float distance = std::sqrt(std::pow((cloudPointX - personX), 2) + std::pow((cloudPointY - personY), 2));
 
             // Remove all points in a cylinder around the person
-            if(distance < 0.8)
+            if(distance < 0.5)
             {
                 it[0] = std::numeric_limits<float>::quiet_NaN();
                 it[1] = std::numeric_limits<float>::quiet_NaN();
@@ -67,46 +74,36 @@ void callback(const geometry_msgs::PoseArray::ConstPtr& people, const sensor_msg
         }
     }
     // pc2 has been filtered, output can be published
-    pub.publish(output);
-}
+    pub_.publish(output);
+    }
+
+    void callback_poses(const geometry_msgs::PoseArray& input)
+    {
+         people = input;
+    }
+
+private:
+    ros::NodeHandle n_;   // Node handle
+    ros::Publisher pub_;  // To publish filtered boxes
+    ros::Subscriber sub_poses_; // To listen to raw boxes
+    ros::Subscriber sub_pcl_; // To listen to raw boxes
+    tf::TransformListener listener_;
+    tf::Transform transform_; // Transform object
+
+    geometry_msgs::PoseArray people;
+
+};//End of class SubscribeAndPublish
 
 int main(int argc, char **argv)
 {
     //Initiate ROS
     ros::init(argc, argv, "remove_people_pcl_node");
 
-    // Node handle
-    ros::NodeHandle n;
-
-    // Subscriber to PoseArray topic
-    message_filters::Subscriber<geometry_msgs::PoseArray> sub_1(n, "/pose_people", 1);
-
-    // Subscriber to PointCloud2 topic
-    message_filters::Subscriber<sensor_msgs::PointCloud2> sub_2(n, "/cloud_for_static", 1);
-    // TODO: For easier test with /camera/depth_register/points but in reality with velodyne points
-
-    // Synchronization policy
-    typedef sync_policies::ApproximateTime<geometry_msgs::PoseArray, sensor_msgs::PointCloud2> MySyncPolicy;
-
-    // ApproximateTime takes a queue size as its constructor argument,
-    // hence MySyncPolicy(10). Synchronizer for the two topics:
-    Synchronizer<MySyncPolicy> sync(MySyncPolicy(100), sub_1, sub_2);
-
-    // Link synchronizer with callback
-    sync.registerCallback(boost::bind(&callback, _1, _2));
-
-    // Publisher of the filtered PointCloud2
-    pub = n.advertise<sensor_msgs::PointCloud2>("/cloud_without_people", 1);
-
-     pub_debug = n.advertise<geometry_msgs::PointStamped>("/pt_remove", 1);
-
-    // Transform listener
-    tf::TransformListener listener;
+    //Create an object of class SubscribeAndPublish that will take care of everything
+    SubscribeAndPublish SAPObject;
 
     ros::spin();
 
     return 0;
 }
-
-
 

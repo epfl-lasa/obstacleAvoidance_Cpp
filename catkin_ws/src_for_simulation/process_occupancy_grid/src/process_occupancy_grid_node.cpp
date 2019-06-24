@@ -115,13 +115,13 @@ public:
     if (logging_enabled)
     {
         std::cout << "Opening log file" << std::endl;
-        mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        mylog.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
     }
 
     if (true)
     {
         std::cout << "Opening timing file" << std::endl;
-        my_timing.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        my_timing.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_functions_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
     }
 
   }
@@ -159,7 +159,7 @@ public:
     //float position_goal_world_frame_y = -11;//-2.56;//-7.3; //5   ; // 0;
 
     int max_num_attractor = 4;
-    float position_goal_world_frame_x =    -8;
+    float position_goal_world_frame_x =   -3;
     float position_goal_world_frame_y =    0;
     /*switch (num_attractor)
     {
@@ -756,7 +756,7 @@ public:
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 	    //if ((static_cast<int>(key_command)!=5)&&(static_cast<int>(key_command)!=-1)) // if we press 5, the robot should not move
 	   // {
-	       pub_.publish(output);
+	        pub_.publish(output);
 	    //}
             
 
@@ -1036,6 +1036,8 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
             storage.push_back(boundary);
         }
 
+        // storage.clear(); // NO OBSTACLE IN RANGE
+
         /*std::cout << "Displaying result" << std::endl;
         for (int i=0; i<storage.size(); i++)
         {
@@ -1044,6 +1046,25 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
             if ((storage[i]).rows()>5) {std::cout << (storage[i]).block(0,0,5,5) << std::endl;}
             else {std::cout << (storage[i]).row(0) << std::endl;}
         }*/
+         /*for (int i=0; i<storage.size(); i++)
+        {
+          Eigen::MatrixXf coeff = Eigen::MatrixXf::Zero(1,1);
+             
+            coeff(0,0) = (storage[i]).col(0).minCoeff();
+	    float minx = coeff(0,0);            
+            coeff(0,0) = (storage[i]).col(0).maxCoeff();
+            float maxx = coeff(0,0); 
+	    coeff(0,0) = (storage[i]).col(1).minCoeff();
+            float miny = coeff(0,0);
+	    coeff(0,0) = (storage[i]).col(1).maxCoeff();
+            float maxy =  coeff(0,0);
+
+            Eigen::MatrixXi temporaire = Eigen::MatrixXi::Zero(static_cast<int>(maxx-minx+1), static_cast<int>(maxy-miny+1));
+            for (int j=0; j<(storage[i]).rows(); j++)
+            {
+                 temporaire(static_cast<int>((storage[i])(j,0)-minx),static_cast<int>((storage[i])(j,1)-miny)) = 1;
+            }
+            std::cout << temporaire << std::endl;}*/
 
 }
 

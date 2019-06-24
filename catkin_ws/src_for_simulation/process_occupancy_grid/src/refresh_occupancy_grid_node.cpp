@@ -10,6 +10,8 @@
 #include "nav_msgs/OccupancyGrid.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/Float32MultiArray.h"
+#include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PoseArray.h"
 
 // Standard C library
 #include <cstdlib>
@@ -40,8 +42,14 @@ public:
         // Topic you want to publish (Occupancy Grid without data field)
         pub_map_info = n_.advertise<nav_msgs::OccupancyGrid>("map_info", 1);
 
+        // Topic you want to publish (Occupancy Grid expanded)
+        pub_expanded_map = n_.advertise<nav_msgs::OccupancyGrid>("/map_expanded", 1);
+
         // Topic you want to subscribe (map topic to avoid service call)
         sub_map = n_.subscribe("/map", 3, &SubscribeAndPublish::callback_for_map, this);
+
+        //Another topic you want to subscribe (position of detected people)
+        sub_people = n_.subscribe("/pose_people_map_filtered", 2, &SubscribeAndPublish::callback_for_people, this);
 
         // Time start of node
         time_start = ros::WallTime::now().toSec();
@@ -75,6 +83,11 @@ public:
         // Number of cells that the obstacles should be expanded
         n_expansion = static_cast<int>(std::ceil(radius_ridgeback/size_cell));
 
+        // Radius of the security circle around people (in meters)
+        // It does not include the radius of the ridgeback ~0.6 meters (disk will be expanded)
+        float radius_around_people = 0.3;
+        radius_in_cells = static_cast<int>(std::ceil(radius_around_people / size_cell)); // radius_around_people is in [m] and we need a value in [cell]
+
         // Limit distance to consider obstacles (in meters)
         float limit_in_meters = 3;
         limit_in_cells  = static_cast<int>(std::ceil(limit_in_meters/size_cell));
@@ -83,13 +96,13 @@ public:
 	if (logging_enabled)
 	{
              std::cout << "Opening log file" << std::endl;
-	     mylog.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_blobs_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+	     mylog.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_blobs_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
 	}
 
         if (timing_enabled)
         {
         std::cout << "Opening timing file" << std::endl;
-        my_timing.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/timing_refresh_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
+        my_timing.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/timing_refresh_"+std::to_string(static_cast<int>(std::round(time_start)))+".txt", std::ios::out | std::ios_base::app);
         }
 
     }
@@ -200,14 +213,14 @@ public:
                     yaw;
 
 
-        // ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
+        ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
        //////////////////////////////////////////
        // PROCESSING POSITION OF THE ATTRACTOR //
        //////////////////////////////////////////
 
-       float position_goal_world_frame_x =  -8;
-       float position_goal_world_frame_y =  0;
+       float position_goal_world_frame_x = -3.0;
+       float position_goal_world_frame_y =  0.0;
 
        // Get the (x,y) coordinates in the world frame of the cell (0,0)
        float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
@@ -280,7 +293,7 @@ public:
         // PROCESSING OCCUPANCY GRID //
         ///////////////////////////////
 
-        //std::cout << " PROCESSING OCCUPANCY GRID " << std::endl;
+        std::cout << " PROCESSING OCCUPANCY GRID " << std::endl;
 
         // Expand obstacles to get a security margin
         eig_expanded = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
@@ -296,6 +309,64 @@ public:
         }
 
         auto t_process_grid = std::chrono::high_resolution_clock::now();
+        ROS_INFO("Occupancy grid has been processed");
+
+    /////////////////////////////////////
+    // ADDING PEOPLE TO OCCUPANCY GRID //
+    /////////////////////////////////////
+
+    //Eigen::MatrixXi eig_people;// = eig_test;
+    
+    for (int i_col=0; i_col<detected_people.cols(); i_col++)
+    {
+        // Converting the position of the person into the occupancy map frame
+        float person_cell_x = start_cell_x + std::round(detected_people(0,i_col) / size_cell);
+        float person_cell_y = start_cell_y + std::round(detected_people(1,i_col) / size_cell);
+
+        ROS_INFO("Drawing a circle at position (%f,%f)", person_cell_x, person_cell_y);
+
+	// Drawing a disk centered on the position of the person in the occupancy grid
+        draw_circle(eig_expanded, static_cast<int>(person_cell_x), static_cast<int>(person_cell_y), radius_in_cells);
+
+        /*// Taking into account speed to estimate the position of the person 1 second in the future
+        person_cell_x = start_cell_x + std::round((detected_people(0,i_col) + detected_people(2,i_col)*1.0) / size_cell);
+        person_cell_y = start_cell_y + std::round((detected_people(1,i_col) + detected_people(3,i_col)*1.0) / size_cell);
+
+        // Drawing a disk centered on the future position of the person in the occupancy grid
+        draw_circle(eig_expanded, static_cast<int>(person_cell_x), static_cast<int>(person_cell_y), radius_in_cells);
+
+        ROS_INFO("Drawing prediction at position (%f,%f)", person_cell_x, person_cell_y);*/
+    }
+
+    if (false) // enable to display a part of the occupancy map centered on the robot in the console
+    {
+        int corner_square_x = static_cast<int>(std::floor((transform_.getOrigin().getX() - x_pose)/size_cell)-25);
+        int corner_square_y = static_cast<int>(std::floor((transform_.getOrigin().getY() - y_pose)/size_cell)-25);
+        std::cout << eig_expanded.block( corner_square_x, corner_square_y, 51, 51) << std::endl;
+    }
+
+        /*
+        //std::vector<int8_t> vec_data;
+
+        //Eigen::VectorXi vec_xi(Eigen::Map<Eigen::VectorXi>(eig_expanded.data(),eig_expanded.rows()*eig_expanded.cols()));
+
+	//vec_data.resize(vec_xi.size());
+        //Eigen::VectorXi::Map(&vec_data[0],vec_xi.size()) = vec_xi;
+
+        //std::vector<int> vec_data(&vec_xi[0],vec_xi.data()+vec_xi.rows()*vec_xi.cols());*/
+
+        nav_msgs::OccupancyGrid output_map = input;
+	std::vector<int> vec_data(eig_expanded.size());
+        Eigen::Map<Eigen::MatrixXi>(vec_data.data(), eig_expanded.rows(), eig_expanded.cols()) = eig_expanded;
+
+        std::vector<int8_t> vec_final(vec_data.size());
+        for (int i=0; i < vec_data.size(); i++)
+        {
+             vec_final[i] = static_cast<int8_t>(vec_data[i]);
+        }
+
+        output_map.data = vec_final;
+        pub_expanded_map.publish(output_map);
 
         /////////////////////////
         // DETECTING OBSTACLES //
@@ -305,6 +376,8 @@ public:
 
         // Detect expanded obstacles
         storage = detect_borders( eig_expanded, state_robot );
+
+        std::cout << storage.size() << " have been detected near the robot" << std::endl;
 
         // Erase obstacles that are too small to be real obstacles (problem with detection algo)
 	int num_of_obstacles = storage.size()  ;     
@@ -357,6 +430,24 @@ public:
         // Fill data field
         for (int i=0; i<storage.size(); i++)
         {
+            /*Eigen::MatrixXf coeff = Eigen::MatrixXf::Zero(1,1);
+             
+            coeff(0,0) = (storage[i]).col(0).minCoeff();
+	    float minx = coeff(0,0);            
+            coeff(0,0) = (storage[i]).col(0).maxCoeff();
+            float maxx = coeff(0,0); 
+	    coeff(0,0) = (storage[i]).col(1).minCoeff();
+            float miny = coeff(0,0);
+	    coeff(0,0) = (storage[i]).col(1).maxCoeff();
+            float maxy =  coeff(0,0);
+
+            Eigen::MatrixXi temporaire = Eigen::MatrixXi::Zero(static_cast<int>(maxx-minx+1), static_cast<int>(maxy-miny+1));
+            for (int j=0; j<(storage[i]).rows(); j++)
+            {
+                 temporaire(static_cast<int>((storage[i])(j,0)-minx),static_cast<int>((storage[i])(j,1)-miny)) = 1;
+            }
+            std::cout << temporaire << std::endl;*/
+
             //std::cout << "Obstacle " << i << " has " << (storage[i]).rows() << "cells" << std::endl;
             //std::cout << (storage[i]).block(0,0,5,5) << std::endl;
             Border tempo = storage[i];
@@ -430,11 +521,69 @@ public:
         clock_from_main_loop = input.data;
     }
 
+    void callback_for_people(const geometry_msgs::PoseArray& people) // Callback triggered by the /pose_people_map topic
+    {
+    Eigen::MatrixXf temp_storage;
+
+    for (int i=0; i<people.poses.size(); i++)
+    {
+        temp_storage.conservativeResize(10, temp_storage.cols()+1); // add a column to store the new detected person
+
+
+        // TODO: test implementation of tranformPose once it is done
+        geometry_msgs::PoseStamped pose_person;
+        pose_person.header = people.header;
+        pose_person.pose = people.poses[i];
+
+
+        //geometry_msgs::PoseStamped pose_person_in_map;
+        //pose_person_in_map.header = people.header;
+        //listener.tranformPose("map", pose_person, pose_person_in_map)
+
+        float received_time = (pose_person.header.stamp).toSec();
+        float personX = pose_person.pose.position.x;
+        float personY = pose_person.pose.position.y;
+        float personZ = pose_person.pose.position.z;
+
+        // Check if it's (X,Z) and not (Z,X) or (X,Y)...
+        // [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+        // temp_storage.col(i) << personX, personY, 0, 1, 1, 1, 1, 0, 0, 0; // circle centered on the person
+
+        // [x_c, y_c, v_x, v_y, stamp, 0, 0, 0, 0, 0]
+        if (detected_people.cols() >= (i+1))
+	{
+             if (received_time != detected_people(4,i))
+             {
+	         float dx, dy, dt;
+                 dx = personX - detected_people(0,i);
+                 dy = personY - detected_people(1,i);
+                 dt = received_time - detected_people(4,i);
+	         temp_storage.col(i) << personX, personY, (dx/dt), (dy/dt), received_time, 0, 0, 0, 0, 0;
+             }
+             else
+             {
+                  temp_storage.col(i) << personX, personY, detected_people(2,i), detected_people(3,i), received_time, 0, 0, 0, 0, 0;
+             }
+        }
+        else
+        {
+             temp_storage.col(i) << personX, personY, 0, 0, received_time, 0, 0, 0, 0, 0; // no previous information to compute velocity
+        }
+
+
+
+    }
+    detected_people = temp_storage;
+    //std::cout << "Detected people :" << std::endl << detected_people.block(0,0,2,2) << std::endl;
+}
+
 private:
     ros::NodeHandle n_;
     ros::Publisher pub_boundary;  // To publish the velocity command
     ros::Publisher pub_map_info;  // To publish map info for main loop
+    ros::Publisher pub_expanded_map;  // To publish map info for main loop
     ros::Subscriber sub_map;    // To listen to the map topic
+    ros::Subscriber sub_people; // To listen to the pose_people topic
     tf::TransformListener listener_; // To listen to transforms
     tf::StampedTransform transform_; // Transform from map to base_link
 
@@ -454,6 +603,7 @@ private:
     int n_expansion;
     int limit_in_cells;
     float size_cell;
+    int   radius_in_cells; 
 
     bool init_attractor;
     float drift_odometry_x;

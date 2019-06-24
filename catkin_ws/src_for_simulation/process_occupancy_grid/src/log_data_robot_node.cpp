@@ -16,7 +16,8 @@
 #include "geometry_msgs/PointStamped.h" // For /attractor          subscriber
 #include "geometry_msgs/PoseArray.h"    // For /pose_people_map    subscriber
 #include "nav_msgs/Odometry.h"          // For /odometry_filtered  subscriber
-#include "std_msgs/Float32.h"    // For /clock_logging    subscriber
+#include "std_msgs/Float32.h"           // For /clock_logging      subscriber
+#include "nav_msgs/OccupancyGrid.h"     // For /map_info           subscriber
 #include <eigen3/Eigen/Core>
 
 
@@ -79,10 +80,15 @@ public:
         sub_4 = n_.subscribe("/attractor", 1, &SubscribeAndPublish::callback4, this);
 
         // Listening to position of detected people for feature 11
-        // sub_5 = n_.subscribe("/pose_people_map", 1, &SubscribeAndPublish::callback5, this);
+        // output of 2d kalman filter, only people in the field of view
+        // sub_5 = ... 
 
         // Listening to the predicted position of people in (x,y) plane for feature 12
-        // sub_6 = ...
+        // output of 2d kalman filter, people in the field of view + people tracked by LIDAR
+        sub_6 = n_.subscribe("/pose_people_map_filtered", 1, &SubscribeAndPublish::callback6, this);
+
+        // Listening to position of detected people for feature 11
+        sub_map_info = n_.subscribe("/map_info", 1, &SubscribeAndPublish::callback_for_map_info, this);
 
         // Listening to the clock emitted by the main loop to synchronise logging
         sub_clock = n_.subscribe("/clock_logging", 3, &SubscribeAndPublish::callback_clock, this);
@@ -91,6 +97,13 @@ public:
         // Log matrix
         log_matrix = Eigen::MatrixXf::Zero(10,5);
 
+        // For logging
+        nb_detected_people = 0;
+        nb_predicted_people = 0;
+
+        // Size of gmapping cells (the one you use for delta in rosrun gmapping slam_gmapping scan:=/scan _delta:=0.3 _map_update_interval:=1.0)
+        size_cell = 0.2;
+
         // For callback 1
         time_previous = 0.0;//(ros::WallTime::now()).toNSec() * 0.000000001;
 
@@ -98,7 +111,7 @@ public:
         time_start = std::round(ros::WallTime::now().toSec());
 
         // Open log file
-        mylog_robot.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(static_cast<int>(time_start))+".txt", std::ios::out | std::ios_base::app);
+        mylog_robot.open("/home/qolo/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_"+std::to_string(static_cast<int>(time_start))+".txt", std::ios::out | std::ios_base::app);
 
         // Check if file has been correctly opened
         if (mylog_robot.fail())
@@ -301,13 +314,35 @@ public:
 
     void callback5(const geometry_msgs::PoseArray& input)
     {
-        x_people.clear();
-        y_people.clear();
+        // TODO
+        // Do not forget to shift down rows containing predicted_people or else the detected_people will overwrite them
+        // Like if there is 1 detected 1 predicted (row 10 and row 11) and suddenly there are 2 detected, resizing will
+        // assign row 10 and row 11 to detected and row 12 to predicted. So the content of row 11 have to be copied to row 12
+        // or else it will be overwriten 
+    }
+
+    void callback6(const geometry_msgs::PoseArray& input)
+    {
+        // Get the (x,y) coordinates in the world frame of the cell (0,0)
+        float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
+        float start_cell_y = (-1 * std::round(map_gmapping.info.origin.position.y / size_cell));
+
+        /*x_people.clear();
+        y_people.clear();*/
+
+        nb_predicted_people = input.poses.size();
+
+        log_matrix.conservativeResize(10+nb_detected_people+nb_predicted_people, Eigen::NoChange);
+
         for (int i=0; i<input.poses.size() ; i++)
         {
-            geometry_msgs::Pose pose = input.poses[i];
-            x_people.push_back(pose.position.x);
-            y_people.push_back(pose.position.y);
+            // Converting the position of the person into the occupancy map frame
+            float person_cell_x = start_cell_x + std::round((input.poses[i]).position.x / size_cell);
+            float person_cell_y = start_cell_y + std::round((input.poses[i]).position.y / size_cell);
+            /*x_people.push_back(person_cell_x);
+            y_people.push_back(person_cell_y);*/
+
+            log_matrix.row(10+nb_detected_people+i) << 0.0, 12.0, person_cell_x, person_cell_y, 0.0;
         }
     }
 
@@ -363,9 +398,14 @@ public:
         clock_from_main_loop = input.data;
     }
 
+    void callback_for_map_info(const nav_msgs::OccupancyGrid& input) // Callback triggered by /map_info topic
+    {
+	map_gmapping = input;
+    }
+
 private:
     ros::NodeHandle n_; // ROS node
-    ros::Subscriber sub_1, sub_2, sub_3, sub_4, sub_5, sub_6; // Subscribers
+    ros::Subscriber sub_1, sub_2, sub_3, sub_4, sub_5, sub_6, sub_map_info; // Subscribers
     double time_previous;
     std::vector<float> x_people, y_people;
     Eigen::MatrixXf log_matrix;
@@ -378,6 +418,11 @@ private:
 
     tf::TransformListener listener_; // To listen to transforms
     tf::StampedTransform transform_; // Transform from base_link to map
+
+    int nb_detected_people;
+    int nb_predicted_people;
+    nav_msgs::OccupancyGrid map_gmapping;
+    float size_cell;
 };
 
 void mySigintHandler(int sig)

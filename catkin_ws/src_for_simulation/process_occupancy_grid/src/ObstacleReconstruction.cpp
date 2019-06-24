@@ -663,8 +663,9 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     int y_min = static_cast<int>(std::round(state_robot(1,0)-offset));
     int y_max = static_cast<int>(std::round(state_robot(1,0)+offset));
 
-    // std::cout << " OFFSET: " << offset << std::endl;
-    // std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+    std::cout << " Robot : " << state_robot(0,0) << " | " << state_robot(1,0) << std::endl;
+    std::cout << " OFFSET: " << offset << std::endl;
+    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
 
 
     // Expand all occupied cells of the occupancy grid by n cells
@@ -687,9 +688,23 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
         }
     }
 
+    if (x_min<0) {x_min=0;}
+    if (y_min<0) {y_min=0;}
+    if (x_max<0) {x_max=0;}
+    if (y_max<0) {y_max=0;}
+    if (x_min>=occupancy_res.rows()) {x_min=occupancy_res.rows()-1;}
+    if (y_min>=occupancy_res.cols()) {y_min=occupancy_res.cols()-1;}
+    if (x_max>=occupancy_res.rows()) {x_max=occupancy_res.rows()-1;}
+    if (y_max>=occupancy_res.cols()) {y_max=occupancy_res.cols()-1;}
+
+    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+    std::cout << grid.rows() << " | " << grid.cols() << std::endl;
+
     // Output is an empty grid with the obstacle inside the limit distance
     Grid output = Grid::Zero(grid.rows(), grid.cols()); // empty grid the size of the input occupancy grid
     output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1); // copy the obstacle in the limit range
+
+    std::cout << "PASS" << std::endl;
 
     // Detect all obstacles that have at least one cell in the limit square around the robot
     // For instance if one half of an obstacle is within the limit distance we also want
@@ -712,7 +727,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
             }
         }
     }
-
+    std::cout << "PASS" << std::endl;
 
     // Add obstacles inside square to occupancy grid
     // TODO: maybe it could be optimized by only doing it for those are not already completely inside the square
@@ -1442,7 +1457,17 @@ State next_step_several_obstacles_border( State const& state_robot, State const&
         cmd_velocity = M_eps * cmd_velocity; // non moving obstacle
     }
     // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
-    cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    // cmd_velocity(2,0) = (-1)*std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+
+    float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3)) 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415;}
+        else if (diff_angle_2 < diff_angle_3) 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415;}
 
     return speed_limiter(cmd_velocity);
 }
@@ -2205,7 +2230,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         mat_velocities(2,i) = 0;
         mat_gamma(0,i) = output(3,0);
 
-        if ((!check_if_on_way(storage_line, borders[i])))//(mat_gamma(0,i)!=1)&&
+        /*if ((!check_if_on_way(storage_line, borders[i])))//(mat_gamma(0,i)!=1)&&
         {
             mat_gamma(0,i) = std::numeric_limits<float>::max();
             std::cout << " ++ Obstacle " << i << " is not on the way ++ " << std::endl;
@@ -2213,7 +2238,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         else
         {
             std::cout << " ++ Obstacle " << i << " is on the way ++ " << std::endl;
-        }
+        }*/
 
         current_obstacle += 1;
     }
@@ -2243,7 +2268,16 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         // Normalization of the speed to a default desired speed
         cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
 
-        cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+        //cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+        float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3)) 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415;}
+        else if (diff_angle_2 < diff_angle_3) 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415;}
 
         // Decrease speed when the robot get close to the attractor
         float distance_stop = 0.25;
@@ -2305,7 +2339,16 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     }
 
     // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
-    cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    //cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3)) 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415;}
+        else if (diff_angle_2 < diff_angle_3) 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else 
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415;}
 
     /*std::cout << state_robot << std::endl;
     std::cout << state_attractor << std::endl;
@@ -3061,17 +3104,20 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    // so 1 is top half part of the circle and -1 is the bottom half part of the circle
    float ratio_distance = distance_proj / (0.5 * distance_tot);
    // Possible to use a function instead of a simple linearity between 0 and 1
-   float swap_x = 0.1;
+   /*float swap_x = 0.1;
    float swap_y = 0.9;
    if (ratio_distance < swap_x) { ratio_distance = swap_y*ratio_distance/swap_x;}
-   else { ratio_distance = swap_y + (1-swap_y)*(ratio_distance-swap_x)/(1-swap_x);}
+   else { ratio_distance = swap_y + (1-swap_y)*(ratio_distance-swap_x)/(1-swap_x);}*/
 
-   //float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot) ;// = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
+   
+   float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot) ;// = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
    // it should guarantee the continuity of the transform between shape-space and circle-space.
-   //float gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
+   float gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
+   if (gamma_max_robot < gamma_robot) { gamma_circle_space_robot = std::numeric_limits<float>::max();}
+   if (gamma_max_attractor < gamma_attractor) { gamma_circle_space_attractor = std::numeric_limits<float>::max();}
 
    // Another test, projection to infinity in circle space of the points at the limit distance from the obstacle
-    std::cout << "    gamma_max_robot = " << gamma_max_robot << " VS limit_dist = " << limit_dist << std::endl;
+    /*std::cout << "    gamma_max_robot = " << gamma_max_robot << " VS limit_dist = " << limit_dist << std::endl;
     std::cout << "gamma_max_attractor = " << gamma_max_attractor << " VS limit_dist = " << limit_dist << std::endl;
     float gamma_circle_space_robot = 0;
     if (gamma_max_robot > limit_dist)
@@ -3111,7 +3157,8 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
     else
     {
         gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
-    }
+    }*/ // End of "Another test, projection to infinity [...]"
+
    // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results
    //float gamma_circle_space_robot = gamma_robot; // /!\ TEST
    //float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
@@ -3327,7 +3374,7 @@ bool check_if_on_way(Eigen::MatrixXi const& line, Border const& border)
     . . . . . . .
     */
 
-    bool verbose_check = true;
+    bool verbose_check = false;
     Eigen::MatrixXi surface = (border.block(0,0,border.rows(),2)).template cast<int>();
 
     if (verbose_check) {

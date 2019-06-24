@@ -224,6 +224,9 @@ include_directories(
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
 add_executable(remove_people_pcl_node src/remove_people_pcl_node.cpp)
 target_link_libraries(remove_people_pcl_node ${catkin_LIBRARIES})
-#target_link_libraries (listener_data Eigen3::Eigen)
-#target_link_libraries(listener_data ${mylib_LIBRARIES})
-#add_dependencies(listener_data obstacle_avoidance_generate_messages_cpp)
+
+install(TARGETS remove_people_pcl_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

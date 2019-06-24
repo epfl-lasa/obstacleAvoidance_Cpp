@@ -7,8 +7,8 @@
     <rosparam>
       /crop_box/min_x: -0.1
       /crop_box/max_x:  1.2
-      /crop_box/min_y: -0.4
-      /crop_box/max_y:  0.4
+      /crop_box/min_y: -0.42
+      /crop_box/max_y:  0.42
       /crop_box/min_z: -1
       /crop_box/max_z:  0.2
       /crop_box/negative: true
