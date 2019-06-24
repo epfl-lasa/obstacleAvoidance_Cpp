@@ -145,7 +145,7 @@ public:
 
         for (int iter=0; iter < (input.objects_vector).size(); iter++)
         {
-            if ( (input.objects_vector[iter]).object.object_name == "person" )
+            if ( ((input.objects_vector[iter]).object.object_name == "person" ))// && ((input.objects_vector[iter]).roi.x_offset>80) && (((input.objects_vector[iter]).roi.x_offset+(input.objects_vector[iter]).roi.width) < 580) ) // Discard people on edges of FOV
             {
 		only_people.push_back(input.objects_vector[iter]);
                 ROS_INFO("Detected person at position: %f %f", static_cast<float>((input.objects_vector[iter]).roi.x_offset), static_cast<float>((input.objects_vector[iter]).roi.y_offset));
@@ -156,6 +156,7 @@ public:
 
         for (int i=0; i < tracked_people.size(); i++)
         {
+
             (tracked_people[i]).has_been_updated = false;
             (tracked_people[i]).age += 1;
 	    ROS_INFO("Filter %i is now %i steps old", i, (tracked_people[i]).age);
@@ -167,6 +168,20 @@ public:
 		     i -= 1; // go on step back since an element has been removed
 		}
         }
+
+        // ERASE TRACKERS ON THE EDGES OF THE FIELD OF VIEW
+
+        /*for (int i=0; i < tracked_people.size(); i++)
+        {
+            if ((((tracked_people[i]).filter_person.X)[0]>580)||(((tracked_people[i]).filter_person.X)[0]<80));
+            {
+		     tracked_people.erase(tracked_people.begin() + i); // remove the person from the list
+                     only_trackers.erase(only_trackers.begin() + i);
+		     ROS_INFO("Filter %i deleted because it is on the edge of the field of view", i);
+		     i -= 1; // go on step back since an element has been removed
+	    }
+        }*/
+
 
         // PAIR DETECTED PEOPLE WITH THE LIST OF TRACKED PEOPLE
 	// For each detected people
@@ -243,7 +258,7 @@ public:
 
 	for (int i=0; i < only_people.size(); i++)
         {
-
+             if ( ((only_people[i]).roi.x_offset>80) && (((only_people[i]).roi.x_offset+(only_people[i]).roi.width) < 580)) {
 	    // Reset filter age
 	    (tracked_people[index_match[i]]).age -= 2;
             if ((tracked_people[index_match[i]]).age < 0)
@@ -274,7 +289,9 @@ public:
         (only_trackers[index_match[i]]).roi.y_offset = static_cast<int>(std::round(y_pred));
         (only_trackers[index_match[i]]).roi.height = (only_people[i]).roi.height;
         (only_trackers[index_match[i]]).roi.width  = (only_people[i]).roi.width;
-	}
+	} else {ROS_INFO("Person %i is in the edge area", i);}
+        }
+        
 
 	for (int i=0; i < tracked_people.size(); i++)
     {

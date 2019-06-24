@@ -15,7 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cmake_modules
   tf
-  geometry_msgs)
+  geometry_msgs
+  object_msgs)
 
 find_package(PkgConfig)
 pkg_search_module(Eigen3 REQUIRED eigen3)
@@ -27,6 +28,8 @@ IF( NOT EIGEN3_INCLUDE_DIR )
     MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
 ENDIF()
 INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
+
+pkg_check_modules( gsl REQUIRED gsl )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -81,10 +84,10 @@ INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
+#generate_messages(
+#  DEPENDENCIES
+#  std_msgs
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -120,7 +123,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES obstacle_avoidance
-   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs
+   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs object_msgs
 #  DEPENDS system_lib
    CATKIN_DEPENDS message_runtime 
    DEPENDS EIGEN3
@@ -223,8 +226,15 @@ find_package (Eigen3 REQUIRED)
 
 # Listener node to retrieve LaserScan data
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
-add_executable(process_depth_img_node src/process_depth_img_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp)
+add_executable(process_depth_img_node src/process_depth_img_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp src/gmm.cpp)
 target_link_libraries(process_depth_img_node ${catkin_LIBRARIES})
-#target_link_libraries (listener_data Eigen3::Eigen)
-#target_link_libraries(listener_data ${mylib_LIBRARIES})
-#add_dependencies(listener_data obstacle_avoidance_generate_messages_cpp)
+target_link_libraries(process_depth_img_node ${gsl_LIBRARIES})
+
+add_executable(cameras_tf_broadcaster src/cameras_tf_broadcaster.cpp)
+target_link_libraries(cameras_tf_broadcaster ${catkin_LIBRARIES})
+
+install(TARGETS process_depth_img_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

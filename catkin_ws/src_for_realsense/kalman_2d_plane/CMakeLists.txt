@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   cmake_modules
+  tf
   geometry_msgs)
 
 find_package(PkgConfig)
@@ -119,7 +120,7 @@ INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES obstacle_avoidance
-   CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs
+   CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs
 #  DEPENDS system_lib
    CATKIN_DEPENDS message_runtime 
    DEPENDS EIGEN3
@@ -224,6 +225,9 @@ find_package (Eigen3 REQUIRED)
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
 add_executable(kalman_2d_node src/kalman_2d_node.cpp src/KalmanFilter.cpp)
 target_link_libraries(kalman_2d_node ${catkin_LIBRARIES})
+
+add_executable(regroup_people_node src/regroup_people_node.cpp)
+target_link_libraries(regroup_people_node ${catkin_LIBRARIES})
 
 install(TARGETS kalman_2d_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

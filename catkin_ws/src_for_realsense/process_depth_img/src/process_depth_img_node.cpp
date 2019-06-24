@@ -118,7 +118,7 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
 
     geometry_msgs::PoseArray people;
     people.header.stamp = ros::Time::now();
-    people.header.frame_id = "camera_color_optical_frame";
+    people.header.frame_id = "camera_link";
     geometry_msgs::Pose pose_person;
     tf::Quaternion q;
     q.setRPY(0, 0, 0);
