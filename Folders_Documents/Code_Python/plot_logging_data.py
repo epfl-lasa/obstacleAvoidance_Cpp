@@ -30,7 +30,7 @@ limit_in_cells  = int(math.ceil(limit_in_meters))
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558701056.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
 num = str(1560418816)
-system_name = "leziart"
+system_name = "qolo"
 names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_*.txt")
 names = np.sort(names)
 data = np.loadtxt(open(names[-1], "rb"), delimiter=",")
@@ -76,13 +76,14 @@ plt.show()
 circle_axes = []
 #data = data[data[:,1]<=2] # Remove false obstacles (I will need to fix that)
 
-sub_fig, axs = plt.subplots(int(np.max(data[:,1])))
-if int(np.max(data[:,1])) == 1: axs = [axs]
-for i in range(int(np.max(data[:,1]))):
-    axs[i].set_aspect("equal")
-    axs[i].set_xlim([-4,4])
-    axs[i].set_ylim([-4,4])
-    circle_axes.append(axs[i])
+if int(np.max(data[:,1])) > 0:
+    sub_fig, axs = plt.subplots(int(np.max(data[:,1])))
+    if int(np.max(data[:,1])) == 1: axs = [axs]
+    for i in range(int(np.max(data[:,1]))):
+        axs[i].set_aspect("equal")
+        axs[i].set_xlim([-4,4])
+        axs[i].set_ylim([-4,4])
+        circle_axes.append(axs[i])
 
 
 ## Third figure to display the position of the robot in the occupancy grid
@@ -324,7 +325,7 @@ def update(val):
     
     
     # Draw a red dot on the plot with velocity along X
-    lim_X = ax1_vel.get_xlim()
+    """lim_X = ax1_vel.get_xlim()
     lim_Y = ax1_vel.get_ylim()
     circle = mpatches.Ellipse([timestamps[cursor],robot_feat6[0,2]],(lim_X[1]-lim_X[0])/120, (lim_Y[1]-lim_Y[0])/40, facecolor="red", edgecolor="k", zorder=4)          
     ax1_vel.artists = []
@@ -335,7 +336,7 @@ def update(val):
     lim_Y = ax2_vel.get_ylim()
     circle = mpatches.Ellipse([timestamps[cursor],robot_feat6[0,3]], (lim_X[1]-lim_X[0])/120, (lim_Y[1]-lim_Y[0])/40, facecolor="red", edgecolor="k", zorder=4)          
     ax2_vel.artists = []
-    ax2_vel.add_artist(circle)
+    ax2_vel.add_artist(circle)"""
     
     # Draw changes
     fig_vel.canvas.draw_idle()
