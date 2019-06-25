@@ -8,6 +8,137 @@ import matplotlib.patches as mpatches
 import glob
 import imageio
 
+## BEZIER FUNCTIONS
+
+def compute_bezier(X,Y):
+    n = len(X)
+    A = np.vstack((X,Y))
+    A = A.transpose()
+    
+    u = np.ones(n-1)
+    mat = 4 * np.eye(n) + np.diag(u,1) + np.diag(u,-1)
+    mat[0,n-1] = 1
+    mat[n-1,0] = 1
+    mat = mat/6
+    P = np.dot(np.linalg.inv(mat), A)
+    P = np.vstack((P,P[0,:]))
+    A = np.vstack((A,A[0,:]))
+    B = np.zeros((n,2))
+    C = np.zeros((n,2))
+    
+    for k in range(n):
+        B[k,:]=(2*P[k,:]+P[k+1,:])/3;
+        C[k,:]=(P[k,:]+2*P[k+1,:])/3;
+        
+    step=0.01
+    t=(np.arange(0,1,step))
+    t.reshape((len(t),1))
+    s=1-t;
+    
+    s = s.reshape((len(s),1))
+    t = t.reshape((len(t),1))
+    
+    s3=np.power(s,3);
+    s2t=3*np.multiply(np.power(s,2),t)
+    t2s=3*np.multiply(np.power(t,2),s)
+    t3=np.power(t,3)
+    
+    return n, A,B,C,s3,s2t,t2s,t3
+
+
+def border_to_vertices(blob):
+    obstacle = []
+    blob = np.vstack((blob[-1,:],blob))
+    blob = np.vstack((blob,blob[1,:]))
+    remove_last = False ## ADD REMOVE LAST TO C++ CODE
+    
+    for k in range(1,blob.shape[0]-1):
+        
+        if (blob[k,2]==1):
+            if (blob[k,3]==1):
+                obstacle.append( [blob[k,0],  blob[k,1]+(1*0.5)])
+            elif (blob[k,3]==(-1)):
+                obstacle.append( [blob[k,0],  blob[k,1]-(1*0.5)])
+            elif (blob[k,4]==(+1)):
+                obstacle.append( [blob[k,0]-(1*0.5),  blob[k,1]])
+            elif (blob[k,4]==(-1)):
+                obstacle.append( [blob[k,0]+(1*0.5),  blob[k,1]])
+            else:
+                print("Should not happen. Invalid straight line cell." )
+                    
+            
+        elif (blob[k,2]==2):
+            if (blob[k,4]==0):
+                obstacle.append( [blob[k,0]-(1*0.5),  blob[k,1]])
+            elif (blob[k,4]==1):
+                obstacle.append( [blob[k,0],  blob[k,1]-(1*0.5)])
+            elif (blob[k,4]==2):
+                obstacle.append( [blob[k,0]+(1*0.5),  blob[k,1]])
+            elif (blob[k,4]==3):
+                obstacle.append( [blob[k,0],  blob[k,1]+(1*0.5)])
+            else:
+                print("Should not happen." )
+                
+        elif (blob[k,2]==3):
+            if (blob[k-1,2] == 2) and (blob[k+1,2] != 2):
+                if len(obstacle)>0: obstacle.pop()
+                else: remove_last = True  ## ADD REMOVE LAST TO C++ CODE
+            
+            if (blob[k-1,2] == 1) and (blob[k+1,2] != 3):
+               if len(obstacle)>0: obstacle.pop()
+               else: remove_last = True  ## ADD REMOVE LAST TO C++ CODE
+            
+            if (blob[k,0]==10) and ((blob[k,1]==2)): 
+                print("PASS")
+                print(blob[k-1,:])
+                print(blob[k,:])
+                print(blob[k+1,:])
+            
+            if ((blob[k-1,2] == 3) and (blob[k+1,2] == 1)):
+                if (blob[k,0]==10) and ((blob[k,1]==2)): print("PASS 1")
+                if (blob[k,4]==0):
+                    obstacle.append( [blob[k,0],  blob[k,1]-(1*0.5)])
+                elif (blob[k,4]==1):
+                    obstacle.append( [blob[k,0]+(1*0.5),  blob[k,1]])
+                elif (blob[k,4]==2):
+                    obstacle.append( [blob[k,0],  blob[k,1]+(1*0.5)])
+                elif (blob[k,4]==3):
+                    obstacle.append( [blob[k,0]-(1*0.5),  blob[k,1]])
+                else:
+                    print("Should not happen." )
+            elif (blob[k-1,2] == 3) or (blob[k+1,2] == 1) or ((blob[k-1,2] == 1) and (blob[k+1,2] != 3)):
+                if (blob[k,0]==10) and ((blob[k,1]==2)): print("PASS 2")
+                # Put corner cell
+                if (blob[k,4]==0):
+                    obstacle.append( [blob[k,0]-(1*0.5),  blob[k,1]-(1*0.5)])
+                elif (blob[k,4]==1):
+                    obstacle.append( [blob[k,0]+(1*0.5),  blob[k,1]-(1*0.5)])
+                elif (blob[k,4]==2):
+                    obstacle.append( [blob[k,0]+(1*0.5),  blob[k,1]+(1*0.5)])
+                elif (blob[k,4]==3):
+                    obstacle.append( [blob[k,0]-(1*0.5),  blob[k,1]+(1*0.5)])
+                else:
+                    print("Should not happen." )
+            elif (blob[k+1,2] == 2) or (blob[k-1,2] == 3):
+                if (blob[k,0]==10) and ((blob[k,1]==2)): print("PASS 3")
+                if (blob[k,4]==0):
+                    obstacle.append( [blob[k,0],  blob[k,1]-(1*0.5)])
+                elif (blob[k,4]==1):
+                    obstacle.append( [blob[k,0]+(1*0.5),  blob[k,1]])
+                elif (blob[k,4]==2):
+                    obstacle.append( [blob[k,0],  blob[k,1]+(1*0.5)])
+                elif (blob[k,4]==3):
+                    obstacle.append( [blob[k,0]-(1*0.5),  blob[k,1]])
+                else:
+                    print("Should not happen." )
+                
+        else:
+            print("ERROR")
+            
+    if (remove_last): obstacle.pop()  ## ADD REMOVE LAST TO C++ CODE
+    return obstacle
+
+##
 
 def disp1():
     """
@@ -302,6 +433,7 @@ def disp6bis():
     Use the streamplot function of Matplotlib
     """
     names = glob.glob("./stream_data_bor*.txt")
+    names = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_0*.txt")
     
     # Get data and put in the the correct format
     for name in names:
@@ -333,7 +465,243 @@ def disp6bis():
     #ax.set_xlim(300, 390)
     #ax.set_ylim(280, 370)
     plt.show()
+
+def disp6ter(): 
+    """
+    Plot a stream field to display the velocity flow in the workspace
+    Each line is formatted as follows "x_pos, y_pos, x_vel, y_vel"
+    Use the streamplot function of Matplotlib
+    """
     
+    margin = 0.5
+    
+    num = 8
+    names = glob.glob("./stream_data_bor*.txt")
+    names_normal = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_normal.txt")
+    names_bezier = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_bezier.txt")
+    names_classic = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_classic.txt")
+    names_bor = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_obs.txt")
+    names_cells = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_cells.txt")
+    
+    # Get data and put in the the correct format
+    for name in names_normal:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+    
+    # Create figure and get axes handle
+    fig, ax = plt.subplots()
+    
+    # Plot occupied cells
+    for name_cells in names_cells:
+        obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
+        for i_row in range(0,obstacles.shape[0]):
+            rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
+            ax.add_artist(rectangle)
+                
+    # Plot the borders of obstacles in range
+    borders = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
+    for i_row in range(0,borders.shape[0]):
+        if borders[i_row,2] == 1:
+            if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
+                plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+            elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
+                plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+            elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
+                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3)
+            elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
+                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3)
+            else:
+                print("Should not happen")
+        elif borders[i_row,2] == 2:
+            if borders[i_row,4] == 0:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+            elif borders[i_row,4] == 1:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+            elif borders[i_row,4] == 2:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+            elif borders[i_row,4] == 3:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+            ax.add_artist(arc)
+        elif borders[i_row,2] == 3:
+            if borders[i_row,4] == 0:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+            elif borders[i_row,4] == 1:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+            elif borders[i_row,4] == 2:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+            elif borders[i_row,4] == 3:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+            ax.add_artist(arc)
+    
+    # Plot the stream
+    q = ax.streamplot(X, Y, U, V, density=6)
+    
+    # Plot the attractor
+    ellipse = mpatches.Ellipse([5,0], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+    ax.add_artist(ellipse)
+     
+    # Set axis limits and display result
+    min_x = np.min(entry[:,0])
+    max_x = np.max(entry[:,0])
+    min_y = np.min(entry[:,1])
+    max_y = np.max(entry[:,1])
+    
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    #ax.set_xlim(300, 390)
+    #ax.set_ylim(280, 370)
+    ax.set_aspect("equal")
+    plt.show()
+    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png")
+    
+    # Get data and put in the the correct format
+    for name in names_bezier:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+    
+    # Create figure and get axes handle
+    fig, ax = plt.subplots()
+    
+    # Plot occupied cells
+    for name_cells in names_cells:
+        obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
+        for i_row in range(0,obstacles.shape[0]):
+            rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
+            ax.add_artist(rectangle)
+                    
+    data = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
+    
+    for k in np.unique(data[:,5]):
+        output_data = border_to_vertices(data[data[:,5]==k,0:5])
+        output_data = np.array(output_data)
+        
+        X_bez = output_data[:,0]
+        Y_bez = output_data[:,1]
+        
+        n, A,B,C,s3,s2t,t2s,t3 = compute_bezier(X_bez,Y_bez)
+        
+        for k in range(n):  
+            a=A[k,:]
+            b=B[k,:]
+            c=C[k,:]
+            d=A[k+1,:]
+            a = a.reshape((len(a),1))
+            b = b.reshape((len(b),1))
+            c = c.reshape((len(c),1))
+            d = d.reshape((len(d),1))
+            bez= s3*a.transpose() + s2t * b.transpose() + t2s*c.transpose() + t3*d.transpose()
+            plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
+    
+    # Plot the stream
+    q = ax.streamplot(X, Y, U, V, density=6)
+    
+    # Plot the attractor
+    ellipse = mpatches.Ellipse([5,0], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+    ax.add_artist(ellipse)
+     
+    # Set axis limits and display result
+    min_x = np.min(entry[:,0])
+    max_x = np.max(entry[:,0])
+    min_y = np.min(entry[:,1])
+    max_y = np.max(entry[:,1])
+    
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    #ax.set_xlim(300, 390)
+    #ax.set_ylim(280, 370)
+    ax.set_aspect("equal")
+    
+    plt.show()
+    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".png")
+    
+    # Get data and put in the the correct format
+    for name in names_classic:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+    
+    # Create figure and get axes handle
+    fig, ax = plt.subplots()
+    
+    # Plot occupied cells
+    for name_cells in names_cells:
+        obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
+        for i_row in range(0,obstacles.shape[0]):
+            rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
+            ax.add_artist(rectangle)
+                
+    # Plot the borders of obstacles in range
+    borders = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
+    for i_row in range(0,borders.shape[0]):
+        if borders[i_row,2] == 1:
+            if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
+                plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+            elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
+                plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+            elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
+                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3)
+            elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
+                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3)
+            else:
+                print("Should not happen")
+        elif borders[i_row,2] == 2:
+            if borders[i_row,4] == 0:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+            elif borders[i_row,4] == 1:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+            elif borders[i_row,4] == 2:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+            elif borders[i_row,4] == 3:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+            ax.add_artist(arc)
+        elif borders[i_row,2] == 3:
+            if borders[i_row,4] == 0:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+            elif borders[i_row,4] == 1:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+            elif borders[i_row,4] == 2:
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+            elif borders[i_row,4] == 3:
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+            ax.add_artist(arc)
+    
+    # Plot the stream
+    q = ax.streamplot(X, Y, U, V, density=6)
+    
+    # Plot the attractor
+    ellipse = mpatches.Ellipse([5,0], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+    ax.add_artist(ellipse)
+    
+    # Plot the reference point
+    ellipse = mpatches.Ellipse([4.5,7.5], 0.3, 0.3, facecolor='cyan', edgecolor="white", zorder=5)
+    ax.add_artist(ellipse)
+     
+    # Set axis limits and display result
+    min_x = np.min(entry[:,0])
+    max_x = np.max(entry[:,0])
+    min_y = np.min(entry[:,1])
+    max_y = np.max(entry[:,1])
+    
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    #ax.set_xlim(300, 390)
+    #ax.set_ylim(280, 370)
+    ax.set_aspect("equal")
+    plt.show()
+    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".png")
+
+
 def disp7(): # Create an animated gif displaying the movement of points/obstacles over time FOR BORDER
     """
     Display the trajectories of robots avoiding an obstacle composed of cells
@@ -761,7 +1129,7 @@ def disp_debug_occupancy():
     
 #disp9()
 #disp6()
-#disp6bis()
+disp6ter()
 #disp_debug()
 #disp_debug_occupancy()
 #disp10()

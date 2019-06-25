@@ -17,4 +17,7 @@ float get_max_gamma_distance_bezier(Eigen::Matrix<float, 1, 2> const& proj_robot
 Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, State const& state_attractor, Border const& border);
 
 State test_next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells);
+
+Eigen::Matrix<float, 4, 1> next_step_classic(State const& state_robot, State const& state_attractor, State const& state_reference, Border const& border);
+
 #endif // BEZIERINTERPOLATION_H_INCLUDED

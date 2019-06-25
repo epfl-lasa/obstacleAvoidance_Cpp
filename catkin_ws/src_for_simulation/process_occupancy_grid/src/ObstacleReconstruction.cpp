@@ -2,9 +2,9 @@
 
 float myRad = 0.1;
 const float size_cell = 1.0;
-const float margin = 0.25;
+const float margin = 0.5; // 0.25
 
-bool logging_enabled = true;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
+bool logging_enabled = false;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
 Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 Eigen::MatrixXf log_refresh = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 float current_obstacle = 1;
@@ -1462,11 +1462,11 @@ State next_step_several_obstacles_border( State const& state_robot, State const&
     float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415);
         float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
         float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415);
-        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3)) 
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415;}
-        else if (diff_angle_2 < diff_angle_3) 
+        else if (diff_angle_2 < diff_angle_3)
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
-        else 
+        else
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415;}
 
     return speed_limiter(cmd_velocity);
@@ -2254,8 +2254,8 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     // Relative weights of the obstacles depending on their distance from the robot
     Eigen::MatrixXf mat_weights(1, number_obstacles); // "1 x number_of_obstacles"
     mat_weights = weights_special( state_robot, mat_gamma, method_weights, limit_dist);
-    std::cout << "Gammas : " << mat_gamma   << std::endl;
-    std::cout << "Weights: " << mat_weights << std::endl;
+    //std::cout << "Gammas : " << mat_gamma   << std::endl;
+    //std::cout << "Weights: " << mat_weights << std::endl;
 
     // Special case if all obstacles are too far away from the robot so none of them is considered
     if ((mat_weights.size()==0) || (mat_weights.maxCoeff() == 0))
@@ -2272,11 +2272,11 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415);
         float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
         float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415);
-        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3)) 
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415;}
-        else if (diff_angle_2 < diff_angle_3) 
+        else if (diff_angle_2 < diff_angle_3)
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
-        else 
+        else
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415;}
 
         // Decrease speed when the robot get close to the attractor
@@ -2343,11 +2343,11 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415);
         float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
         float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415);
-        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3)) 
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 3.1415;}
-        else if (diff_angle_2 < diff_angle_3) 
+        else if (diff_angle_2 < diff_angle_3)
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
-        else 
+        else
            {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 3.1415;}
 
     /*std::cout << state_robot << std::endl;
@@ -2461,7 +2461,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     robot_vec << (robot(0,0)-gamma_norm_proj(4,0)),(robot(0,1)-gamma_norm_proj(5,0)),0;
     normal_vec << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
 
-    if (true)
+    if (false)
     {
         std::cout << "Closest         " << closest << std::endl;
         std::cout << "Projected robot " << gamma_norm_proj(4,0) << " " << gamma_norm_proj(5,0) << std::endl;
@@ -2484,6 +2484,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        output << 0.0, 0.0, 0, 1;
         return output;
     }
     else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
@@ -2496,6 +2497,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1;
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        output << 0.0, 0.0, 0, 1;
         return output;
     }
 
@@ -2586,7 +2588,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         r_eps_vector = (-1) * r_eps_vector;
     }
 
-    if (true)
+    if (false)
     {
         std::cout << "Distance tot:             " << distances_surface(0,0) << " | Distance min: " << distances_surface(0,1) << std::endl;
         std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;
@@ -3109,12 +3111,12 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    if (ratio_distance < swap_x) { ratio_distance = swap_y*ratio_distance/swap_x;}
    else { ratio_distance = swap_y + (1-swap_y)*(ratio_distance-swap_x)/(1-swap_x);}*/
 
-   
-   float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot) ;// = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
+
+   /*float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot) ;// = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
    // it should guarantee the continuity of the transform between shape-space and circle-space.
    float gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
    if (gamma_max_robot < gamma_robot) { gamma_circle_space_robot = std::numeric_limits<float>::max();}
-   if (gamma_max_attractor < gamma_attractor) { gamma_circle_space_attractor = std::numeric_limits<float>::max();}
+   if (gamma_max_attractor < gamma_attractor) { gamma_circle_space_attractor = std::numeric_limits<float>::max();}*/
 
    // Another test, projection to infinity in circle space of the points at the limit distance from the obstacle
     /*std::cout << "    gamma_max_robot = " << gamma_max_robot << " VS limit_dist = " << limit_dist << std::endl;
@@ -3160,8 +3162,8 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
     }*/ // End of "Another test, projection to infinity [...]"
 
    // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results
-   //float gamma_circle_space_robot = gamma_robot; // /!\ TEST
-   //float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
+   float gamma_circle_space_robot = gamma_robot; // /!\ TEST
+   float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
    //std::cout << gamma_attractor << std::endl;
    float angle = 3.1415 * ratio_distance * direction;
 

@@ -552,6 +552,7 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
     }
 
 
+
     float speed_reverse = 1000; // speed to get out of an obstacle (will be limited by speed_limiter, basically the robot will go at max speed)
 
     if (((closest(0,2)==1)||(closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0)) // if true it means the robot is inside obstacle
@@ -564,6 +565,7 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
         //my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        output << 0.0, 0.0, 0, 1;
         return output;
     }
     else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
@@ -576,6 +578,7 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1;
         //my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        output << 0.0, 0.0, 0, 1;
         return output;
     }
 
@@ -596,47 +599,55 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
     // Get the maximum gamma distance in the initial space for the attractor
     float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
 
-    std::cout << "Robot " << state_robot(0,0) << " " << state_robot(1,0) << std::endl;
+    /*std::cout << "Robot " << state_robot(0,0) << " " << state_robot(1,0) << std::endl;
     std::cout << "Projected robot " << gamma_norm_proj(4,0) << " " << gamma_norm_proj(5,0) << std::endl;
-    std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;
+    std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;*/
     // TEST BEZIER POINTS
     Eigen::MatrixXf res_bez = border_to_vertices(border);
     //std::cout << res_bez << std::endl;
     std::vector<Eigen::MatrixXf> pts_bezier = compute_bezier(res_bez);
     State proj_robot_state = get_projection_on_bezier(state_robot, pts_bezier);
-    std::cout << proj_robot_state.transpose() << std::endl;
+    //std::cout << proj_robot_state.transpose() << std::endl;
     State proj_attractor_state = get_projection_on_bezier(state_attractor, pts_bezier);
-    proj_robot << proj_robot_state(0,0), proj_robot_state(1,0);
-    proj_attractor << proj_attractor_state(0,0), proj_attractor_state(1,0);
-    Eigen::Matrix<float, 1, 2> normal_robot; normal_robot << state_robot(0,0) - proj_robot(0,0), state_robot(1,0) - proj_robot(0,1);
+
+    proj_robot.row(0) << proj_robot_state(0,0), proj_robot_state(1,0);
+    proj_attractor.row(0) << proj_attractor_state(0,0), proj_attractor_state(1,0);
+    Eigen::Matrix<float, 1, 2> normal_robot; normal_robot.row(0) << state_robot(0,0) - proj_robot(0,0), state_robot(1,0) - proj_robot(0,1);
     normal_robot = normal_robot / std::sqrt(std::pow(normal_robot(0,0),2) + std::pow(normal_robot(0,1),2));
+
+
 
     // Test if the robot is on the wrong side of the boundary for some reason (like time discretization)
     State temp_state; temp_state << normal_robot(0,0), normal_robot(0,1), 0.0;
     if ((((closest(0,2)==1)||(closest(0,2)==2))&&(normal_vec.dot(temp_state) < 0))||((closest(0,2)==3)&&(normal_vec.dot(temp_state) > 0)))
     {
-        std::cout << "IS IN OBSTACLE - REVERSE SPEED" << std::endl;
+        // std::cout << "IS IN OBSTACLE - REVERSE SPEED" << std::endl;
         normal_robot *= (-1);
         Eigen::Matrix<float, 4, 1> output;
         output << speed_reverse * normal_robot(0,0), speed_reverse * normal_robot(0,1), 0, 1;
+        output << 0.0, 0.0, 0, 1;
         return output;
     }
 
     Eigen::Matrix<float, 1, 2> normal_attractor; normal_attractor << state_attractor(0,0) - proj_attractor(0,0), state_attractor(1,0) - proj_attractor(0,1);
     normal_attractor = normal_attractor / std::sqrt(std::pow(normal_attractor(0,0),2) + std::pow(normal_attractor(0,1),2));
 
+
     distances_surface = get_distances_surface_bezier( proj_robot, proj_attractor, pts_bezier);
+
     max_gamma_robot = get_max_gamma_distance_bezier( proj_robot, normal_robot, pts_bezier);
+
     max_gamma_attractor = get_max_gamma_distance_bezier( proj_attractor, normal_attractor, pts_bezier);
 
     float gamma_robot = (1 + std::pow(state_robot(0,0)-proj_robot(0,0),2) + std::pow(state_robot(1,0)-proj_robot(0,1),2));
-    float gamma_attractor = (1 + std::pow(state_attractor(0,0)-proj_attractor(0,0),2) + std::pow(state_attractor(1,0)-proj_attractor(1,0),2));
+    float gamma_attractor = (1 + std::pow(state_attractor(0,0)-proj_attractor(0,0),2) + std::pow(state_attractor(1,0)-proj_attractor(0,1),2));
+
     gamma_norm_proj << gamma_robot, normal_robot(0,0), normal_robot(0,1), 0.0, proj_robot(0,0), proj_robot(0,1);
     gamma_norm_proj_attractor << gamma_attractor, normal_attractor(0,0), normal_attractor(0,1), 0.0, proj_attractor(0,0), proj_attractor(0,1);
 
-    std::cout << "Normal robot bezier " << normal_robot << std::endl;
+    /*std::cout << "Normal robot bezier " << normal_robot << std::endl;
     std::cout << "Projected robot bezier " << proj_robot(0,0) << " " << proj_robot(0,1) << std::endl;
-    std::cout << "Gamma bezier " << gamma_robot << std::endl;
+    std::cout << "Gamma bezier " << gamma_robot << std::endl;*/
     // END TEST BEZIER POINTS
 
     // Get the position of the robot in the circle space
@@ -697,7 +708,7 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
         velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
     }*/
 
-    if (true)
+    if (false)
     {
         std::cout << "Distance tot:             " << distances_surface(0,0) << " | Distance min: " << distances_surface(0,1) << std::endl;
         std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;
@@ -720,8 +731,8 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
         std::cout << circle_tranform.row(1) << "        " << shape_tranform.row(1) << std::endl;
         std::cout << "Vel shape frame:          "  << velocity_shape_space.block(0,0,2,1).transpose() << std::endl;
     }
-    std::cout << "Vel circle frame:         " << velocity_circle_space.block(0,0,2,1).transpose() << std::endl;
-    std::cout << "Vel shape frame:          "  << velocity_shape_space.block(0,0,2,1).transpose() << std::endl;
+    //std::cout << "Vel circle frame:         " << velocity_circle_space.block(0,0,2,1).transpose() << std::endl;
+    //std::cout << "Vel shape frame:          "  << velocity_shape_space.block(0,0,2,1).transpose() << std::endl;
     /*if (logging_enabled)
     {
         // std::cout << "Logging inside next_step_special" << std::endl;
@@ -783,6 +794,8 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
     Eigen::MatrixXf mat_velocities(number_states, number_obstacles);  // "3 x number_of_obstacles" (x,y,phi)
     Eigen::MatrixXf mat_gamma(1, number_obstacles);                   // "1 x number_of_obstacles" (gamma distance)
 
+
+
     for (int i=0; i < borders.size(); i++)
     {
         /*if (false)
@@ -811,6 +824,8 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
 
         //current_obstacle += 1;
     }
+
+
 
     // Norm of the velocity command for each obstacle
     Eigen::MatrixXf mat_magnitudes( 1, number_obstacles);
@@ -846,6 +861,8 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
 
         return speed_limiter(cmd_velocity);
     }
+
+
 
     // Magnitude of the weighted velocity command
     float weighted_mag = weighted_magnitude( mat_weights, mat_magnitudes);
@@ -896,6 +913,9 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
 
     }
 
+    // HAVE SET VELOCIT FOR PLOTTING
+    cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
+
     // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
     cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
 
@@ -936,4 +956,190 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
     cmd_velocity.block(0,0,2,1) *= std::min(std::max(static_cast<float>(0.0),distance_to_attractor-distance_stop)/(distance_start_decreasing-distance_stop), static_cast<float>(1.0));
 
     return speed_limiter(cmd_velocity);
+}
+
+Eigen::Matrix<float, 4, 1> next_step_classic(State const& state_robot, State const& state_attractor, State const& state_reference, Border const& border)
+{   // compute the next step with the special method for a single obstacle
+    // output is velocity_command stacked with gamma
+
+    // Initialization
+    Eigen::MatrixXf closest(1,6);
+    Eigen::MatrixXf closest_attractor(1,6);
+    Eigen::Matrix<float, 6, 1> gamma_norm_proj;
+    Eigen::Matrix<float, 6, 1> gamma_norm_proj_attractor;
+    State robot_vec;
+    State normal_vec;
+
+    State f_eps;
+    float lamb_r = 0;
+    float lamb_e = 0;
+    Eigen::Matrix<float, number_states, number_states> D_eps;
+    State r_eps_vector;
+    State gradient_vector;
+    Eigen::Matrix<float, number_states, number_states-1> ortho_basis;
+    Eigen::Matrix<float, number_states, number_states> E_eps;
+    Eigen::Matrix<float, number_states, number_states> M_eps;
+
+    Eigen::Matrix2f circle_tranform; // from circle frame to standard frame, rotation matrix with minus the angle of the reference vector in circle shape
+    Eigen::Matrix2f shape_tranform;  // from standard frame to shape frame, rotation matrix with the angle of the normal vector in shape space
+
+    State velocity_circle_space;
+    State velocity_shape_space;
+
+    Eigen::Matrix<float, 1, 2> robot = state_robot.block(0,0,2,1).transpose();
+    Eigen::Matrix<float, 1, 2> attractor = state_attractor.block(0,0,2,1).transpose();
+    Eigen::Matrix<float, 1, 2> reference_point = state_reference.block(0,0,2,1).transpose();
+
+    // Get closest cell for the robot
+    closest = find_closest_point(robot, border);
+
+    // Get gamma distance + normal vector + point projected on border for the robot
+    gamma_norm_proj = gamma_normal_projection( robot, closest);
+
+    // Get closest cell for the attractor
+    closest_attractor = find_closest_point(attractor, border);
+
+    // Get gamma distance + normal vector + point projected on border for the attractor
+    gamma_norm_proj_attractor = gamma_normal_projection( attractor, closest_attractor);
+
+    // To return NaN for points inside obstacle
+    robot_vec << (robot(0,0)-gamma_norm_proj(4,0)),(robot(0,1)-gamma_norm_proj(5,0)),0;
+    normal_vec << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
+
+    if (false)
+    {
+        std::cout << "Closest         " << closest << std::endl;
+        std::cout << "Projected robot " << gamma_norm_proj(4,0) << " " << gamma_norm_proj(5,0) << std::endl;
+        std::cout << "Robot_vec       " << robot_vec.transpose() << std::endl;
+        std::cout << "Normal_vec      " << normal_vec.transpose()  << std::endl;
+        std::cout << "Dot product     " << normal_vec.dot(robot_vec.colwise().normalized()) << std::endl;
+        std::cout << "Projected attractor " << gamma_norm_proj_attractor(4,0) << " " << gamma_norm_proj_attractor(5,0) << std::endl;
+    }
+
+
+    float speed_reverse = 1000; // speed to get out of an obstacle (will be limited by speed_limiter, basically the robot will go at max speed)
+
+    if (((closest(0,2)==1)||(closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0)) // if true it means the robot is inside obstacle
+    {
+        // If inside an obstacle, avoid display by returning NaN
+        //Eigen::Matrix<float, 4, 1>  output; output << std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(), 0, std::numeric_limits<float>::quiet_NaN();
+
+        // If inside an obstacle, velocity command is normal to the surface
+        Eigen::Matrix<float, 4, 1>  output;
+        float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
+        output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
+        //my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        output << 0.0, 0.0, 0, 1;
+        return output;
+    }
+    else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
+    {
+        // If inside an obstacle, avoid display by returning NaN
+        //Eigen::Matrix<float, 4, 1>  output; output << std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::quiet_NaN(), 0, std::numeric_limits<float>::quiet_NaN();
+
+        // If inside an obstacle, velocity command is normal to the surface
+        Eigen::Matrix<float, 4, 1>  output;
+        float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
+        output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1;
+        //my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        output << 0.0, 0.0, 0, 1;
+        return output;
+    }
+
+    // Get minimal distance along surface (either by following the surface clockwise or counter-clockwise)
+    // Distance between the projected point of the robot and the projected point of the attractor
+    Eigen::Matrix<float, 1, 2> proj_robot;     proj_robot     << gamma_norm_proj(4,0), gamma_norm_proj(5,0);
+    Eigen::Matrix<float, 1, 2> proj_attractor; proj_attractor << gamma_norm_proj_attractor(4,0), gamma_norm_proj_attractor(5,0);
+
+
+    // Get information about the position of the project point on the boundary of the obstacle
+    //Eigen::Matrix<float, 1, 3> distances_surface = get_distances_surface(proj_robot, proj_attractor, border);
+
+
+    // Get the maximum gamma distance in the initial space for the robot
+    //float max_gamma_robot = get_max_gamma_distance( proj_robot, gamma_norm_proj.block(1,0,2,1).transpose(), border);
+
+
+    // Get the maximum gamma distance in the initial space for the attractor
+    //float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
+
+
+    // Get the position of the robot in the circle space
+    /*Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
+    float gamma_circle_frame = point_circle_space(0,0);
+    State robot_circle_frame = point_circle_space.block(1,0,3,1);
+    State attractor_circle_frame = point_circle_space.block(4,0,3,1);
+    State ref_vec_circle_frame = point_circle_space.block(7,0,3,1);*/
+
+    float gamma_circle_frame = gamma_norm_proj(0,0);
+    State robot_circle_frame; robot_circle_frame << state_robot(0,0),state_robot(1,0), 0;
+    State attractor_circle_frame; attractor_circle_frame << state_attractor(0,0),state_attractor(1,0),0;
+    State ref_vec_circle_frame; ref_vec_circle_frame << (state_robot(0,0)-state_reference(0,0)), (state_robot(1,0)-state_reference(1,0)), 0;
+    ref_vec_circle_frame = ref_vec_circle_frame / (std::sqrt(std::pow(ref_vec_circle_frame(0,0),2) + std::pow(ref_vec_circle_frame(1,0),2)));
+
+    if (closest(0,2)==3) // -1 applied to r_eps_vector instead
+    {
+        ref_vec_circle_frame = (-1) * ref_vec_circle_frame;
+    }
+
+    // Compute attractor function
+    f_eps = (attractor_circle_frame - robot_circle_frame);
+
+    // Normalization of the speed to a default desired speed
+    f_eps = f_eps / (std::sqrt(std::pow(f_eps(0,0),2) + std::pow(f_eps(1,0),2)));
+
+    // Several steps to get D(epsilon) matrix
+    lamb_r = 1 - (1/gamma_circle_frame);
+    lamb_e = 1 + (1/gamma_circle_frame);
+    D_eps = D_epsilon( lamb_r, lamb_e);
+
+    // Several steps to get E(epsilon) matrix
+    Obstacle obs;
+    obs << 0, 0, 0, 1, 1, 1, 1, 0, 0, 0; // unit circle [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
+    r_eps_vector = ref_vec_circle_frame;
+
+    /*if (closest(0,2)==3)
+    {
+        r_eps_vector = (-1) * r_eps_vector;
+    }*/
+
+    //gradient_vector = gradient( robot_circle_frame, obs);
+    gradient_vector << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
+    ortho_basis = gram_schmidt( gradient_vector);
+    E_eps = E_epsilon( r_eps_vector, ortho_basis);
+
+    // Compute M(epsilon)
+    M_eps = M_epsilon( D_eps, E_eps);
+
+    // Compute epsilon_dot
+    velocity_circle_space = epsilon_dot( M_eps, f_eps, robot_circle_frame, obs);
+
+    // Transform the velocity_command back into the shape-space
+    circle_tranform <<   ref_vec_circle_frame(0,0), ref_vec_circle_frame(1,0),
+                  (-1) * ref_vec_circle_frame(1,0), ref_vec_circle_frame(0,0);
+
+    shape_tranform <<    gamma_norm_proj(1,0), (-1) * gamma_norm_proj(2,0),
+                         gamma_norm_proj(2,0),        gamma_norm_proj(1,0);
+
+
+    // Apply the two rotation matrices to get back to the shape-space
+    //velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * velocity_circle_space.block(0,0,2,1);
+    velocity_shape_space.block(0,0,2,1) = velocity_circle_space.block(0,0,2,1);
+
+    // Remove tail effect (see the paper for a clean explanation)
+    /*State tail_vector = (attractor_circle_frame - robot_circle_frame);
+    if (r_eps_vector.dot(tail_vector.colwise().normalized()) > 0.9) // can be between 0 and 1, I chose > 0 because with thin ellipse I had some issues
+    {
+        velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
+    }*/
+
+    if (closest(0,2)==3)
+    {
+        r_eps_vector = (-1) * r_eps_vector;
+    }
+
+    Eigen::Matrix<float, 4, 1> output;
+    output.block(0,0,3,1) = velocity_shape_space;
+    output(3,0) = gamma_norm_proj(0,0);
+    return output;
 }
