@@ -1,0 +1,25 @@
+<launch>
+    <arg name="node_start_delay" default="1.0" />
+
+    <node name="refresh_occupancy_grid_node"
+          pkg="process_occupancy_grid"
+          type="refresh_occupancy_grid_node"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="1"/>
+    </node>
+
+    <node name="log_data_robot_node"
+          pkg="process_occupancy_grid"
+          type="log_data_robot_node"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="1"/>
+    </node>   
+
+    <node name="process_occupancy_grid_node"
+          pkg="process_occupancy_grid"
+          type="process_occupancy_grid_node"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="1"/>
+    </node>   
+
+</launch>

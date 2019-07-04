@@ -26,7 +26,7 @@ int main(int argc, char** argv)
   ros::Rate loop_rate(30);
   while(ros::ok())
   {
-       br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "base_link", "camera_link"));
+       br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "velodyne_link", "camera_link"));
        loop_rate.sleep();               
   }
 

@@ -85,7 +85,7 @@ public:
 
         // Radius of the security circle around people (in meters)
         // It does not include the radius of the ridgeback ~0.6 meters (disk will be expanded)
-        float radius_around_people = 0.3;
+        float radius_around_people = 0.5;
         radius_in_cells = static_cast<int>(std::ceil(radius_around_people / size_cell)); // radius_around_people is in [m] and we need a value in [cell]
 
         // Limit distance to consider obstacles (in meters)
@@ -124,7 +124,7 @@ public:
 
     void callback_for_map(const nav_msgs::OccupancyGrid& input) // Callback triggered by /map topic
     {
-	std::cout << "Clock: " << clock_from_main_loop << std::endl;
+	//std::cout << "Clock: " << clock_from_main_loop << std::endl;
         extern bool logging_enabled;
         extern Eigen::MatrixXf log_refresh;
 
@@ -199,7 +199,7 @@ public:
             tf::Matrix3x3 mat(transform_.getRotation());
             mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
             drift_odometry_yaw = yaw;
-            ROS_INFO("Drift     | %f %f %f", drift_odometry_x, drift_odometry_y, drift_odometry_yaw);
+            //ROS_INFO("Drift     | %f %f %f", drift_odometry_x, drift_odometry_y, drift_odometry_yaw);
          }
 
         // Get rotation information between "map" and "base_link"
@@ -213,14 +213,14 @@ public:
                     yaw;
 
 
-        ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
+        //ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
        //////////////////////////////////////////
        // PROCESSING POSITION OF THE ATTRACTOR //
        //////////////////////////////////////////
 
-       float position_goal_world_frame_x = -3.0;
-       float position_goal_world_frame_y =  0.0;
+       float position_goal_world_frame_x = -5.0;//-1.4;
+       float position_goal_world_frame_y =  0.0;//2.6;
 
        // Get the (x,y) coordinates in the world frame of the cell (0,0)
        float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
@@ -228,7 +228,7 @@ public:
 
        float position_goal_world_frame_corrected_x =  position_goal_world_frame_x * std::cos(-drift_odometry_yaw) + position_goal_world_frame_y * std::sin(-drift_odometry_yaw);
        float position_goal_world_frame_corrected_y =  position_goal_world_frame_x * (-1) * std::sin(-drift_odometry_yaw) + position_goal_world_frame_y * std::cos(-drift_odometry_yaw);
-       std::cout << position_goal_world_frame_corrected_x << " " << position_goal_world_frame_corrected_y << std::endl;
+       //std::cout << position_goal_world_frame_corrected_x << " " << position_goal_world_frame_corrected_y << std::endl;
  
        // Convert the position of the attractor into the occupancy map frame
        float target_cell_x = start_cell_x + std::round((position_goal_world_frame_corrected_x+drift_odometry_x) / size_cell);
@@ -237,7 +237,7 @@ public:
        // Set state of the attractor
        State state_attractor;
        state_attractor << target_cell_x, target_cell_y, 0;
-       ROS_INFO("Attractor | %f %f %f", target_cell_x, target_cell_y, 0.0);
+       //ROS_INFO("Attractor | %f %f %f", target_cell_x, target_cell_y, 0.0);
 
         ////////////////////////////////////
         // SAVING SOME DATA IN LOG MATRIX //
@@ -293,7 +293,7 @@ public:
         // PROCESSING OCCUPANCY GRID //
         ///////////////////////////////
 
-        std::cout << " PROCESSING OCCUPANCY GRID " << std::endl;
+        //std::cout << " PROCESSING OCCUPANCY GRID " << std::endl;
 
         // Expand obstacles to get a security margin
         eig_expanded = expand_occupancy_grid( eig_test, n_expansion, state_robot, limit_in_cells, size_cell);
@@ -309,7 +309,7 @@ public:
         }
 
         auto t_process_grid = std::chrono::high_resolution_clock::now();
-        ROS_INFO("Occupancy grid has been processed");
+        //ROS_INFO("Occupancy grid has been processed");
 
     /////////////////////////////////////
     // ADDING PEOPLE TO OCCUPANCY GRID //
@@ -323,7 +323,7 @@ public:
         float person_cell_x = start_cell_x + std::round(detected_people(0,i_col) / size_cell);
         float person_cell_y = start_cell_y + std::round(detected_people(1,i_col) / size_cell);
 
-        ROS_INFO("Drawing a circle at position (%f,%f)", person_cell_x, person_cell_y);
+        //ROS_INFO("Drawing a circle at position (%f,%f)", person_cell_x, person_cell_y);
 
 	// Drawing a disk centered on the position of the person in the occupancy grid
         draw_circle(eig_expanded, static_cast<int>(person_cell_x), static_cast<int>(person_cell_y), radius_in_cells);
@@ -377,21 +377,21 @@ public:
         // Detect expanded obstacles
         storage = detect_borders( eig_expanded, state_robot );
 
-        std::cout << storage.size() << " have been detected near the robot" << std::endl;
+        //std::cout << storage.size() << " have been detected near the robot" << std::endl;
 
         // Erase obstacles that are too small to be real obstacles (problem with detection algo)
 	int num_of_obstacles = storage.size()  ;     
-	for (int i=num_of_obstacles-1; i >= 0; i--)
+	/*for (int i=num_of_obstacles-1; i >= 0; i--)
         {
             if (storage[i].rows()< (8*n_expansion+4)) { storage.erase(storage.begin()+i);}
-        }
+        }*/ 
 
         for (int i=0; i < storage.size(); i++)
         {
         if ((logging_enabled)&&(clock_from_main_loop>0))
         {   
             int current_obstacle = i + 1;
-            std::cout << "Logging border information " << i << std::endl;
+            //std::cout << "Logging border information " << i << std::endl;
             log_refresh.conservativeResize(log_refresh.rows()+(storage[i]).rows(), Eigen::NoChange); // Add rows at the end
             log_refresh.block(log_refresh.rows()-(storage[i]).rows(), 0, (storage[i]).rows(), 1) = current_obstacle * Eigen::MatrixXf::Ones((storage[i]).rows(), 1); // Numero of obstacle
             log_refresh.block(log_refresh.rows()-(storage[i]).rows(), 1, (storage[i]).rows(), 1) = 2 * Eigen::MatrixXf::Ones((storage[i]).rows(), 1); // Numero of feature
@@ -482,10 +482,10 @@ public:
              my_timing << 4 << "," << clock_from_main_loop << "," << 0.0 << "\n";
 
              std::chrono::duration<double> diff = t_process_grid - t_start;
-             std::cout << "T process grid:      " << diff.count() << std::endl;
+             //std::cout << "T process grid:      " << diff.count() << std::endl;
              my_timing << 5 << "," << clock_from_main_loop << "," << diff.count() << "\n";
              diff = t_detect_obs - t_process_grid;
-             std::cout << "T detect obstacles:  " << diff.count() << std::endl;
+             //std::cout << "T detect obstacles:  " << diff.count() << std::endl;
              my_timing << 6 << "," << clock_from_main_loop << "," << diff.count() << "\n";
         }
 

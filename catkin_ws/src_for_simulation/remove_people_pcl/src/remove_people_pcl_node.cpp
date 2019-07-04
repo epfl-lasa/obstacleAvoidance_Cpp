@@ -27,7 +27,7 @@ public:
         sub_poses_ = n_.subscribe("/pose_people_velodyne_filtered", 2, &SubscribeAndPublish::callback_poses, this);
    
         //Topic you want to subscribe
-        sub_pcl_ = n_.subscribe("/cloud_for_static", 2, &SubscribeAndPublish::callback_pcl, this);
+        sub_pcl_ = n_.subscribe("/cloud_for_static_no_arm", 2, &SubscribeAndPublish::callback_pcl, this);
         
         ROS_INFO("remove_people_plc_node node has been initialized.");
     }

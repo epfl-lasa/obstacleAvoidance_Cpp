@@ -229,6 +229,12 @@ target_link_libraries(kalman_2d_node ${catkin_LIBRARIES})
 add_executable(regroup_people_node src/regroup_people_node.cpp)
 target_link_libraries(regroup_people_node ${catkin_LIBRARIES})
 
+add_executable(kalman_2d_node_simplified src/kalman_2d_node_simplified.cpp src/KalmanFilter.cpp)
+target_link_libraries(kalman_2d_node_simplified ${catkin_LIBRARIES})
+
+add_executable(mimic_input_for_kalman src/mimic_input_for_kalman.cpp)
+target_link_libraries(mimic_input_for_kalman ${catkin_LIBRARIES})
+
 install(TARGETS kalman_2d_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

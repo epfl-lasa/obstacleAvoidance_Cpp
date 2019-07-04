@@ -15,6 +15,7 @@
 #include <Eigen/Dense>
 #include <dynamic_reconfigure/server.h>
 #include <ira_laser_tools/laserscan_multi_mergerConfig.h>
+#include "geometry_msgs/PoseArray.h"
 
 using namespace std;
 using namespace pcl;
@@ -24,10 +25,11 @@ class LaserscanMerger
 {
 public:
     LaserscanMerger();
+    void callback_poses(const geometry_msgs::PoseArray& input);
     void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan, std::string topic);
     void pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPointCloud2 *merged_cloud);
     void reconfigureCallback(laserscan_multi_mergerConfig &config, uint32_t level);
-
+    
 private:
     ros::NodeHandle node_;
     laser_geometry::LaserProjection projector_;
@@ -55,6 +57,11 @@ private:
     string cloud_destination_topic;
     string scan_destination_topic;
     string laserscan_topics;
+  
+    ros::Subscriber posearray_subscriber;
+    geometry_msgs::PoseArray people;
+    tf::TransformListener listener_; // To listen to transforms
+    tf::StampedTransform transform_; // Transform object
 };
 
 void LaserscanMerger::reconfigureCallback(laserscan_multi_mergerConfig &config, uint32_t level)
@@ -138,18 +145,60 @@ LaserscanMerger::LaserscanMerger()
     nh.param("scan_time", scan_time, 0.0333333);
     nh.param("range_min", range_min, 0.45);
     nh.param("range_max", range_max, 25.0);
-    ROS_WARN("laserscan_topics is %s", laserscan_topics.c_str());
-    ROS_WARN("cloud_destination_topic is %s", cloud_destination_topic.c_str());
+    ROS_INFO("laserscan_topics is %s", laserscan_topics.c_str());
+    ROS_INFO("cloud_destination_topic is %s", cloud_destination_topic.c_str());
     this->laserscan_topic_parser();
 
+        posearray_subscriber = node_.subscribe("/pose_people_velodyne_filtered", 2, &LaserscanMerger::callback_poses, this);
 	point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2> (cloud_destination_topic.c_str(), 1, false);
 	laser_scan_publisher_ = node_.advertise<sensor_msgs::LaserScan> (scan_destination_topic.c_str(), 1, false);
 
 }
 
+void LaserscanMerger::callback_poses(const geometry_msgs::PoseArray& input)
+{
+        
+        ros::Time now = ros::Time::now();
+        bool can_transform_to_baselink = false;
+        try
+        {
+            listener_.waitForTransform("base_link", "velodyne_link", now, ros::Duration(2.0));
+            //listener_.lookupTransform("base_link", "velodyne_link", ros::Time::now(), transform_);
+            can_transform_to_baselink = true;
+        }
+        catch (tf::TransformException &ex)
+        {
+            ROS_ERROR("%s",ex.what());
+        }
+
+        if (can_transform_to_baselink)
+        {   
+            people.poses.clear(); // Remove previous poses
+
+            for (int i=0; i<(input.poses).size(); i++) // For each person detected
+            {
+                geometry_msgs::PoseStamped pose_person; // I have to use a PoseStamped because tf cannot work with PoseArray
+                pose_person.header = input.header;
+                pose_person.header.frame_id="velodyne_link";
+                pose_person.header.stamp=now;
+                pose_person.pose = input.poses[i];
+
+                geometry_msgs::PoseStamped pose_person_in_baselink; // PoseStamped that will received the transformed pose_person
+                pose_person_in_baselink.header = input.header;
+
+                listener_.transformPose("base_link", pose_person, pose_person_in_baselink); // Transform from the frame of the velodyne to the one of "base_link"
+
+                people.poses.push_back(pose_person_in_baselink.pose); // Append to array of poses
+            }
+
+            people.header = input.header;
+            people.header.frame_id = "base_link";
+        }
+}
+
 void LaserscanMerger::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan, std::string topic)
 {
-        ROS_WARN("Calledback triggered");
+        
 	sensor_msgs::PointCloud tmpCloud1,tmpCloud2;
 	sensor_msgs::PointCloud2 tmpCloud3;
 
@@ -240,13 +289,41 @@ void LaserscanMerger::pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPo
 			ROS_DEBUG("rejected for angle %f not in range (%f, %f)\n", angle, output->angle_min, output->angle_max);
 			continue;
 		}
-		int index = (angle - output->angle_min) / output->angle_increment;
 
+
+                // Remove points belonging to the UR5 arm if it is deployed (discard every points in a box)
+                float const min_x = -0.5;
+                float const min_y = -0.5;
+                float const max_x =  0.5;
+                float const max_y =  0.5;
+                if ((x>min_x)&&(x<max_x)&&(y>min_y)&&(y<max_y)) {continue;}
+
+                // Remove points belonging to detected people
+                bool flag_in_cylinder = false;
+                int k = 0;
+                while ((k<people.poses.size()) && !(flag_in_cylinder))
+                {
+                       float personX = (people.poses[k]).position.x;
+                       float personY = (people.poses[k]).position.y;
+                       float personZ = (people.poses[k]).position.z;
+
+			float const radius_around_people = 0.7; // in [m]
+
+            		// Compute horizontal distance to the person
+            		float distance = std::sqrt(std::pow((x - personX), 2) + std::pow((y - personY), 2));
+
+            		// Remove all points in a cylinder around the person
+            		if(distance < 0.5) { flag_in_cylinder = true;}
+                        k++;
+                }
+		if (flag_in_cylinder) {continue;} // point discarded as it is in a cylinder
+ 
+                // If point has not been discarded
+		int index = (angle - output->angle_min) / output->angle_increment;
 
 		if (output->ranges[index] * output->ranges[index] > range_sq)
 			output->ranges[index] = sqrt(range_sq);
 	}
-        ROS_WARN("Publishing scan");
 	laser_scan_publisher_.publish(output);
 }
 

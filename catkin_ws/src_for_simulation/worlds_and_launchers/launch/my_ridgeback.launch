@@ -1,71 +1,75 @@
 <launch>
-  <arg name="use_sim_time" default="true" />
-  <arg name="gui" default="true" />
-  <arg name="headless" default="false" />
+    <arg name="use_sim_time" default="true" />
+    <arg name="gui" default="true" />
+    <arg name="headless" default="false" />
 
-  <!-- World with four walls enclosing a large empty space -->
-  <arg name="world_name" default="$(find worlds_and_launchers)/world/ground_plane.world" />
+    <!-- World with a large empty space (just ground plane) -->
+    <arg name="world_name" default="$(find worlds_and_launchers)/world/ground_plane.world" />
 
-  <!-- World with a long corridor and people moving in it -->
-  <!--  <arg name="world_name" default="$(find worlds_and_launchers)/worlds/crossing_in_corridor.world" /> -->
+    <!-- World with four walls enclosing a large empty space -->
+    <!-- <arg name="world_name" default="$(find worlds_and_launchers)/world/box_of_walls.world" /> -->
 
-  <!-- World with a big room filled with static obstacles and moving people -->
-  <!--  <arg name="world_name" default="$(find worlds_and_launchers)/worlds/willowgarage_custom.world" />  -->
+    <!-- World with a long corridor and people moving in it -->
+    <!-- <arg name="world_name" default="$(find worlds_and_launchers)/worlds/crossing_in_corridor.world" /> -->
 
-  <!-- World with small barriers -->
-  <!-- <arg name="world_name" default="$(find ridgeback_gazebo)/worlds/ridgeback_race.world" /> -->
+    <!-- World with a big room filled with static obstacles and moving people -->
+    <!-- <arg name="world_name" default="$(find worlds_and_launchers)/worlds/willowgarage_custom.world" />  -->
 
-  <!-- Configuration of Ridgeback which you would like to simulate.
-       See ridgeback_description for details. -->
-  <arg name="config" default="$(optenv RIDGEBACK_CONFIG dual_hokuyo_lasers)" /> 
-  <!-- <arg name="config" default="$(find Gazebo_worlds)/my_sensors" />-->
+    <!-- World with small barriers -->
+    <!-- <arg name="world_name" default="$(find ridgeback_gazebo)/worlds/ridgeback_race.world" /> -->
 
-  <!-- Launch Gazebo with the specified world -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="debug" value="0" />
-    <arg name="gui" value="$(arg gui)" />
-    <arg name="use_sim_time" value="$(arg use_sim_time)" />
-    <arg name="headless" value="$(arg headless)" />
-    <arg name="world_name" value="$(arg world_name)" />
-    <arg name="paused" value="false"/>
-  </include>
+    <!-- Configuration of Ridgeback which you would like to simulate.
+         See ridgeback_description for details. -->
+    <arg name="config" default="$(optenv RIDGEBACK_CONFIG dual_hokuyo_lasers)" />
+    <!-- <arg name="config" default="$(find Gazebo_worlds)/my_sensors" />-->
 
-  <!-- Load Ridgeback's default description -->
-  <!-- <include file="$(find ridgeback_description)/launch/description.launch">
-    <arg name="config" value="$(arg config)" /> </include> -->
+    <!-- Launch Gazebo with the specified world -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="debug" value="0" />
+        <arg name="gui" value="$(arg gui)" />
+        <arg name="use_sim_time" value="$(arg use_sim_time)" />
+        <arg name="headless" value="$(arg headless)" />
+        <arg name="world_name" value="$(arg world_name)" />
+        <arg name="paused" value="false"/>
+    </include>
 
-  <!-- Load Ridgeback's custom description -->
-  <include file="$(find velodyne_description)/launch/my_description.launch">
-    <arg name="config" value="$(arg config)" />
-  </include>
+    <!-- Load Ridgeback's default description -->
+    <!-- <include file="$(find ridgeback_description)/launch/description.launch">
+         <arg name="config" value="$(arg config)" /> </include> -->
 
-  <!-- Load Ridgeback's controllers and teleop nodes. -->
-  <include file="$(find ridgeback_control)/launch/control.launch" />
-  <include file="$(find ridgeback_control)/launch/teleop.launch">
-    <arg name="joystick" value="false"/>
-  </include>
+    <!-- Load Ridgeback's custom description -->
+    <include file="$(find velodyne_description)/launch/my_description.launch">
+        <arg name="config" value="$(arg config)" />
+    </include>
 
-  <rosparam param="/gazebo_ros_control/pid_gains">
-    front_left_wheel:
-      p: 1
-      i: 0.1
-      d: 0
-    front_right_wheel:
-      p: 1
-      i: 0.1
-      d: 0
-    rear_left_wheel:
-      p: 1
-      i: 0.1
-      d: 0
-    rear_right_wheel:
-      p: 1
-      i: 0.1
-      d: 0
-  </rosparam>
+    <!-- Load Ridgeback's controllers and teleop nodes. -->
+    <include file="$(find ridgeback_control)/launch/control.launch" />
+    <include file="$(find ridgeback_control)/launch/teleop.launch">
+        <arg name="joystick" value="false"/>
+    </include>
 
-  <!-- Spawn Ridgeback -->
-  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
-        args="-urdf -model ridgeback -param robot_description -x 0 -y 0 -z 0.1" />
+    <!-- Set PID gains for each wheel -->
+    <rosparam param="/gazebo_ros_control/pid_gains">
+        front_left_wheel:
+          p: 1
+          i: 0.1
+          d: 0
+        front_right_wheel:
+          p: 1
+          i: 0.1
+          d: 0
+        rear_left_wheel:
+          p: 1
+          i: 0.1
+          d: 0
+        rear_right_wheel:
+          p: 1
+          i: 0.1
+          d: 0
+    </rosparam>
+
+    <!-- Spawn Ridgeback -->
+    <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model"
+          args="-urdf -model ridgeback -param robot_description -x 0 -y 0 -z 0.1" />
 
 </launch>

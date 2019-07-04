@@ -159,8 +159,8 @@ public:
     //float position_goal_world_frame_y = -11;//-2.56;//-7.3; //5   ; // 0;
 
     int max_num_attractor = 4;
-    float position_goal_world_frame_x =   -3;
-    float position_goal_world_frame_y =    0;
+    float position_goal_world_frame_x = -5.0;//-1.4; // -2.7
+    float position_goal_world_frame_y =  0.0;// 2.6;
     /*switch (num_attractor)
     {
      case 0:
@@ -259,7 +259,7 @@ public:
     try
     {
       listener_.lookupTransform("map", "base_link", ros::Time(0), transform_);
-      ROS_INFO("Transform is ready");
+      ROS_DEBUG("Transform is ready");
 
       if (init_attractor)
       {
@@ -271,7 +271,7 @@ public:
          tf::Matrix3x3 mat(transform_.getRotation());
          mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
          drift_odometry_yaw = yaw;
-         ROS_INFO("Drift     | %f %f %f", drift_odometry_x, drift_odometry_y, drift_odometry_yaw);
+         ROS_DEBUG("Drift     | %f %f %f", drift_odometry_x, drift_odometry_y, drift_odometry_yaw);
       }
 
     }
@@ -285,14 +285,14 @@ public:
     tf::Matrix3x3 mat(transform_.getRotation());
     mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
 
-    std::cout << transform_.getOrigin().getX() << " | " << x_pose << " | " << size_cell << std::endl; 
-    std::cout << transform_.getOrigin().getY() << " | " << y_pose << " | " << size_cell << std::endl; 
+    //std::cout << transform_.getOrigin().getX() << " | " << x_pose << " | " << size_cell << std::endl; 
+    //std::cout << transform_.getOrigin().getY() << " | " << y_pose << " | " << size_cell << std::endl; 
     
     // Create robot state vector and fill it
     state_robot << (transform_.getOrigin().getX() - x_pose)/ size_cell,
                    (transform_.getOrigin().getY() - y_pose)/ size_cell,
                    yaw;
-    ROS_INFO("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
+    ROS_DEBUG("Robot     | %f %f %f", state_robot(0,0), state_robot(1,0), state_robot(2,0));
 
 
     auto t_process_robot = std::chrono::high_resolution_clock::now();
@@ -303,12 +303,12 @@ public:
     // Get the (x,y) coordinates in the world frame of the cell (0,0)
     float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
     float start_cell_y = (-1 * std::round(map_gmapping.info.origin.position.y / size_cell));
-    ROS_INFO("Start cell of attractor | %f %f", start_cell_x, start_cell_y);
+    ROS_DEBUG("Start cell of attractor | %f %f", start_cell_x, start_cell_y);
 
     // Convert the position of the attractor into the occupancy map frame
     float position_goal_world_frame_corrected_x =  position_goal_world_frame_x * std::cos(-drift_odometry_yaw) + position_goal_world_frame_y * std::sin(-drift_odometry_yaw);
     float position_goal_world_frame_corrected_y =  position_goal_world_frame_x * (-1) * std::sin(-drift_odometry_yaw) + position_goal_world_frame_y * std::cos(-drift_odometry_yaw);
-    std::cout << position_goal_world_frame_corrected_x << " " << position_goal_world_frame_corrected_y << std::endl;
+    //std::cout << position_goal_world_frame_corrected_x << " " << position_goal_world_frame_corrected_y << std::endl;
     float target_cell_x = start_cell_x + std::round((position_goal_world_frame_corrected_x+drift_odometry_x) / size_cell);
     float target_cell_y = start_cell_y + std::round((position_goal_world_frame_corrected_y+drift_odometry_y) / size_cell);
     //ROS_INFO("Starting cell %f %f",start_cell_x, start_cell_y);
@@ -317,7 +317,7 @@ public:
     // Set state of the attractor
        State state_attractor;
        state_attractor << target_cell_x, target_cell_y, 0;
-       ROS_INFO("Attractor | %f %f %f", target_cell_x, target_cell_y, 0.0);
+       ROS_DEBUG("Attractor | %f %f %f", target_cell_x, target_cell_y, 0.0);
 
     if (false)
     {
@@ -359,7 +359,7 @@ public:
     pt_attrac.point.x = (state_attractor(0,0) + (x_pose / size_cell))*size_cell;
     pt_attrac.point.y = (state_attractor(1,0) + (y_pose / size_cell))*size_cell;
     pt_attrac.point.z = 0.05;
-    ROS_INFO("Publishing /attractor");
+    ROS_DEBUG("Publishing /attractor");
     pub_attractor.publish(pt_attrac);
 
     float distance_to_attractor = std::sqrt(std::pow(state_robot(0,0)-state_attractor(0,0),2)+std::pow(state_robot(1,0)-state_attractor(1,0),2)); // Euclidian distance
@@ -565,7 +565,7 @@ public:
 
     // Compute velocity command based on the detected obstacles (new version, all obstacles within limit range)
     State next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
-    ROS_INFO("VelCmd in map frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
+    ROS_DEBUG("VelCmd in map frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 
     auto t_compute_vel = std::chrono::high_resolution_clock::now();
 
@@ -734,7 +734,7 @@ public:
     {
             listener_.transformVector( "base_link", vec3_stamped, vec3_stamped_transformed);
 
-	    ROS_INFO("VelCmd in base_link frame: %f %f %f", vec3_stamped_transformed.x(), vec3_stamped_transformed.y(), next_eps(2,0));
+	    ROS_DEBUG("VelCmd in base_link frame: %f %f %f", vec3_stamped_transformed.x(), vec3_stamped_transformed.y(), next_eps(2,0));
 
 	    // Creating velocity message
 	    geometry_msgs::Twist output;
@@ -751,12 +751,12 @@ public:
             {
 		 output.linear.x = 0.0; output.linear.y = 0.0; output.angular.z = 0.0;
                  ROS_WARN("NaN value detected in the final velocity command.");
-                 ROS_INFO("VelCmd in base_link frame: %f %f %f", output.linear.x, output.linear.y, output.angular.z);
+                 ROS_DEBUG("VelCmd in base_link frame: %f %f %f", output.linear.x, output.linear.y, output.angular.z);
             }
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 	    //if ((static_cast<int>(key_command)!=5)&&(static_cast<int>(key_command)!=-1)) // if we press 5, the robot should not move
 	   // {
-	        pub_.publish(output);
+	        //pub_.publish(output);
 	    //}
             
 
@@ -774,7 +774,7 @@ public:
     float timestamp = 0.0;
     if (logging_enabled)
     {
-	std::cout << ros::Time::now().toSec() << " VS " << time_start_clock << std::endl;
+	//std::cout << ros::Time::now().toSec() << " VS " << time_start_clock << std::endl;
         timestamp = static_cast<float>(ros::Time::now().toSec() - time_start_clock);
 	Eigen::MatrixXf time_matrix = timestamp * Eigen::MatrixXf::Ones(log_matrix.rows(),1);
         Eigen::MatrixXf matrix(log_matrix.rows(), 1+log_matrix.cols());
@@ -801,16 +801,16 @@ public:
     if (true)
     {
      std::chrono::duration<double> diff = t_parameters - t_start;
-     std::cout << "T parameters:        " << diff.count() << std::endl;
+     //std::cout << "T parameters:        " << diff.count() << std::endl;
      my_timing << 0 << "," << timestamp_timing << "," << diff.count() << "\n";
      diff = t_retrieve_map - t_parameters;
-     std::cout << "T retrieve map:      " << diff.count() << std::endl;
+     //std::cout << "T retrieve map:      " << diff.count() << std::endl;
      my_timing << 1 << "," << timestamp_timing << "," << diff.count() << "\n";
      diff = t_process_robot - t_retrieve_map;
-     std::cout << "T process robot:     " << diff.count() << std::endl;
+     //std::cout << "T process robot:     " << diff.count() << std::endl;
      my_timing << 2 << "," << timestamp_timing << "," << diff.count() << "\n";
      diff = t_process_attractor - t_process_robot;
-     std::cout << "T process attractor: " << diff.count() << std::endl;
+     //std::cout << "T process attractor: " << diff.count() << std::endl;
      my_timing << 3 << "," << timestamp_timing << "," << diff.count() << "\n";
      /*diff = t_adding_people - t_process_attractor;
      std::cout << "T adding people:     " << diff.count() << std::endl;
@@ -822,14 +822,14 @@ public:
      std::cout << "T detect obstacles:  " << diff.count() << std::endl;
      my_timing << 6 << "," << timestamp_timing << "," << diff.count() << "\n";*/
      diff = t_compute_vel - t_detect_obs;
-     std::cout << "T compute cmd_vel:   " << diff.count() << std::endl;
+     //std::cout << "T compute cmd_vel:   " << diff.count() << std::endl;
      my_timing << 7 << "," << timestamp_timing << "," << diff.count() << "\n";
      diff = t_send_vel - t_compute_vel;
-     std::cout << "T send cmd_vel:      " << diff.count() << std::endl;
+     //std::cout << "T send cmd_vel:      " << diff.count() << std::endl;
      my_timing << 8 << "," << timestamp_timing << "," << diff.count() << "\n";
 
      diff = t_send_vel - t_start;
-     std::cout << "T all loop:          " << diff.count() << std::endl;
+     //std::cout << "T all loop:          " << diff.count() << std::endl;
     }
 
   }

@@ -181,7 +181,7 @@ public:
         /*std::cout << "t: " << t << std::endl;    
         std::cout << "t_prev: " << (time_previous) << std::endl;    
         std::cout << (t-time_previous) << std::endl;*/
-        std::cout << "Clock: " << clock_from_main_loop << std::endl;
+        //std::cout << "Clock: " << clock_from_main_loop << std::endl;
 
         // Write new data
         if (((clock_from_main_loop-time_previous)>0.05) && (clock_from_main_loop > 0.0))
@@ -270,7 +270,7 @@ public:
         /*std::cout << "t: " << t << std::endl;    
         std::cout << "t_prev: " << (time_previous) << std::endl;    
         std::cout << (t-time_previous) << std::endl;*/
-        std::cout << "Clock: " << clock_from_main_loop << std::endl;
+        //std::cout << "Clock: " << clock_from_main_loop << std::endl;
 
         // Write new data
         if (((clock_from_main_loop-time_previous)>0.05) && (clock_from_main_loop > 0.0))
@@ -304,7 +304,7 @@ public:
         log_matrix(8,1) = 9.0;
         auto result = std::min_element(std::begin(input.ranges),std::end(input.ranges)); // result is of type __gnu_cxx::__normal_iterator<const float*, std::vector<float> >
         log_matrix(8,2) = *result;
-        std::cout << "Minimum distance is " << *result << std::endl;
+        //std::cout << "Minimum distance is " << *result << std::endl;
     }
 
     void callback4(const geometry_msgs::PointStamped& input)

@@ -431,6 +431,10 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
         pose_person.position.x = X_pos;
         pose_person.position.y = Y_pos;
         pose_person.position.z = Z_pos;
+        pose_person.orientation.x = 0.0f;
+	pose_person.orientation.y = 0.0f;
+	pose_person.orientation.z = 0.0f;
+	pose_person.orientation.w = 1.0f;
         people.poses.push_back(pose_person);
 
 	/*myfile.open("./Data_Reconstruct_Trajectory/data_reconstrutct_trajectory.txt", std::ios_base::app | std::ios_base::out);
@@ -483,7 +487,7 @@ void callback(const object_msgs::ObjectsInBoxes::ConstPtr& boxes, const sensor_m
     pub_.publish(people);
 }
 
-void tfCallback(const sensor_msgs::PointCloud2::ConstPtr& pc2)
+/*void tfCallback(const sensor_msgs::PointCloud2::ConstPtr& pc2)
 {
     // Initialization of the tranform publisher between the camera frame and the world frame
     // Parent: "map"  Child: "camera_color_optical_frame"
@@ -496,7 +500,7 @@ void tfCallback(const sensor_msgs::PointCloud2::ConstPtr& pc2)
 
     // Sending transform between camera frame and world frame
     br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "base_link", "camera_link"));
-}
+}*/
 
 int main(int argc, char **argv)
 {
@@ -524,7 +528,7 @@ int main(int argc, char **argv)
 
     sync.registerCallback(boost::bind(&callback, _1, _2)); // Link synchronizer with callback
 
-    ros::Subscriber sub_for_tf = n_.subscribe("/camera/depth_registered/points", 1, tfCallback);
+    //ros::Subscriber sub_for_tf = n_.subscribe("/camera/depth_registered/points", 1, tfCallback);
 
     pub_ = n_.advertise<geometry_msgs::PoseArray>("/pose_people",1);
 

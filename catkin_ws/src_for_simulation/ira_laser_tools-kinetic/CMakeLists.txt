@@ -87,6 +87,9 @@ include_directories(include
 add_executable(laserscan_multi_merger src/laserscan_multi_merger.cpp)
 target_link_libraries(laserscan_multi_merger ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
+add_executable(laserscan_multi_merger_with_removal src/laserscan_multi_merger_with_removal.cpp)
+target_link_libraries(laserscan_multi_merger_with_removal ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(laserscan_multi_merger ${PROJECT_NAME}_gencfg)

@@ -2,9 +2,11 @@
 
 #include <eigen3/Eigen/LU>
 
-extern bool logging_enabled;
-extern Eigen::MatrixXf log_matrix;
-extern float current_obstacle;
+extern bool logging_enabled; // Get from ObstacleRecontruction.cpp whether logging is enabled
+extern Eigen::MatrixXf log_matrix; // Get from ObstacleRecontruction.cpp the logging matrix in which information is stored
+extern float current_obstacle; // Get from ObstacleRecontruction.cpp the number/ID of the current obstacle
+
+/** /!\ TODO: Changes made in the Python script have to be implemented in border_to_vertices /!\ */
 
 std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
 {
@@ -14,10 +16,17 @@ std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
      ..,..
      xn,yn]*/
 
-    int nb_points = XY.rows();
+    int nb_points = XY.rows(); // Number of points defining the surface
 
     Eigen::MatrixXf A = XY;
 
+    // Building matrix linking P and A families of points (see report)
+    // Shape of this matrix is
+    // [ 4 1       1
+    //   1 4 1
+    //       ...
+    //         1 4 1
+    //   1       1 4 ] * (1/6)
     Eigen::MatrixXf mat = Eigen::MatrixXf::Zero(nb_points,nb_points);
     for (int i=0; i<nb_points; i++)
     {
@@ -32,29 +41,37 @@ std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
     mat(nb_points-1,0) = 1.0;
     mat /= 6;
 
+    // Get P families of points by inversing the matrix
     Eigen::MatrixXf P = mat.inverse() * A;
 
+    // For interpolation, we have N points and interpolation is done for each pair of points [k, k+1]
+    // It loops so points N+1 is actually point 0
     P.conservativeResize(P.rows()+1, Eigen::NoChange);
     P.row(P.rows()-1) = P.row(0);
     A.conservativeResize(A.rows()+1, Eigen::NoChange);
     A.row(A.rows()-1) = A.row(0);
 
+    // Definition of B and C families of points
     Eigen::MatrixXf B = (2 * P.block(0,0,nb_points,2) + P.block(1,0,nb_points,2))/3;
     Eigen::MatrixXf C = (2 * P.block(1,0,nb_points,2) + P.block(0,0,nb_points,2))/3;
 
+    // CONSTANT VALUE, number of points for the discretization of each [k, k+1] section of the surface
     const int nb_step = 101;
-    Eigen::MatrixXf t = Eigen::VectorXf::LinSpaced(nb_step,0.0,1.0);
+    Eigen::MatrixXf t = Eigen::VectorXf::LinSpaced(nb_step,0.0,1.0); // evenly spaced values between 0 and 1
     t.conservativeResize(nb_step-1,Eigen::NoChange);
     Eigen::Matrix<float, nb_step-1, 1> s = Eigen::MatrixXf::Ones(nb_step-1,1) - t;
 
+    // Definition of matrices to get the interpolated value (see equations in the report)
     Eigen::Matrix<float, nb_step-1, 1> s3 = s.cwiseProduct(s.cwiseProduct(s));
     Eigen::Matrix<float, nb_step-1, 1> s2t = 3.0*s.cwiseProduct(s.cwiseProduct(t));
     Eigen::Matrix<float, nb_step-1, 1> t2s = 3.0*t.cwiseProduct(t.cwiseProduct(s));
     Eigen::Matrix<float, nb_step-1, 1> t3 = t.cwiseProduct(t.cwiseProduct(t));
 
+    // Two matrices to store information about x and y coordinates respectively
     Eigen::MatrixXf bezier_pts_X(nb_step-1, nb_points);
     Eigen::MatrixXf bezier_pts_Y(nb_step-1, nb_points);
 
+    // Computation of discretization points (see equations in the report)
     for (int i=0; i<nb_points; i++)
     {
         bezier_pts_X.col(i) = s3*A(i,0)+s2t*B(i,0)+t2s*C(i,0)+t3*A(i+1,0);
@@ -84,34 +101,33 @@ std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
 Eigen::MatrixXf border_to_vertices(Border const& obs)
 {
     Eigen::MatrixXf result = Eigen::MatrixXf(obs.rows(),2);
-    int pt_row = 0;
+    int pt_row = 0; // value that indicates which row of the result matrix has to be filled
 
-    /*std::cout << "PASS" << std::endl;
-    std::cout << obs.row(obs.rows()-1) << std::endl;
-    std::cout << obs.row(0) << std::endl;*/
-
+    /** The surface loops (last cell is adjacent to first cell).
+     *  When adding the point associated with cell k, cells k-1 and k+1 are also considered so it's easier to process
+     *  if we can directely access k-1 and k+1 without bothering about the looping effect.
+     *  The surface of the obstacle is processed by following it in the counter-clockwise direction
+     */
     Eigen::MatrixXf obstacle(obs.rows()+2,5);
     obstacle << obs.row(obs.rows()-1), obs, obs.row(0);
 
-    //std::cout << "PASS" << std::endl;
-
-    for (int k=1; k<obstacle.rows()-1; k++)
+    for (int k=1; k<obstacle.rows()-1; k++) // First and last row are duplicate so they are not processed
     {
-        if (obstacle(k,2)==1)
+        if (obstacle(k,2)==1) // Straight line type of cell
         {
-            if (obstacle(k,3)==1)
+            if (obstacle(k,3)==1) // Normal is (1,0)
             {
                 result.row(pt_row) << obstacle(k,0),  obstacle(k,1)+(1*0.5);
             }
-            else if (obstacle(k,3)==(-1))
+            else if (obstacle(k,3)==(-1)) // Normal is (-1,0)
             {
                 result.row(pt_row) << obstacle(k,0),  obstacle(k,1)-(1*0.5);
             }
-            else if (obstacle(k,4)==(+1))
+            else if (obstacle(k,4)==(+1)) // Normal is (0,1)
             {
                 result.row(pt_row) << obstacle(k,0)-(1*0.5),  obstacle(k,1);
             }
-            else if (obstacle(k,4)==(-1))
+            else if (obstacle(k,4)==(-1)) // Normal is (0,-1)
             {
                 result.row(pt_row) << obstacle(k,0)+(1*0.5),  obstacle(k,1);
             }
@@ -119,24 +135,24 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
             {
                 throw std::invalid_argument("Should not happen. Invalid line cell");
             }
-            pt_row += 1;
+            pt_row += 1; // Increment row pointer
 
         }
-        else if (obstacle(k,2)==2)
+        else if (obstacle(k,2)==2) // Outer corner type of cell
         {
-            if (obstacle(k,4)==0)
+            if (obstacle(k,4)==0) // Outer corner number 0 (see report)
             {
                 result.row(pt_row) << obstacle(k,0)-(1*0.5),  obstacle(k,1);
             }
-            else if (obstacle(k,4)==1)
+            else if (obstacle(k,4)==1) // Outer corner number 1 (see report)
             {
                 result.row(pt_row) << obstacle(k,0),  obstacle(k,1)-(1*0.5);
             }
-            else if (obstacle(k,4)==2)
+            else if (obstacle(k,4)==2) // Outer corner number 2 (see report)
             {
                 result.row(pt_row) << obstacle(k,0)+(1*0.5),  obstacle(k,1);
             }
-            else if (obstacle(k,4)==3)
+            else if (obstacle(k,4)==3) // Outer corner number 3 (see report)
             {
                 result.row(pt_row) << obstacle(k,0),  obstacle(k,1)+(1*0.5);
             }
@@ -146,33 +162,33 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
             }
             pt_row += 1;
         }
-        else if (obstacle(k,2)==3)
+        else if (obstacle(k,2)==3) // Inner corner type of cell
         {
-            if ((obstacle(k-1,2) == 2) && (obstacle(k+1,2) != 2))
+            if ((obstacle(k-1,2) == 2) && (obstacle(k+1,2) != 2)) // Heuristic rule to make the surface smoother for a specific pattern
             {
                 if (pt_row>0) {pt_row -= 1;}
             }
 
-            if ((obstacle(k-1,2) == 1) && (obstacle(k+1,2) != 3))
+            if ((obstacle(k-1,2) == 1) && (obstacle(k+1,2) != 3)) // Heuristic rule to make the surface smoother for a specific pattern
             {
                 if (pt_row>0) {pt_row -= 1;}
             }
 
             if ((obstacle(k-1,2) == 3) && (obstacle(k+1,2) == 1))
             {
-                if (obstacle(k,4)==0)
+                if (obstacle(k,4)==0) // Inner corner number 0 (see report)
                 {
                     result.row(pt_row) << obstacle(k,0),  obstacle(k,1)-(1*0.5);
                 }
-                else if (obstacle(k,4)==1)
+                else if (obstacle(k,4)==1) // Inner corner number 1 (see report)
                 {
                     result.row(pt_row) << obstacle(k,0)+(1*0.5),  obstacle(k,1);
                 }
-                else if (obstacle(k,4)==2)
+                else if (obstacle(k,4)==2) // Inner corner number 2 (see report)
                 {
                     result.row(pt_row) << obstacle(k,0),  obstacle(k,1)+(1*0.5);
                 }
-                else if (obstacle(k,4)==3)
+                else if (obstacle(k,4)==3) // Inner corner number 3 (see report)
                 {
                     result.row(pt_row) << obstacle(k,0)-(1*0.5),  obstacle(k,1);
                 }
@@ -257,6 +273,10 @@ State get_projection_on_bezier(State const& state_robot, std::vector<Eigen::Matr
     Eigen::MatrixXf dist_Y = (robot_Y-(pts_bezier[1]).row(0)).cwiseProduct(robot_Y-(pts_bezier[1]).row(0));
     Eigen::MatrixXf dist = (dist_X+dist_Y).array().sqrt().matrix();
 
+    /** The surface of the obstacles is defined by N points
+     *  We want to get the closest point to the robot among these N points. Let's say it's the i-th point.
+     *  That way we know that the projection of the robot will either be on the [i-1, i] section or the [i,i+1] one.
+     */
     float value_min = dist(0,0);
     int index_min = 0;
     for (int i=1; i<dist.cols(); i++)
@@ -270,19 +290,23 @@ State get_projection_on_bezier(State const& state_robot, std::vector<Eigen::Matr
 
     int index_prev_min = index_min - 1;
     int col_min = index_min;
-    if (index_prev_min < 0) {index_prev_min = dist.cols()-1;}
+    if (index_prev_min < 0) {index_prev_min = dist.cols()-1;} // Loop effect
 
+    // I use a column matrix for faster computation by working directly on a whole section
     robot_X = state_robot(0,0) * Eigen::MatrixXf::Ones((pts_bezier[0]).rows(),1);
     robot_Y = state_robot(1,0) * Eigen::MatrixXf::Ones((pts_bezier[0]).rows(),1);
 
+    // Get distances between the robot and all discretization points of section [i-1, i]
     dist_X = (robot_X-(pts_bezier[0]).col(index_prev_min)).cwiseProduct(robot_X-(pts_bezier[0]).col(index_prev_min));
     dist_Y = (robot_Y-(pts_bezier[1]).col(index_prev_min)).cwiseProduct(robot_Y-(pts_bezier[1]).col(index_prev_min));
     Eigen::MatrixXf dist_1 = (dist_X+dist_Y).array().sqrt().matrix();
 
+    // Get distances between the robot and all discretization points of section [i, i+1]
     dist_X = (robot_X-(pts_bezier[0]).col(index_min)).cwiseProduct(robot_X-(pts_bezier[0]).col(index_min));
     dist_Y = (robot_Y-(pts_bezier[1]).col(index_min)).cwiseProduct(robot_Y-(pts_bezier[1]).col(index_min));
     Eigen::MatrixXf dist_2 = (dist_X+dist_Y).array().sqrt().matrix();
 
+    // Find the closest discretization point by scanning both section to find the minimum distance
     int i_dist = 1;
     value_min = dist_1(0,0);
     index_min = 0;
@@ -304,6 +328,7 @@ State get_projection_on_bezier(State const& state_robot, std::vector<Eigen::Matr
         }
     }
 
+    // Store information about the closest discretization point
     float closest_X, closest_Y;
     if (i_dist==1)
     {
@@ -328,7 +353,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface_bezier(Eigen::Matrix<float, 1, 
     int n_rows = (pts_bezier[0]).rows();
     int n_cols = (pts_bezier[0]).cols();
 
-    // Definition of shifted matrix
+    // Definition of the "shifted" matrix
     // [ 1  4  7  10    becomes [ 12  3  6   9
     //   2  5  8  11               1  4  7  10
     //   3  6  9  12 ]             2  5  8  11 ]
@@ -345,7 +370,6 @@ Eigen::Matrix<float, 1, 3> get_distances_surface_bezier(Eigen::Matrix<float, 1, 
 
     shifted_X.block(1,0,n_rows-1,n_cols) = (pts_bezier[0]).block(0,0,n_rows-1,n_cols);
     shifted_Y.block(1,0,n_rows-1,n_cols) = (pts_bezier[1]).block(0,0,n_rows-1,n_cols);
-
 
     // Matrix of the distance from one point of the surface to the next one close to it
     // dist = sqrt(diff_X^2 + diff_Y^2)
@@ -381,10 +405,10 @@ Eigen::Matrix<float, 1, 3> get_distances_surface_bezier(Eigen::Matrix<float, 1, 
 
     float distance_up = 0;
 
-    //std::cout << i_x_robot << " | " << i_y_robot << " | " <<  i_x_attractor << " | " << i_y_attractor << std::endl;
+    // Following the border till point associated to the attractor is reached
+    // When jumping to the next discretization point, the distance between this point and the previous one is added to the total distance
     while ((i_x_robot!=i_x_attractor) || (i_y_robot!=i_y_attractor))
     {
-        //std::cout << i_x_robot << " | " << i_y_robot << std::endl;
         distance_up += dist_2_points(i_x_robot,i_y_robot);
         i_x_robot += 1;
         if (i_x_robot == n_rows)
@@ -399,7 +423,7 @@ Eigen::Matrix<float, 1, 3> get_distances_surface_bezier(Eigen::Matrix<float, 1, 
     }
 
     // Saving the minimal distance
-    float distance_down = distances_out(0,0) - distance_up;
+    float distance_down = distances_out(0,0) - distance_up; // Perimeter - distance traveled is the distance by following the surface in the other direction
     distances_out(0,1) = std::min(distance_up, distance_down);
 
     // Saving the direction for which the distance is minimal
@@ -460,7 +484,7 @@ float get_max_gamma_distance_bezier(Eigen::Matrix<float, 1, 2> const& proj_robot
     // we go further and further from the surface till we reached a upper bound or a lower bound for the step
     // if we reach the upper bound it means there is no limit in that direction, if we start from cell 1 we can go left to -infinity
     // if we reach the lower bound it means there is a limit in that direction, if we start from cell 2, going right, the point is assigned to another cell when
-    // it crosses the axis of symmetry of the U
+    // it crosses the axis of symmetry of the U shape
 
     // if (current_step > max_step) it means that the maximum gamma distance is likely infinity (approximation)
     // if (current_step < min_step) it means that the current point has reached a limit before switching to another closest cell
@@ -1125,13 +1149,6 @@ Eigen::Matrix<float, 4, 1> next_step_classic(State const& state_robot, State con
     // Apply the two rotation matrices to get back to the shape-space
     //velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * velocity_circle_space.block(0,0,2,1);
     velocity_shape_space.block(0,0,2,1) = velocity_circle_space.block(0,0,2,1);
-
-    // Remove tail effect (see the paper for a clean explanation)
-    /*State tail_vector = (attractor_circle_frame - robot_circle_frame);
-    if (r_eps_vector.dot(tail_vector.colwise().normalized()) > 0.9) // can be between 0 and 1, I chose > 0 because with thin ellipse I had some issues
-    {
-        velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
-    }*/
 
     if (closest(0,2)==3)
     {

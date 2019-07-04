@@ -1,0 +1,24 @@
+<launch>
+    <arg name="node_start_delay" default="1.0" />
+
+    <include file="$(find worlds_and_launchers)/launch/filter_for_static.launch" />
+
+    <include file="$(find worlds_and_launchers)/launch/filter_robot_arm.launch" />
+
+    <node name="pointcloud_to_laserscan_node"
+          pkg="pointcloud_to_laserscan"
+          type="pointcloud_to_laserscan_node"
+          args="cloud_in:=/cloud_without_people"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="1"/>
+    </node>
+
+    <node name="slam_gmapping"
+          pkg="gmapping"
+          type="slam_gmapping"
+          args="scan:=/scan _delta:=0.2 _map_update_interval:=0.1 _temporalUpdate:=0.1 _linearUpdate:=0.1 _angularUpdate:=0.1 _maxRange=5.5 _maxUrange:=5.0 _xmin:=-30 _xmax:=30 _ymin:=-30 _ymax:=30"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="1"/>
+    </node>
+
+</launch>

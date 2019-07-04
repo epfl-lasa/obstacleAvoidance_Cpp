@@ -1,0 +1,47 @@
+<launch>
+    <arg name="node_start_delay" default="1.0" />
+
+    <node name="kalman_bounding_boxes_node"
+          pkg="kalman_bounding_boxes"
+          type="kalman_bounding_boxes_node"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="1"/>
+    </node>
+
+    <node name="process_depth_img_node"
+          pkg="process_depth_img"
+          type="process_depth_img_node"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="1.5"/>
+    </node>    
+
+    <node name="regroup_people_node"
+          pkg="kalman_2d_plane"
+          type="regroup_people_node"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="2"/>
+    </node>
+
+    <node name="kalman_2d_node_simplified"
+          pkg="kalman_2d_plane"
+          type="kalman_2d_node_simplified"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="2.5"/>
+    </node>
+
+    <node name="static_transform_publisher"
+          pkg="tf"
+          type="static_transform_publisher"
+          args="-0.090 -0.077 -0.567 3.046 -0.426 0.053 velodyne_link camera_link 100"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="3.0"/>
+    </node>
+
+    <node name="remove_people_pcl_node"
+          pkg="remove_people_pcl"
+          type="remove_people_pcl_node"
+          launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@' ">
+    <param name="node_start_delay" value="3.5"/>
+    </node>
+
+</launch>

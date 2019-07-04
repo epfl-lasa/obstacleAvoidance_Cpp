@@ -20,7 +20,7 @@ using namespace std;
 
 const int limit_age = 25;
 const int born_age = limit_age - 4;
-const int limit_dist = 1;
+const int limit_dist = 1.5;
 const bool verbose = true;
 
 /* Initialization */
@@ -164,13 +164,13 @@ public:
         if (verbose) {ROS_INFO("Receiving raw bounding boxes");}
 
         geometry_msgs::PoseArray output = input;
-
+        discarded_poses.clear();
         // REMOVE OLD TRACKERS //
 
         for (int i=0; i < tracked_people.size(); i++)
         {
             (tracked_people[i]).has_been_updated = false;
-            // (tracked_people[i]).age += 1;
+            //(tracked_people[i]).age += 1;
             if (verbose) {ROS_INFO("Filter %i is now %i steps old", i, (tracked_people[i]).age);}
             if (((tracked_people[i]).age) > limit_age)
             {
@@ -181,17 +181,17 @@ public:
             }
         }
  
-        // REMOVE TRACKER TOO FAR AWAY
+        // REMOVE TRACKER TOO FAR AWAY OR NaN
         for (int i=0; i < tracked_people.size(); i++)
         {
 	    float x_tracker = (((tracked_people[i]).filter_person).X)[0];
             float y_tracker = (((tracked_people[i]).filter_person).X)[1];            
 
-            if (std::sqrt(std::pow(x_tracker,2)+std::pow(y_tracker,2))>5)
+            if ((std::sqrt(std::pow(x_tracker,2)+std::pow(y_tracker,2))>5)||(std::isnan(x_tracker))||(std::isnan(y_tracker)))
             {
                 tracked_people.erase(tracked_people.begin() + i); // remove the person from the list
                 only_trackers.erase(only_trackers.begin() + i);
-                if (true) {ROS_INFO("Filter %i deleted because it is too far away", i);}
+                if (verbose) {ROS_INFO("Filter %i deleted because it is too far away or NaN", i);}
                 i -= 1; // go on step back since an element has been removed   
             }
         }
@@ -244,18 +244,24 @@ public:
                 {
                     if (index_match[k] == j_min)
                     {
+                        j_min = -2;
                         // Already used so we make a copy of the tracked_person and we append it at the end of the list tracked_people
-                        j_min = tracked_people.size();
+                        /*j_min = tracked_people.size();
                         tracked_people.push_back(tracked_people[index_match[k]]);
                         ((tracked_people[j_min]).filter_person).predict();
-                        only_trackers.push_back(input.poses[i]);
+                        only_trackers.push_back(input.poses[i]);*/
                         break;
                     }
                 }
-                if (j_min != -1)
+                if (j_min > -1)
                 {
                     if (verbose) {ROS_INFO("Person %i assigned to box %i", i, j_min);}
                     index_match[i] = j_min;
+                }
+                else if (j_min == -2)
+                {
+                    if (verbose) {ROS_INFO("Person %i's assigned tracker is already used, discarding this person.", i);}
+                    discarded_poses.push_back(i);
                 }
                 else // A new person appeared in the field of view of the camera
                 {
@@ -273,6 +279,8 @@ public:
 
             for (int i=0; i < (input.poses).size(); i++)
             {
+		if (is_not_discarded(i,discarded_poses)){
+                if (verbose) {ROS_INFO("Updating person %i's position thanks to their assigned bounding box.", i);}
 
                 // Reset filter age
                 (tracked_people[index_match[i]]).age -= 2;
@@ -302,7 +310,7 @@ public:
                 // Update output
                 (only_trackers[index_match[i]]).position.x = (x_pred);
                 (only_trackers[index_match[i]]).position.y = (y_pred);
-            }
+            }}
 
         }
         else
@@ -323,8 +331,22 @@ public:
          float x = (((tracked_people[i]).filter_person).X)[0];
          float y = (((tracked_people[i]).filter_person).X)[1];
          std::vector<float> tracked = track_in_pcl(x, y);
+         if (tracked[2]==1.0) 
+         {
+               /*tracked[0] = x;
+               tracked[1] = y;  
+               std::cout << "Person " << i << " associated with no point, position not modified" << std::endl;*/
+               tracked_people.erase(tracked_people.begin() + i); // remove the person from the list
+               only_trackers.erase(only_trackers.begin() + i);
+               std::cout << "Person " << i << " associated with no point, discarded" << std::endl;
+               i--;
+               continue;
+         }
+         else
+         {
          std::cout << "Person " << i << " doing mean in pcl at pos (" << x << "," << y << ")" << std::endl;
          std::cout << "Person " << i << " found in pcl at position: (" << tracked[0] << "," << tracked[1] << ")" << std::endl;
+         }
          float time_diff = 10*static_cast<float>(ros::Time::now().toSec() - time_start_clock);
          time_start_clock = ros::Time::now().toSec();
          Z << tracked[0], tracked[1], (tracked[0]-x)/time_diff, (tracked[1]-y)/time_diff;
@@ -346,9 +368,9 @@ public:
             ((tracked_people[iter]).filter_person).predict();
             if (verbose) {ROS_INFO("Person %i predicted at position: %f %f", iter, (((tracked_people[iter]).filter_person).X)[0], (((tracked_people[iter]).filter_person).X)[1]);}
         }
-
+          
         // PUBLISH OUTPUT (with new information) in velodyne frame //
-
+        if (verbose) {ROS_INFO("There is a total of %i trackers", only_trackers.size());}
         output.poses = only_trackers;
         pub_.publish(output);
 
@@ -467,7 +489,7 @@ void callback_pcl(const sensor_msgs::PointCloud2& input) // Callback to get 3D p
 std::vector<float> track_in_pcl(float const& x, float const& y)
 {
      const float radius_pow = std::pow(0.5,2); // square of radius of cylinder in meter     
-     std::vector<float> output(2,0.0);
+     std::vector<float> output(3,0.0);
      int point_count = 0;
 
      for (int i=0; i<point_cloud.size(); i++)
@@ -482,12 +504,21 @@ std::vector<float> track_in_pcl(float const& x, float const& y)
      if (point_count!=0) {
      output[0] /= point_count;
      output[1] /= point_count; }
+     else {output[2] = 1.0;} // flag to know that there is 0 point}
 
      std::cout << point_count << " points have been considered as belonging to the person." << std::endl;
 
      return output;
 }
 
+bool is_not_discarded(int const& i, std::vector<int> discarded_poses)
+{
+    for (int k=0; k<discarded_poses.size(); k++)
+    {
+         if (i == discarded_poses[k]) {return false;}
+    }
+    return true;
+}
 private:
     ros::NodeHandle n_;   // Node handle
     ros::Publisher pub_;  // To publish the filtered people's position
@@ -497,7 +528,7 @@ private:
     KalmanFilter filter1;
     std::vector<tracked_person> tracked_people;
     std::vector<geometry_msgs::Pose> only_trackers;
-
+    std::vector<int> discarded_poses;
     std::vector<std::vector<float>> point_cloud;
     ros::Subscriber sub_pcl;
 
@@ -511,7 +542,7 @@ private:
 int main(int argc, char **argv)
 {
     //Initiate ROS
-    ros::init(argc, argv, "kalman_2d_node");
+    ros::init(argc, argv, "kalman_2d_node_simplified");
 
     //Create an object of class SubscribeAndPublish that will take care of everything
     SubscribeAndPublish SAPObject;

@@ -718,7 +718,7 @@ void compute_quiver_multiplication(Eigen::Matrix<float, 5, 1> const& limits, Sta
 
 State speed_limiter(State const& input_speed)
 {
-    const float limit_linear_speed = 0.07; // in meter/second
+    const float limit_linear_speed = 0.15; // in meter/second
     const float limit_angular_speed = 10.0 * 0.01745; // in rad/second (0.01745 is to convert from degree to radian)
 
     State output_speed = input_speed;

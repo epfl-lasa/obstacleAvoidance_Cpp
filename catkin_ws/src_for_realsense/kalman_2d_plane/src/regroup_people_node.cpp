@@ -55,12 +55,12 @@ public:
 
           // TRANSFORM OF CAMERA 1 //
 
-  tf::TransformBroadcaster br;
+  /*tf::TransformBroadcaster br;
   tf::Transform transform1;
   transform1.setOrigin( tf::Vector3(-0.5, 0.0, 0.7) ); // X Y Z
   tf::Quaternion q;
   q.setRPY(0, 0, 0); // Roll Pitch Yaw
-  transform1.setRotation(q);
+  transform1.setRotation(q);*/
   //br.sendTransform(tf::StampedTransform(transform1, ros::Time(0), "base_link", "camera_link"));
 
         // Check if the pose can be transformed from the frame of the camera to the frame of the Velodyne
@@ -87,12 +87,19 @@ public:
 
                 geometry_msgs::PoseStamped pose_person_in_velodyne; // PoseStamped that will received the transformed pose_person
                 pose_person_in_velodyne.header = input.header;
+
+                float temp_storage = pose_person.pose.position.x;
+                pose_person.pose.position.x = pose_person.pose.position.z;
+		pose_person.pose.position.z = - pose_person.pose.position.y;
+                pose_person.pose.position.y = - temp_storage;
+
                 listener_.transformPose("velodyne_link", pose_person, pose_person_in_velodyne); // Transform from the frame of the camera to the one of the Velodyne
 
                 pose_people_in_velodyne.poses.push_back(pose_person_in_velodyne.pose); // Append to array of poses
             }
 
             pose_people_in_velodyne.header = input.header;
+            pose_people_in_velodyne.header.frame_id = "velodyne_link";
             pub_velodyne_.publish(pose_people_in_velodyne); // Publish poses in velodyne frame
         }
 

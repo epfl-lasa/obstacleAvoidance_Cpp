@@ -2,9 +2,9 @@
 
 float myRad = 0.1;
 const float size_cell = 1.0;
-const float margin = 0.5; // 0.25
+const float margin =  0.25;
 
-bool logging_enabled = false;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
+bool logging_enabled = true;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
 Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 Eigen::MatrixXf log_refresh = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 float current_obstacle = 1;
@@ -663,9 +663,9 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     int y_min = static_cast<int>(std::round(state_robot(1,0)-offset));
     int y_max = static_cast<int>(std::round(state_robot(1,0)+offset));
 
-    std::cout << " Robot : " << state_robot(0,0) << " | " << state_robot(1,0) << std::endl;
+    /*std::cout << " Robot : " << state_robot(0,0) << " | " << state_robot(1,0) << std::endl;
     std::cout << " OFFSET: " << offset << std::endl;
-    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;*/
 
 
     // Expand all occupied cells of the occupancy grid by n cells
@@ -697,14 +697,14 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     if (x_max>=occupancy_res.rows()) {x_max=occupancy_res.rows()-1;}
     if (y_max>=occupancy_res.cols()) {y_max=occupancy_res.cols()-1;}
 
-    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
-    std::cout << grid.rows() << " | " << grid.cols() << std::endl;
+    /*std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+    std::cout << grid.rows() << " | " << grid.cols() << std::endl;*/
 
     // Output is an empty grid with the obstacle inside the limit distance
     Grid output = Grid::Zero(grid.rows(), grid.cols()); // empty grid the size of the input occupancy grid
     output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1); // copy the obstacle in the limit range
 
-    std::cout << "PASS" << std::endl;
+    
 
     // Detect all obstacles that have at least one cell in the limit square around the robot
     // For instance if one half of an obstacle is within the limit distance we also want
@@ -727,7 +727,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
             }
         }
     }
-    std::cout << "PASS" << std::endl;
+    
 
     // Add obstacles inside square to occupancy grid
     // TODO: maybe it could be optimized by only doing it for those are not already completely inside the square
@@ -766,7 +766,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     PointFill origin;
     origin.x = static_cast<int>(std::round(state_robot(0,0)));
     origin.y = static_cast<int>(std::round(state_robot(1,0)));
-    std::cout << "Origin of flood: (" << origin.x << " , " << origin.y << ")" << std::endl;
+    //std::cout << "Origin of flood: (" << origin.x << " , " << origin.y << ")" << std::endl;
 
     float mycount = 1;
     // If the cell the robot is standing one is not a free cell (if the robot touches an obstacle),
@@ -882,7 +882,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
         {origin_toBeFilled.y=toBeFilled.cols()-1;}
 
     toBeFilled(origin_toBeFilled.x,origin_toBeFilled.y) = 3;
-    std::cout << origin.x-(i_row_min-2) << " & " << origin.y-(i_col_min-2) << std::endl;
+    //std::cout << origin.x-(i_row_min-2) << " & " << origin.y-(i_col_min-2) << std::endl;
     //std::cout << " PASS 2" << std::endl;
 
     //std::cout << "Before fillGrid: " << std::endl << toBeFilled << std::endl;
@@ -1830,7 +1830,7 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
                     //if (true&&(x_min==i_row_min)&&(x_max==i_row_max)&&(y_min==i_col_min)&&(y_max==i_col_max))
                     if ((x_min<cell_robot(0,0))&&(x_max>cell_robot(0,0))&&(y_min<cell_robot(1,0))&&(y_max>cell_robot(1,0)))
                     {
-                        std::cout << "Enclosing obstacle detected" << std::endl;
+                        //std::cout << "Enclosing obstacle detected" << std::endl;
 
                         /*std::cout << "Occupancy grid before detecting the enclosing obstacle" << std::endl;
                         Grid tempo = occupancy_grid.block(cell_robot(0,0)-20, cell_robot(1,0)-20, 41, 41);
@@ -2214,7 +2214,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     {
         if (logging_enabled)
         {
-            std::cout << "Logging border information " << i << std::endl;
+            //std::cout << "Logging border information " << i << std::endl;
             log_matrix.conservativeResize(log_matrix.rows()+(borders[i]).rows(), Eigen::NoChange); // Add rows at the end
             log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 0, (borders[i]).rows(), 1) = current_obstacle * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of obstacle
             log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 1, (borders[i]).rows(), 1) = 2 * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of feature
@@ -2261,7 +2261,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     if ((mat_weights.size()==0) || (mat_weights.maxCoeff() == 0))
     {
         std::cout << "No obstacle considered" << std::endl;
-        std::cout << "R/A: " << state_robot.transpose() << " | "  << state_attractor.transpose() << std::endl;
+        //std::cout << "R/A: " << state_robot.transpose() << " | "  << state_attractor.transpose() << std::endl;
         // No obstacle in range so the robot just goes toward the attractor
         State cmd_velocity = state_attractor - state_robot;
 
@@ -2484,7 +2484,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
-        output << 0.0, 0.0, 0, 1;
+        //output << 0.0, 0.0, 0, 1;
         return output;
     }
     else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
@@ -2497,7 +2497,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1;
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
-        output << 0.0, 0.0, 0, 1;
+        //output << 0.0, 0.0, 0, 1;
         return output;
     }
 
