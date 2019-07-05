@@ -91,6 +91,19 @@ std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
     std::cout << "bezier_pts_X:" << std::endl << bezier_pts_X << std::endl;
     std::cout << "bezier_pts_Y:" << std::endl << bezier_pts_Y << std::endl;*/
 
+    bool log_surface = false;
+    if (log_surface) 
+    {
+        const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+        std::ofstream my_surface;
+        mycells.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_surface_X.txt");
+        my_surface << bezier_pts_X.format(CSVFormat) << "\n";
+        my_surface.close();
+        mycells.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_surface_Y.txt");
+        my_surface << bezier_pts_Y.format(CSVFormat) << "\n";
+        my_surface.close();
+    }
+
     std::vector<Eigen::MatrixXf> result;
     result.push_back(bezier_pts_X);
     result.push_back(bezier_pts_Y);
