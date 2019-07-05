@@ -750,7 +750,7 @@ def disp6ter():
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator
 
-def get_D_T(X,Y,n_size,a_x,a_y,h):
+def get_D_T(X,Y,U,V,n_size,a_x,a_y,h):
     resolution = X[0][1]-X[0][0]
     
     T_matrix = np.zeros([n_size,n_size])
@@ -764,13 +764,16 @@ def get_D_T(X,Y,n_size,a_x,a_y,h):
             T = 0
             D = 0
             
-            max_T = 400
+            max_T = 3000
+            i_loop = 0
             while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
+                i_loop += 1
+                
                 i_x = int(np.floor((x - X[0][0])/resolution))
                 i_y = int(np.floor((y - Y[0][0])/resolution))
                 
-                v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
-                v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
+                v_x = np.mean(V[i_x:(i_x+2),i_y:(i_y+2)])
+                v_y = np.mean(U[i_x:(i_x+2),i_y:(i_y+2)])
                 
                 x += v_x * h
                 y += v_y * h
@@ -779,13 +782,19 @@ def get_D_T(X,Y,n_size,a_x,a_y,h):
                 
                 if (v_x==0) and (v_y==0): T = max_T
     
+                if np.isnan(D):
+                     a = 1
+    
             T_matrix[i,j] = T
-            if T>=400:
+            if (T>=max_T) and (i_loop<=5):
                 D_matrix[i,j] = -42
+                T_matrix[i,j] = -42
+            elif (T>=max_T):
+                D_matrix[i,j] = -43
+                T_matrix[i,j] = -43
             else:
                 D_matrix[i,j] = D
         
-    D_matrix[D_matrix==(-42)] = D_matrix.max()
     
     return D_matrix, T_matrix
     
@@ -823,53 +832,55 @@ def disp_metrics():
         
     U = np.nan_to_num(U)
     V = np.nan_to_num(V)
-    resolution = X[0][1]-X[0][0]
     
-    T_matrix = np.zeros([n_size,n_size])
-    D_matrix = np.zeros([n_size,n_size])
     
-    for i in range(n_size):
-        print(str(i)+"/"+str(n_size))
-        for j in range(n_size):
-            x = X[i][j]
-            y = Y[i][j]
-            T = 0
-            D = 0
-            
-            #list_x = [x]
-            #list_y = [y]
-            
-            max_T = 1000
-            i_loop = 0
-            while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
-                i_loop += 1
-                
-                i_x = int(np.floor((x - X[0][0])/resolution))
-                i_y = int(np.floor((y - Y[0][0])/resolution))
-                
-                v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
-                v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
-                
-                if (np.isnan(v_x)): v_x = 0
-                x += v_x * h
-                y += v_y * h
-                T += h
-                D += np.sqrt(np.power(v_x * h,2)+np.power(v_y * h,2))
-                #list_x.append(x)
-                #list_y.append(y)
-                
-                if (v_x==0) and (v_y==0): T = max_T
-                
-                if np.isnan(D):
-                    a = 1
-    
-            T_matrix[i,j] = T
-            if (T>=400) and (i_loop<=5):
-                D_matrix[i,j] = -42
-            elif (T>=400):
-                D_matrix[i,j] = -43
-            else:
-                D_matrix[i,j] = D
+    # resolution = X[0][1]-X[0][0]
+    # 
+    # T_matrix = np.zeros([n_size,n_size])
+    # D_matrix = np.zeros([n_size,n_size])
+    # 
+    # for i in range(n_size):
+    #     print(str(i)+"/"+str(n_size))
+    #     for j in range(n_size):
+    #         x = X[i][j]
+    #         y = Y[i][j]
+    #         T = 0
+    #         D = 0
+    #         
+    #         #list_x = [x]
+    #         #list_y = [y]
+    #         
+    #         max_T = 1000
+    #         i_loop = 0
+    #         while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
+    #             i_loop += 1
+    #             
+    #             i_x = int(np.floor((x - X[0][0])/resolution))
+    #             i_y = int(np.floor((y - Y[0][0])/resolution))
+    #             
+    #             v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
+    #             v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
+    #             
+    #             if (np.isnan(v_x)): v_x = 0
+    #             x += v_x * h
+    #             y += v_y * h
+    #             T += h
+    #             D += np.sqrt(np.power(v_x * h,2)+np.power(v_y * h,2))
+    #             #list_x.append(x)
+    #             #list_y.append(y)
+    #             
+    #             if (v_x==0) and (v_y==0): T = max_T
+    #             
+    #             if np.isnan(D):
+    #                 a = 1
+    # 
+    #         T_matrix[i,j] = T
+    #         if (T>=400) and (i_loop<=5):
+    #             D_matrix[i,j] = -42
+    #         elif (T>=400):
+    #             D_matrix[i,j] = -43
+    #         else:
+    #             D_matrix[i,j] = D
             
         # Create figure and get axes handle
         #fig, ax = plt.subplots()
@@ -889,6 +900,7 @@ def disp_metrics():
         
     #D_matrix[D_matrix==(-42)] = np.nanmax(D_matrix)
     
+    D_matrix, T_matrix = get_D_T(X,Y,U,V,n_size,a_x,a_y,h)
     
     np.save("/home/leziart/Documents/Metrics/normal_D_"+str(num)+".npy", D_matrix)
     np.save("/home/leziart/Documents/Metrics/normal_T_"+str(num)+".npy", T_matrix)
@@ -905,45 +917,48 @@ def disp_metrics():
     
     U = np.nan_to_num(U)
     V = np.nan_to_num(V)
-    resolution = X[0][1]-X[0][0]
-    
-    T_matrix = np.zeros([n_size,n_size])
-    D_matrix = np.zeros([n_size,n_size])
-    
-    for i in range(n_size):
-        print(str(i)+"/"+str(n_size))
-        for j in range(n_size):
-            x = X[i][j]
-            y = Y[i][j]
-            T = 0
-            D = 0
-            
-            max_T = 1000
-            while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
-                i_x = int(np.floor((x - X[0][0])/resolution))
-                i_y = int(np.floor((y - Y[0][0])/resolution))
-                
-                v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
-                v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
-                
-                x += v_x * h
-                y += v_y * h
-                T += h
-                D += np.sqrt(np.power(v_x * h,2)+np.power(v_y * h,2))
+    # resolution = X[0][1]-X[0][0]
+    # 
+    # T_matrix = np.zeros([n_size,n_size])
+    # D_matrix = np.zeros([n_size,n_size])
+    # 
+    # for i in range(n_size):
+    #     print(str(i)+"/"+str(n_size))
+    #     for j in range(n_size):
+    #         x = X[i][j]
+    #         y = Y[i][j]
+    #         T = 0
+    #         D = 0
+    #         
+    #         max_T = 1000
+    #         while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
+    #             i_x = int(np.floor((x - X[0][0])/resolution))
+    #             i_y = int(np.floor((y - Y[0][0])/resolution))
+    #             
+    #             v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
+    #             v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
+    #             
+    #             x += v_x * h
+    #             y += v_y * h
+    #             T += h
+    #             D += np.sqrt(np.power(v_x * h,2)+np.power(v_y * h,2))
 
-                
-                if (v_x==0) and (v_y==0): T = max_T
-    
-            T_matrix[i,j] = T
-            if (T>=400) and (i_loop<=5):
-                D_matrix[i,j] = -42
-            elif (T>=400):
-                D_matrix[i,j] = -43
-            else:
-                D_matrix[i,j] = D
+   ##               
+    #             if (v_x==0) and (v_y==0): T = max_T
+    # 
+    #         T_matrix[i,j] = T
+    #         if (T>=400) and (i_loop<=5):
+    #             D_matrix[i,j] = -42
+    #         elif (T>=400):
+    #             D_matrix[i,j] = -43
+    #         else:
+    #             D_matrix[i,j] = D
             
         
     # D_matrix[D_matrix==(-42)] = np.nanmax(D_matrix)
+    
+    D_matrix, T_matrix = get_D_T(X,Y,U,V,n_size,a_x,a_y,h)
+    
     np.save("/home/leziart/Documents/Metrics/bezier_D_"+str(num)+".npy", D_matrix)
     np.save("/home/leziart/Documents/Metrics/bezier_T_"+str(num)+".npy", T_matrix)
     
@@ -976,9 +991,79 @@ def disp_metrics():
     # fig.tight_layout()
     # plt.show()
 
-def disp_metrics_plots():
+def disp_metrics_bis(): 
+    """
+    Plot a stream field to display the velocity flow in the workspace
+    Each line is formatted as follows "x_pos, y_pos, x_vel, y_vel"
+    Use the streamplot function of Matplotlib
+    """
     
-    for num in range(1):
+    a_x = 0
+    a_y = 5
+    
+    h = 0.1
+    margin = 0.5
+    my_density = 3
+    
+    num = 9
+    names = glob.glob("./stream_data_bor*.txt")
+    names_normal = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_normal.txt")
+    names_bezier = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_bezier.txt")
+    names_classic = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_classic.txt")
+    names_bor = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_obs.txt")
+    names_cells = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_cells.txt")
+    
+    print("### Starting normal ###")
+    # Get data and put in the the correct format
+    for name in names_normal:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+        U = np.nan_to_num(U)
+        V = np.nan_to_num(V)
+        D_matrix, T_matrix = get_D_T(X,Y,U,V,n_size,a_x,a_y,h)
+        np.save("/home/leziart/Documents/Metrics/normal_D_"+str(num)+".npy", D_matrix)
+        np.save("/home/leziart/Documents/Metrics/normal_T_"+str(num)+".npy", T_matrix)
+    
+    print("### Starting bezier ###")
+    # Get data and put in the the correct format
+    for name in names_bezier:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+        U = np.nan_to_num(U)
+        V = np.nan_to_num(V)
+        D_matrix, T_matrix = get_D_T(X,Y,U,V,n_size,a_x,a_y,h)
+        np.save("/home/leziart/Documents/Metrics/bezier_D_"+str(num)+".npy", D_matrix)
+        np.save("/home/leziart/Documents/Metrics/bezier_T_"+str(num)+".npy", T_matrix)
+    
+    print("### Starting classic ###")
+    # Get data and put in the the correct format
+    for name in names_classic:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+        U = np.nan_to_num(U)
+        V = np.nan_to_num(V)
+        D_matrix, T_matrix = get_D_T(X,Y,U,V,n_size,a_x,a_y,h)
+        np.save("/home/leziart/Documents/Metrics/classic_D_"+str(num)+".npy", D_matrix)
+        np.save("/home/leziart/Documents/Metrics/classic_T_"+str(num)+".npy", T_matrix)
+    
+    print("### Files saved ###")
+
+    
+def disp_metrics_plots():
+    num = 7
+    for i_num in range(1):
         names = glob.glob("./stream_data_bor*.txt")
         names_normal = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_normal.txt")
         names_bezier = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_bezier.txt")
@@ -1001,10 +1086,30 @@ def disp_metrics_plots():
         D_bezier = np.load("/home/leziart/Documents/Metrics/bezier_D_"+str(num)+".npy")
         T_bezier = np.load("/home/leziart/Documents/Metrics/bezier_T_"+str(num)+".npy")
              
-                
-        fig, (ax0, ax1) = plt.subplots(nrows=2)
+        D_classic = np.load("/home/leziart/Documents/Metrics/classic_D_"+str(num)+".npy")
+        T_classic = np.load("/home/leziart/Documents/Metrics/classic_T_"+str(num)+".npy")
         
-        levels = MaxNLocator(nbins=30).tick_values(np.min([np.min(T_normal),np.min(T_bezier)]), np.max([np.max(T_normal),np.max(T_bezier)])) 
+        I_D = np.argwhere(np.isnan(D_classic))
+        for i_pair in range(I_D.shape[0]):
+            pair = I_D[i_pair,:]
+            pair_temp = np.copy(pair)
+            while np.isnan(D_classic[pair_temp[0],pair_temp[1]]):
+                pair_temp[1] -= 1
+            D_classic[pair[0],pair[1]] = D_classic[pair_temp[0],pair_temp[1]]
+            
+        D_classic[np.argwhere(np.isnan(D_classic))] = 0
+        T_classic[np.argwhere(np.isnan(T_classic))] = 0
+        
+        T_normal[T_normal==(-42)] = 0.0
+        T_normal[T_normal==(-43)] = 0.0
+        T_bezier[T_bezier==(-42)] = 0.0
+        T_bezier[T_bezier==(-43)] = 0.0
+        T_classic[T_classic==(-42)] = 0.0
+        T_classic[T_classic==(-43)] = 0.0
+        
+        fig, (ax2, ax0, ax1) = plt.subplots(nrows=3)
+        
+        levels = MaxNLocator(nbins=30).tick_values(np.min([np.min(T_normal),np.min(T_bezier),np.min(T_classic)]), np.max([np.max(T_normal),np.max(T_bezier),np.max(T_classic)])) 
         #levels = np.linspace(np.min([np.min(T_normal),np.min(T_bezier)]), np.max([np.max(T_normal),np.max(T_bezier)]), 15)
         cmap = plt.get_cmap('PiYG')
         norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
@@ -1015,11 +1120,12 @@ def disp_metrics_plots():
         
         resolution = X[0][1]-X[0][0]
         I_D = np.argwhere(D_normal==(-42))
-        D_normal[D_normal==(-42)] = np.nanmax(D_normal)
-        D_normal[D_normal==(-43)] = np.nanmax(D_normal)
-        for i in range(I_D.shape[0]):
-            rectangle = mpatches.Rectangle([X[I_D[i,1],I_D[i,0]]-resolution*0.5,Y[I_D[i,1],I_D[i,0]]-resolution*0.5], resolution, resolution, color='k')
-            ax0.add_artist(rectangle)
+        D_normal[D_normal==(-42)] = np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])
+        D_normal[D_normal==(-43)] = np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])
+        # for i in range(I_D.shape[0]):
+        #     rectangle = mpatches.Rectangle([X[I_D[i,1],I_D[i,0]]-resolution*0.5,Y[I_D[i,1],I_D[i,0]]-resolution*0.5], resolution, resolution, color='k')
+        #     ax0.add_artist(rectangle)
+                
                 
         im = ax1.pcolormesh(Y, X, T_bezier, cmap=cmap, norm=norm)
         fig.colorbar(im, ax=ax1)
@@ -1027,19 +1133,29 @@ def disp_metrics_plots():
         
         resolution = X[0][1]-X[0][0]
         I_D = np.argwhere(D_bezier==(-42))
-        D_bezier[D_bezier==(-42)] = np.nanmax(D_bezier)
-        D_bezier[D_bezier==(-43)] = np.nanmax(D_bezier)
-        for i in range(I_D.shape[0]):
-            rectangle = mpatches.Rectangle([X[I_D[i,1],I_D[i,0]]-resolution*0.5,Y[I_D[i,1],I_D[i,0]]-resolution*0.5], resolution, resolution, color='k')
-            ax1.add_artist(rectangle)
-            
+        D_bezier[D_bezier==(-42)] = np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])
+        D_bezier[D_bezier==(-43)] = np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])
+        # for i in range(I_D.shape[0]):
+        #     rectangle = mpatches.Rectangle([X[I_D[i,1],I_D[i,0]]-resolution*0.5,Y[I_D[i,1],I_D[i,0]]-resolution*0.5], resolution, resolution, color='k')
+        #     ax1.add_artist(rectangle)
+        
+        im = ax2.pcolormesh(Y, X, T_classic, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax2)
+        ax2.set_title('Time for completion original')
+        
+        resolution = X[0][1]-X[0][0]
+        I_D = np.argwhere(D_classic==(-42))
+        D_classic[D_classic==(-42)] = np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])
+        D_classic[D_classic==(-43)] = np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])
+        
         fig.tight_layout()
         plt.show()
         
         
-        fig, (ax0, ax1) = plt.subplots(nrows=2)
         
-        levels = MaxNLocator(nbins=30).tick_values(np.min([D_normal.min(),D_bezier.min()]), np.max([D_normal.max(),D_bezier.max()])) 
+        fig, (ax2, ax0, ax1) = plt.subplots(nrows=3)
+        
+        levels = MaxNLocator(nbins=30).tick_values(np.min([D_normal.min(),D_bezier.min(),np.min(D_classic)]), np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])) 
         #levels = np.linspace(np.min(np.min(D_normal),np.min(D_bezier)), np.max(np.max(D_normal),np.max(D_bezier)), 15)
         cmap = plt.get_cmap('PiYG')
         norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
@@ -1052,8 +1168,43 @@ def disp_metrics_plots():
         fig.colorbar(im, ax=ax1)
         ax1.set_title('Distance for completion bezier')
         
+        im = ax2.pcolormesh(Y, X, D_classic, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax2)
+        ax2.set_title('Distance for completion original')
+        
         fig.tight_layout()
         plt.show()
+        
+        fig, ax = plt.subplots()
+        
+        
+        levels = MaxNLocator(nbins=30).tick_values(np.min([D_normal.min(),D_bezier.min(),np.min(D_classic)]), np.max([D_normal.max(),D_bezier.max(),np.max(D_classic)])) 
+        #levels = np.linspace(np.min(np.min(D_normal),np.min(D_bezier)), np.max(np.max(D_normal),np.max(D_bezier)), 15)
+        cmap = plt.get_cmap('PiYG')
+        norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+           
+        fig, ax0 = plt.subplots()
+        im = ax0.pcolormesh(Y, X, D_normal, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax0)
+        ax0.set_title('Distance for completion normal')
+        plt.show()
+        fig.savefig("/home/leziart/Documents/Metrics_Result/distance_"+str(num)+"_normal.png", dpi=200)
+        
+        fig, ax1 = plt.subplots()
+        im = ax1.pcolormesh(Y, X, D_bezier, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax1)
+        ax1.set_title('Distance for completion bezier')
+        plt.show()
+        fig.savefig("/home/leziart/Documents/Metrics_Result/distance_"+str(num)+"_bezier.png", dpi=200)
+        
+        fig, ax2 = plt.subplots()
+        im = ax2.pcolormesh(Y, X, D_classic, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax2)
+        ax2.set_title('Distance for completion original')
+        plt.show()
+        fig.savefig("/home/leziart/Documents/Metrics_Result/distance_"+str(num)+"_classic.png", dpi=200)
+        
+        
     
     
     
