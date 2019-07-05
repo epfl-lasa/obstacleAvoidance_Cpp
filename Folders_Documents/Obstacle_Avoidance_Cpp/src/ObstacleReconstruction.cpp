@@ -2,10 +2,11 @@
 
 float myRad = 0.1;
 const float size_cell = 1.0;
-const float margin = 0.25;
+const float margin =  0.25;
 
 bool logging_enabled = true;  // Matrix initialization [ID obs, ID feature, 5 slots for data]
 Eigen::MatrixXf log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
+Eigen::MatrixXf log_refresh = Eigen::MatrixXf::Zero(1,7); // Matrix to store all the log data
 float current_obstacle = 1;
 
 Point get_center(Blob const& blob) // Get the center of a group of cells by computing the mean of the positions of the cells along x and y
@@ -662,8 +663,9 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     int y_min = static_cast<int>(std::round(state_robot(1,0)-offset));
     int y_max = static_cast<int>(std::round(state_robot(1,0)+offset));
 
-    // std::cout << " OFFSET: " << offset << std::endl;
-    // std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+    /*std::cout << " Robot : " << state_robot(0,0) << " | " << state_robot(1,0) << std::endl;
+    std::cout << " OFFSET: " << offset << std::endl;
+    std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;*/
 
 
     // Expand all occupied cells of the occupancy grid by n cells
@@ -686,9 +688,23 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
         }
     }
 
+    if (x_min<0) {x_min=0;}
+    if (y_min<0) {y_min=0;}
+    if (x_max<0) {x_max=0;}
+    if (y_max<0) {y_max=0;}
+    if (x_min>=occupancy_res.rows()) {x_min=occupancy_res.rows()-1;}
+    if (y_min>=occupancy_res.cols()) {y_min=occupancy_res.cols()-1;}
+    if (x_max>=occupancy_res.rows()) {x_max=occupancy_res.rows()-1;}
+    if (y_max>=occupancy_res.cols()) {y_max=occupancy_res.cols()-1;}
+
+    /*std::cout << x_min << " | " << x_max << " | " << y_min << " | " << y_max << std::endl;
+    std::cout << grid.rows() << " | " << grid.cols() << std::endl;*/
+
     // Output is an empty grid with the obstacle inside the limit distance
     Grid output = Grid::Zero(grid.rows(), grid.cols()); // empty grid the size of the input occupancy grid
     output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1); // copy the obstacle in the limit range
+
+    
 
     // Detect all obstacles that have at least one cell in the limit square around the robot
     // For instance if one half of an obstacle is within the limit distance we also want
@@ -711,7 +727,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
             }
         }
     }
-
+    
 
     // Add obstacles inside square to occupancy grid
     // TODO: maybe it could be optimized by only doing it for those are not already completely inside the square
@@ -750,7 +766,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     PointFill origin;
     origin.x = static_cast<int>(std::round(state_robot(0,0)));
     origin.y = static_cast<int>(std::round(state_robot(1,0)));
-    std::cout << "Origin of flood: (" << origin.x << " , " << origin.y << ")" << std::endl;
+    //std::cout << "Origin of flood: (" << origin.x << " , " << origin.y << ")" << std::endl;
 
     float mycount = 1;
     // If the cell the robot is standing one is not a free cell (if the robot touches an obstacle),
@@ -866,7 +882,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
         {origin_toBeFilled.y=toBeFilled.cols()-1;}
 
     toBeFilled(origin_toBeFilled.x,origin_toBeFilled.y) = 3;
-    std::cout << origin.x-(i_row_min-2) << " & " << origin.y-(i_col_min-2) << std::endl;
+    //std::cout << origin.x-(i_row_min-2) << " & " << origin.y-(i_col_min-2) << std::endl;
     //std::cout << " PASS 2" << std::endl;
 
     //std::cout << "Before fillGrid: " << std::endl << toBeFilled << std::endl;
@@ -1441,7 +1457,17 @@ State next_step_several_obstacles_border( State const& state_robot, State const&
         cmd_velocity = M_eps * cmd_velocity; // non moving obstacle
     }
     // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
-    cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    // cmd_velocity(2,0) = (-1)*std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+
+    float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415;}
+        else if (diff_angle_2 < diff_angle_3)
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415;}
 
     return speed_limiter(cmd_velocity);
 }
@@ -1738,16 +1764,17 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
     Border border_obstacle;
 
     int current_blob = 1; // used if logging_enabled
-    if (logging_enabled)
+    /*if (logging_enabled)
     {
         log_matrix = Eigen::MatrixXf::Zero(1,7); // Matrix initialization [ID obs, ID feature, 5 slots for data]
-    }
+    }*/
 
     for (int cursor_row=0; cursor_row < occupancy_grid.rows(); cursor_row++) // scan each row
     {
         for (int cursor_col=0; cursor_col < occupancy_grid.cols(); cursor_col++) // scan each column
         {
-            if (occupancy_grid(cursor_row, cursor_col)==100) // if the cell is occupied -> it may be new obstacle
+            //if (occupancy_grid(cursor_row, cursor_col)==100) // if the cell is occupied -> it may be new obstacle
+            if ((occupancy_grid(cursor_row, cursor_col)==100)&&((occupancy_grid(cursor_row-1, cursor_col)+occupancy_grid(cursor_row+1, cursor_col)+occupancy_grid(cursor_row, cursor_col-1)+occupancy_grid(cursor_row, cursor_col+1))<250)&&(occupancy_grid(cursor_row, cursor_col+1)==100)) // if the cell is occupied -> it may be new obstacle // TODO: Add condition if at the edge of occupancy grid
             {
                 //std::cout << "Cell (" << cursor_row << "," << cursor_col << ") is occupied" << std::endl;
 
@@ -1778,12 +1805,12 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
                     // Adding occupied cells data
                     if (logging_enabled)
                     {
-                        log_matrix.conservativeResize(log_matrix.rows()+obstacle.rows(), Eigen::NoChange); // Add rows at the end
-                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 0, obstacle.rows(), 1) = current_blob * Eigen::MatrixXf::Ones(obstacle.rows(), 1); // Numero of obstacle
-                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 1, obstacle.rows(), 1) = 1 * Eigen::MatrixXf::Ones(obstacle.rows(), 1); // Numero of feature
-                        //std::cout << "Size (" << log_matrix.rows() << "," << log_matrix.cols() << ") for entry of size (" << obstacle.rows() << "," << obstacle.cols() << std::endl;
-                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 2, obstacle.rows(), 2) = obstacle.template cast<float>(); // Add occupied cells information
-                        log_matrix.block(log_matrix.rows()-obstacle.rows(), 4, obstacle.rows(), 3) = Eigen::MatrixXf::Zero(obstacle.rows(), 3); // Put unusued cells to zero
+                        log_refresh.conservativeResize(log_refresh.rows()+obstacle.rows(), Eigen::NoChange); // Add rows at the end
+                        log_refresh.block(log_refresh.rows()-obstacle.rows(), 0, obstacle.rows(), 1) = current_blob * Eigen::MatrixXf::Ones(obstacle.rows(), 1); // Numero of obstacle
+                        log_refresh.block(log_refresh.rows()-obstacle.rows(), 1, obstacle.rows(), 1) = 1 * Eigen::MatrixXf::Ones(obstacle.rows(), 1); // Numero of feature
+                        //std::cout << "Size (" << log_refresh.rows() << "," << log_refresh.cols() << ") for entry of size (" << obstacle.rows() << "," << obstacle.cols() << std::endl;
+                        log_refresh.block(log_refresh.rows()-obstacle.rows(), 2, obstacle.rows(), 2) = obstacle.template cast<float>(); // Add occupied cells information
+                        log_refresh.block(log_refresh.rows()-obstacle.rows(), 4, obstacle.rows(), 3) = Eigen::MatrixXf::Zero(obstacle.rows(), 3); // Put unusued cells to zero
                         current_blob +=1;
                     }
 
@@ -1803,7 +1830,7 @@ std::vector<Border> detect_borders( Grid & occupancy_grid, State const& state_ro
                     //if (true&&(x_min==i_row_min)&&(x_max==i_row_max)&&(y_min==i_col_min)&&(y_max==i_col_max))
                     if ((x_min<cell_robot(0,0))&&(x_max>cell_robot(0,0))&&(y_min<cell_robot(1,0))&&(y_max>cell_robot(1,0)))
                     {
-                        std::cout << "Enclosing obstacle detected" << std::endl;
+                        //std::cout << "Enclosing obstacle detected" << std::endl;
 
                         /*std::cout << "Occupancy grid before detecting the enclosing obstacle" << std::endl;
                         Grid tempo = occupancy_grid.block(cell_robot(0,0)-20, cell_robot(1,0)-20, 41, 41);
@@ -2177,10 +2204,17 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     Eigen::MatrixXf mat_velocities(number_states, number_obstacles);  // "3 x number_of_obstacles" (x,y,phi)
     Eigen::MatrixXf mat_gamma(1, number_obstacles);                   // "1 x number_of_obstacles" (gamma distance)
 
+    // Line that goes from the robot to the attractor
+    Eigen::MatrixXi storage_line = Eigen::MatrixXi::Zero(0,2);
+    Eigen::Matrix<int, 2, 1> cell_of_robot     = get_cell( state_robot(0,0), state_robot(1,0), size_cell);   // projection of robot on surface
+    Eigen::Matrix<int, 2, 1> cell_of_attractor = get_cell( state_attractor(0,0), state_attractor(1,0), size_cell);  // projection of attractor on surface
+    storage_line = Line(static_cast<float>(cell_of_robot(0,0)),static_cast<float>(cell_of_robot(1,0)),static_cast<float>(cell_of_attractor(0,0)),static_cast<float>(cell_of_attractor(1,0)));
+
     for (int i=0; i < borders.size(); i++)
     {
         if (logging_enabled)
         {
+            //std::cout << "Logging border information " << i << std::endl;
             log_matrix.conservativeResize(log_matrix.rows()+(borders[i]).rows(), Eigen::NoChange); // Add rows at the end
             log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 0, (borders[i]).rows(), 1) = current_obstacle * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of obstacle
             log_matrix.block(log_matrix.rows()-(borders[i]).rows(), 1, (borders[i]).rows(), 1) = 2 * Eigen::MatrixXf::Ones((borders[i]).rows(), 1); // Numero of feature
@@ -2195,6 +2229,16 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
         // Assigning the block does not work anymore but doing it coefficient by coefficient works... It makes no sense
         mat_velocities(2,i) = 0;
         mat_gamma(0,i) = output(3,0);
+
+        /*if ((!check_if_on_way(storage_line, borders[i])))//(mat_gamma(0,i)!=1)&&
+        {
+            mat_gamma(0,i) = std::numeric_limits<float>::max();
+            std::cout << " ++ Obstacle " << i << " is not on the way ++ " << std::endl;
+        }
+        else
+        {
+            std::cout << " ++ Obstacle " << i << " is on the way ++ " << std::endl;
+        }*/
 
         current_obstacle += 1;
     }
@@ -2216,13 +2260,24 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     // Special case if all obstacles are too far away from the robot so none of them is considered
     if ((mat_weights.size()==0) || (mat_weights.maxCoeff() == 0))
     {
+        std::cout << "No obstacle considered" << std::endl;
+        //std::cout << "R/A: " << state_robot.transpose() << " | "  << state_attractor.transpose() << std::endl;
         // No obstacle in range so the robot just goes toward the attractor
         State cmd_velocity = state_attractor - state_robot;
 
         // Normalization of the speed to a default desired speed
         cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
 
-        cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+        //cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+        float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415;}
+        else if (diff_angle_2 < diff_angle_3)
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415;}
 
         // Decrease speed when the robot get close to the attractor
         float distance_stop = 0.25;
@@ -2261,7 +2316,16 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
             // Normalization of the speed to a default desired speed
             cmd_no_obstacle = cmd_no_obstacle / (std::sqrt(std::pow(cmd_no_obstacle(0,0),2) + std::pow(cmd_no_obstacle(1,0),2)));
 
-            cmd_no_obstacle(2,0) = std::atan2(cmd_no_obstacle(1,0),cmd_no_obstacle(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+            //cmd_no_obstacle(2,0) = std::atan2(cmd_no_obstacle(1,0),cmd_no_obstacle(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+            float diff_angle_1 = std::abs(std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) + 2*3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) - 2*3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
+           {cmd_no_obstacle(2,0) = std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) + 2*3.1415;}
+        else if (diff_angle_2 < diff_angle_3)
+           {cmd_no_obstacle(2,0) = std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0);}
+        else
+           {cmd_no_obstacle(2,0) = std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) - 2*3.1415;}
 
             // Decrease speed when the robot get close to the attractor
             float distance_stop = 0.25;
@@ -2284,7 +2348,16 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     }
 
     // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
-    cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    //cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415;}
+        else if (diff_angle_2 < diff_angle_3)
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415;}
 
     /*std::cout << state_robot << std::endl;
     std::cout << state_attractor << std::endl;
@@ -2396,7 +2469,8 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     // To return NaN for points inside obstacle
     robot_vec << (robot(0,0)-gamma_norm_proj(4,0)),(robot(0,1)-gamma_norm_proj(5,0)),0;
     normal_vec << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
-    if (verbose)
+
+    if (false)
     {
         std::cout << "Closest         " << closest << std::endl;
         std::cout << "Projected robot " << gamma_norm_proj(4,0) << " " << gamma_norm_proj(5,0) << std::endl;
@@ -2419,6 +2493,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        //output << 0.0, 0.0, 0, 1;
         return output;
     }
     else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
@@ -2431,6 +2506,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1;
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
+        //output << 0.0, 0.0, 0, 1;
         return output;
     }
 
@@ -2451,6 +2527,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     // Get the maximum gamma distance in the initial space for the attractor
     float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
 
+
     // Get the position of the robot in the circle space
     Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
     float gamma_circle_frame = point_circle_space(0,0);
@@ -2461,7 +2538,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     my_circle_space << robot_circle_frame(0,0) << "," << robot_circle_frame(1,0) << "\n"; // write position of the point in the circle space (for matplotlib)
 
 
-    if (closest(0,2)==3)
+    if (closest(0,2)==3) // -1 applied to r_eps_vector instead
     {
         ref_vec_circle_frame = (-1) * ref_vec_circle_frame;
     }
@@ -2481,6 +2558,12 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     Obstacle obs;
     obs << 0, 0, 0, 1, 1, 1, 1, 0, 0, 0; // unit circle [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
     r_eps_vector = ref_vec_circle_frame;
+
+    /*if (closest(0,2)==3)
+    {
+        r_eps_vector = (-1) * r_eps_vector;
+    }*/
+
     gradient_vector = gradient( robot_circle_frame, obs);
     ortho_basis = gram_schmidt( gradient_vector);
     E_eps = E_epsilon( r_eps_vector, ortho_basis);
@@ -2508,6 +2591,11 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     {
         velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
     }*/
+
+    if (closest(0,2)==3)
+    {
+        r_eps_vector = (-1) * r_eps_vector;
+    }
 
     if (false)
     {
@@ -3026,25 +3114,65 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    // 1 is clockwise direction and -1 is counter-clockwise
    // so 1 is top half part of the circle and -1 is the bottom half part of the circle
    float ratio_distance = distance_proj / (0.5 * distance_tot);
+   // Possible to use a function instead of a simple linearity between 0 and 1
+   /*float swap_x = 0.1;
+   float swap_y = 0.9;
+   if (ratio_distance < swap_x) { ratio_distance = swap_y*ratio_distance/swap_x;}
+   else { ratio_distance = swap_y + (1-swap_y)*(ratio_distance-swap_x)/(1-swap_x);}*/
 
-   //float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot) ;// = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
+
+   /*float gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot) ;// = 1 when gamma_robot = 1, = infinity when gamma_robot = gamma_max_robot
    // it should guarantee the continuity of the transform between shape-space and circle-space.
-   //float gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
+   float gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
+   if (gamma_max_robot < gamma_robot) { gamma_circle_space_robot = std::numeric_limits<float>::max();}
+   if (gamma_max_attractor < gamma_attractor) { gamma_circle_space_attractor = std::numeric_limits<float>::max();}*/
 
    // Another test, projection to infinity in circle space of the points at the limit distance from the obstacle
-   float denom_r = (limit_dist - gamma_robot);
-   float gamma_circle_space_robot = 0;
-   if (denom_r < 0.0001) {gamma_circle_space_robot = (limit_dist - 1)*10000;} // Avoid division by 0 resulting in NaN
-   else {gamma_circle_space_robot = (limit_dist - 1)/(limit_dist - gamma_robot) ;}
+    /*std::cout << "    gamma_max_robot = " << gamma_max_robot << " VS limit_dist = " << limit_dist << std::endl;
+    std::cout << "gamma_max_attractor = " << gamma_max_attractor << " VS limit_dist = " << limit_dist << std::endl;
+    float gamma_circle_space_robot = 0;
+    if (gamma_max_robot > limit_dist)
+    {
+        float denom_r = (limit_dist - gamma_robot);
+        if (denom_r < 0.0001)
+        {
+            gamma_circle_space_robot = (limit_dist - 1)*10000;   // Avoid division by 0 resulting in NaN
+        }
+        else
+        {
+            gamma_circle_space_robot = (limit_dist - 1)/(limit_dist - gamma_robot);
+        }
+    }
+    else if (gamma_max_robot < gamma_robot) //  /!\ TODO: This problem happens because the algorithm which determines gamma_max is not perfect
+    {
+        gamma_circle_space_robot = 1;
+    }
+    else
+    {
+        gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot);
+    }
 
-   float denom_a = (limit_dist - gamma_attractor);
-   float gamma_circle_space_attractor = 0;
-   if (denom_a < 0.0001) {gamma_circle_space_attractor = (limit_dist - 1)*10000;} // Avoid division by 0 resulting in NaN
-   else {gamma_circle_space_attractor = (limit_dist - 1)/(limit_dist - gamma_attractor) ;}
+    float gamma_circle_space_attractor = 0;
+    if (gamma_max_attractor > limit_dist)
+    {
+        float denom_a = (limit_dist - gamma_attractor);
+        if (denom_a < 0.0001)
+        {
+            gamma_circle_space_attractor = (limit_dist - 1)*10000;   // Avoid division by 0 resulting in NaN
+        }
+        else
+        {
+            gamma_circle_space_attractor = (limit_dist - 1)/(limit_dist - gamma_attractor) ;
+        }
+    }
+    else
+    {
+        gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
+    }*/ // End of "Another test, projection to infinity [...]"
 
    // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results
-   //float gamma_circle_space_robot = gamma_robot; // /!\ TEST
-   //float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
+   float gamma_circle_space_robot = gamma_robot; // /!\ TEST
+   float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST
    //std::cout << gamma_attractor << std::endl;
    float angle = 3.1415 * ratio_distance * direction;
 
@@ -3185,3 +3313,126 @@ Eigen::MatrixXi readMatrix(std::string filename) // read a textfile with 'space'
 
     return result;
 }
+
+Eigen::MatrixXi Line( float x1, float y1, float x2, float y2)
+{
+  // Bresenham's line algorithm
+  // Taken from http://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C.2B.2B
+  const bool steep = (fabs(y2 - y1) > fabs(x2 - x1));
+  if(steep)
+  {
+    std::swap(x1, y1);
+    std::swap(x2, y2);
+  }
+
+  if(x1 > x2)
+  {
+    std::swap(x1, x2);
+    std::swap(y1, y2);
+  }
+
+  const float dx = x2 - x1;
+  const float dy = fabs(y2 - y1);
+
+  float error = dx / 2.0f;
+  const int ystep = (y1 < y2) ? 1 : -1;
+  int y = (int)y1;
+
+  const int maxX = (int)x2;
+
+  int num_rows = 0;
+  for(int x=(int)x1; x<=maxX; x++)
+  {
+      num_rows += 1;
+  }
+  Eigen::MatrixXi storage_line = Eigen::MatrixXi::Zero(num_rows,2);
+  int k = 0;
+  for(int x=(int)x1; x<=maxX; x++)
+  {
+    if(steep)
+    {
+        storage_line.block(k,0,1,2) << y,x;
+    }
+    else
+    {
+        storage_line.block(k,0,1,2) << x,y;
+    }
+
+    error -= dy;
+    if(error < 0)
+    {
+        y += ystep;
+        error += dx;
+    }
+    k++;
+  }
+
+  return storage_line;
+}
+
+bool check_if_on_way(Eigen::MatrixXi const& line, Border const& border)
+{
+    // Goal: Check if the obstacle associated to the border is on the way to the attractor
+    // i.e if one of the cells of the border is on the line going from the robot to the attractor
+
+    /* We want to check the X cells that are directly the robot-attractor lines but also the o cells
+    . . . . . . .
+    . . . . o a .
+    . . . o X o .
+    . . o X o . .
+    . o X o . . .
+    . r o . . . .
+    . . . . . . .
+    */
+
+    bool verbose_check = false;
+    Eigen::MatrixXi surface = (border.block(0,0,border.rows(),2)).template cast<int>();
+
+    if (verbose_check) {
+    std::cout << line << std::endl << " = " << std::endl;
+    std::cout << surface << std::endl;}
+
+    for (int i=1; i<line.rows()-1; i++)
+    {
+        for (int j=0; j<surface.rows(); j++)
+        {
+            if ((line(i,0)==surface(j,0))&&(line(i,1)==surface(j,1)))
+            {
+                if (verbose_check) {std::cout << "Cell (" << line(i,0) << "," <<  line(i,1) << ") is on the way.";}
+                return true;
+            }
+        }
+    }
+
+    surface.col(1) += Eigen::MatrixXi::Ones(surface.rows(),1);
+
+    for (int i=1; i<line.rows()-2; i++)
+    {
+        for (int j=0; j<line.rows(); j++)
+        {
+            if ((line(i,0)==surface(j,0))&&(line(i,1)==surface(j,1)))
+            {
+                if (verbose_check) {std::cout << "Cell (" << line(i,0) << "," << line(i,1) << ") is on the way.";}
+                return true;
+            }
+        }
+    }
+
+    surface.col(1) -= (int)2 * Eigen::MatrixXi::Ones(surface.rows(),1);
+
+    for (int i=2; i<line.rows()-1; i++)
+    {
+        for (int j=0; j<line.rows(); j++)
+        {
+            if ((line(i,0)==surface(j,0))&&(line(i,1)==surface(j,1)))
+            {
+                if (verbose_check) {std::cout << "Cell (" << line(i,0) << "," << line(i,1) << ") is on the way.";}
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+

@@ -223,7 +223,7 @@ find_package (Eigen3 REQUIRED)
 
 # Listener node to retrieve LaserScan data
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
-add_executable(process_occupancy_grid_node src/process_occupancy_grid_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp)
+add_executable(process_occupancy_grid_node src/process_occupancy_grid_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp src/BezierInterpolation.cpp)
 target_link_libraries(process_occupancy_grid_node ${catkin_LIBRARIES})
 
 add_executable(cmd_vel_listener src/cmd_vel_listener.cpp)

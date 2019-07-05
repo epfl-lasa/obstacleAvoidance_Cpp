@@ -18,9 +18,10 @@
 #    plot(bez(:,1),bez(:,2),'color',.4+.4*rand(1,3),'linewidth',3)
 #end
 
+
 import numpy as np
 from matplotlib import pyplot as plt
-
+"""
 X = np.array([0,1,1,0])
 Y = np.array([0,0,1,1])
 n = len(X)
@@ -75,7 +76,7 @@ for k in range(n):
 #plt.plot(X,Y,'o',color='k',linewidth=5)
 #plt.show()
 
-
+"""
 ##
 
 def compute_bezier(X,Y):
@@ -117,8 +118,9 @@ def compute_bezier(X,Y):
 def border_to_vertices(blob):
     obstacle = []
     blob = np.vstack((blob[-1,:],blob))
-    blob = np.vstack((blob,blob[0,:]))
-
+    blob = np.vstack((blob,blob[1,:]))
+    remove_last = False ## ADD REMOVE LAST TO C++ CODE
+    
     for k in range(1,blob.shape[0]-1):
         
         if (blob[k,2]==1):
@@ -148,12 +150,21 @@ def border_to_vertices(blob):
                 
         elif (blob[k,2]==3):
             if (blob[k-1,2] == 2) and (blob[k+1,2] != 2):
-                obstacle.pop()
+                if len(obstacle)>0: obstacle.pop()
+                else: remove_last = True  ## ADD REMOVE LAST TO C++ CODE
             
             if (blob[k-1,2] == 1) and (blob[k+1,2] != 3):
-                obstacle.pop()
+               if len(obstacle)>0: obstacle.pop()
+               else: remove_last = True  ## ADD REMOVE LAST TO C++ CODE
+            
+            if (blob[k,0]==10) and ((blob[k,1]==2)): 
+                print("PASS")
+                print(blob[k-1,:])
+                print(blob[k,:])
+                print(blob[k+1,:])
             
             if ((blob[k-1,2] == 3) and (blob[k+1,2] == 1)):
+                if (blob[k,0]==10) and ((blob[k,1]==2)): print("PASS 1")
                 if (blob[k,4]==0):
                     obstacle.append( [blob[k,0],  blob[k,1]-(1*0.5)])
                 elif (blob[k,4]==1):
@@ -165,6 +176,7 @@ def border_to_vertices(blob):
                 else:
                     print("Should not happen." )
             elif (blob[k-1,2] == 3) or (blob[k+1,2] == 1) or ((blob[k-1,2] == 1) and (blob[k+1,2] != 3)):
+                if (blob[k,0]==10) and ((blob[k,1]==2)): print("PASS 2")
                 # Put corner cell
                 if (blob[k,4]==0):
                     obstacle.append( [blob[k,0]-(1*0.5),  blob[k,1]-(1*0.5)])
@@ -177,6 +189,7 @@ def border_to_vertices(blob):
                 else:
                     print("Should not happen." )
             elif (blob[k+1,2] == 2) or (blob[k-1,2] == 3):
+                if (blob[k,0]==10) and ((blob[k,1]==2)): print("PASS 3")
                 if (blob[k,4]==0):
                     obstacle.append( [blob[k,0],  blob[k,1]-(1*0.5)])
                 elif (blob[k,4]==1):
@@ -191,7 +204,7 @@ def border_to_vertices(blob):
         else:
             print("ERROR")
             
-    
+    if (remove_last): obstacle.pop()  ## ADD REMOVE LAST TO C++ CODE
     return obstacle
 
 import glob
@@ -223,7 +236,7 @@ for k in range(n):
     c = c.reshape((len(c),1))
     d = d.reshape((len(d),1))
     bez= s3*a.transpose() + s2t * b.transpose() + t2s*c.transpose() + t3*d.transpose()
-    plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=3, color='red')
+    plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
 
 for i_row in range(data.shape[0]):
     rectangle = mpatches.Rectangle([data[i_row,0]-0.5,data[i_row,1]-0.5], 1, 1, color="lightsteelblue")
@@ -296,8 +309,10 @@ closest = bez[np.argmin(norm),:]
 #fig = plt.figure()
 #ax = fig.gca()
 #plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=3, color='red')
-plt.plot(robot[0,0], robot[0,1], 'bo', linewidth=5)
-plt.plot(closest[0], closest[1], 'go', linewidth=5)
-plt.plot([robot[0,0], closest[0]],[robot[0,1],closest[1]], color='k', linestyle="--")
+
+# Plot robot and its projection
+#plt.plot(robot[0,0], robot[0,1], 'bo', linewidth=5)
+#plt.plot(closest[0], closest[1], 'go', linewidth=5)
+#plt.plot([robot[0,0], closest[0]],[robot[0,1],closest[1]], color='k', linestyle="--")
 ax.set_aspect("equal")
 plt.show()

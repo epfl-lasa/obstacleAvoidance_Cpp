@@ -30,16 +30,17 @@ limit_in_cells  = int(math.ceil(limit_in_meters))
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558701056.txt")
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
 num = str(1560418816)
-system_name = "qolo"
-names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_*.txt")
+num = str(1562242560)
+system_name = "leziart"
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Zip_Log_4_07/data_obstacles_"+num+".txt")
 names = np.sort(names)
 data = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_blobs_*.txt")
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Zip_Log_4_07/data_blobs_"+num+".txt")
 names = np.sort(names)
 refresh_node = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_*.txt")
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Zip_Log_4_07/data_robot_"+num+".txt")
 names = np.sort(names)
 robot = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
@@ -139,6 +140,8 @@ def update(val):
     # Update features from data_robot_XXX.txt
     timestamp_for_robot = robot[np.argmin(np.abs(robot[:,0]-timestamps[cursor])),0]
     robot_feat6 = robot[(robot[:,0]==timestamp_for_robot) & (robot[:,1]==6)]
+    robot_feat11 = robot[(robot[:,0]==timestamp_for_robot) & (robot[:,1]==11)]
+    robot_feat12 = robot[(robot[:,0]<=timestamp_for_robot) & (robot[:,0]>=(timestamp_for_robot-0.25)) & (robot[:,1]==12)]
     
     # Update occupied cells (in range and out of range)
     for i in range(data_feat1_all.shape[0]):
@@ -182,11 +185,38 @@ def update(val):
             elif data_feat2[i_row,7] == 3:
                 arc = mpatches.Arc([data_feat2[i_row,3]-0.5, data_feat2[i_row,4]+0.5],1, 1, 0, 270, 360, Linewidth=2)
             axes.add_artist(arc)
+      
+    # Update feature 11
+    for i in range(robot_feat11.shape[0]):
+        print("Feat 11: ", robot_feat11[i,2], " and ", robot_feat11[i,3])
+        circle = mpatches.Ellipse([robot_feat11[i,2],robot_feat11[i,3]], 1, 1, facecolor="violet", edgecolor="k", zorder=8)        
+        axes.add_artist(circle)
+        
+        # Update trajectory
+        robot_feat11_prev = robot[(robot[:,0]<=timestamp_for_robot) & (robot[:,1]==11)]
+        line = mlines.Line2D(robot_feat11_prev[:,2],robot_feat11_prev[:,3], Linewidth=2, Linestyle="--",color='darkviolet')
+        axes.add_artist(line)
+        
+    # Update feature 12
+    for i in range(robot_feat12.shape[0]):
+        print("Feat 12: ", robot_feat12[i,2], " and ", robot_feat12[i,3])
+        circle = mpatches.Ellipse([robot_feat12[i,2],robot_feat12[i,3]], 1, 1, facecolor="violet", edgecolor="k", zorder=9)        
+        axes.add_artist(circle)
+        
+    # Update trajectory
+    robot_feat12_prev = robot[(robot[:,0]<=timestamp_for_robot) & (robot[:,1]==12)]
+    for i in range(robot_feat12_prev.shape[0]):
+        color_dot = np.array([1., 0., 0.])
+        k = i / robot_feat12_prev.shape[0]
+        circle = mpatches.Ellipse([robot_feat12_prev[i,2],robot_feat12_prev[i,3]], 0.8, 0.8, facecolor=k*color_dot, edgecolor="k", zorder=7)      
+        axes.add_artist(circle)
+      
             
     # Update position of the projection of the robot in initial space (feature 3)
     for i in range(data_feat3.shape[0]):
         circle = mpatches.Ellipse([data_feat3[i,3],data_feat3[i,4]], 1, 1, facecolor="red", edgecolor="k", zorder=3)        
         axes.add_artist(circle)
+            
     
     # Update position of the projection of the attractor in initial space (feature 4)
     for i in range(data_feat4.shape[0]):

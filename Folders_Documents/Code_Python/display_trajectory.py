@@ -473,9 +473,22 @@ def disp6ter():
     Use the streamplot function of Matplotlib
     """
     
-    margin = 0.5
+    attractor = []
+    attractor.append([5,2])
+    attractor.append([5,1])
+    attractor.append([5,1])
+    attractor.append([5,1])
+    attractor.append([5,0])
+    attractor.append([5,5])
+    attractor.append([5,2])
+    attractor.append([5,0])
+    attractor.append([5,0])
+    attractor.append([16,4])
     
-    num = 8
+    margin = 0.5
+    my_density = 3
+    
+    num = 9
     names = glob.glob("./stream_data_bor*.txt")
     names_normal = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_normal.txt")
     names_bezier = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_bezier.txt")
@@ -538,10 +551,10 @@ def disp6ter():
             ax.add_artist(arc)
     
     # Plot the stream
-    q = ax.streamplot(X, Y, U, V, density=6)
+    q = ax.streamplot(X, Y, U, V, density=my_density)
     
     # Plot the attractor
-    ellipse = mpatches.Ellipse([5,0], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+    ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
     ax.add_artist(ellipse)
      
     # Set axis limits and display result
@@ -556,7 +569,9 @@ def disp6ter():
     #ax.set_ylim(280, 370)
     ax.set_aspect("equal")
     plt.show()
-    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png")
+    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png", dpi=300)
+    #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".svg", format='svg', dpi=600)
+    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".eps", format='eps')
     
     # Get data and put in the the correct format
     for name in names_bezier:
@@ -579,8 +594,29 @@ def disp6ter():
                     
     data = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
     
-    for k in np.unique(data[:,5]):
-        output_data = border_to_vertices(data[data[:,5]==k,0:5])
+    if data.shape[1]==6:
+        for i in np.unique(data[:,5]):
+            output_data = border_to_vertices(data[data[:,5]==i,0:5])
+            output_data = np.array(output_data)
+            
+            X_bez = output_data[:,0]
+            Y_bez = output_data[:,1]
+            
+            n, A,B,C,s3,s2t,t2s,t3 = compute_bezier(X_bez,Y_bez)
+            
+            for k in range(n):  
+                a=A[k,:]
+                b=B[k,:]
+                c=C[k,:]
+                d=A[k+1,:]
+                a = a.reshape((len(a),1))
+                b = b.reshape((len(b),1))
+                c = c.reshape((len(c),1))
+                d = d.reshape((len(d),1))
+                bez= s3*a.transpose() + s2t * b.transpose() + t2s*c.transpose() + t3*d.transpose()
+                plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
+    else:
+        output_data = border_to_vertices(data)
         output_data = np.array(output_data)
         
         X_bez = output_data[:,0]
@@ -601,10 +637,10 @@ def disp6ter():
             plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
     
     # Plot the stream
-    q = ax.streamplot(X, Y, U, V, density=6)
+    q = ax.streamplot(X, Y, U, V, density=my_density)
     
     # Plot the attractor
-    ellipse = mpatches.Ellipse([5,0], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+    ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
     ax.add_artist(ellipse)
      
     # Set axis limits and display result
@@ -620,10 +656,246 @@ def disp6ter():
     ax.set_aspect("equal")
     
     plt.show()
-    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".png")
+    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".png", dpi=300)
+    #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".svg", format='svg', dpi=600)
+    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".eps", format='eps')
     
+    if (num >= 6):
+        ref_point = []
+        ref_point.append([5,4.5])
+        ref_point.append([4.5,7.5])
+        ref_point.append([4.5,7.5])
+        ref_point.append([10,10])
+        
+        # Get data and put in the the correct format
+        for name in names_classic:
+            entry = np.loadtxt(open(name, "rb"), delimiter=",")
+            n_size = int(len(entry[:,0])**0.5)
+            X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+            Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+            U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+            V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+        
+        # Create figure and get axes handle
+        fig, ax = plt.subplots()
+        
+        # Plot occupied cells
+        for name_cells in names_cells:
+            obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
+            for i_row in range(0,obstacles.shape[0]):
+                rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
+                ax.add_artist(rectangle)
+                    
+        # Plot the borders of obstacles in range
+        borders = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
+        for i_row in range(0,borders.shape[0]):
+            if borders[i_row,2] == 1:
+                if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
+                    plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+                elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
+                    plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+                elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
+                    plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3)
+                elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
+                    plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3)
+                else:
+                    print("Should not happen")
+            elif borders[i_row,2] == 2:
+                if borders[i_row,4] == 0:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+                elif borders[i_row,4] == 1:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+                elif borders[i_row,4] == 2:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+                elif borders[i_row,4] == 3:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+                ax.add_artist(arc)
+            elif borders[i_row,2] == 3:
+                if borders[i_row,4] == 0:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+                elif borders[i_row,4] == 1:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+                elif borders[i_row,4] == 2:
+                    arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+                elif borders[i_row,4] == 3:
+                    arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+                ax.add_artist(arc)
+        
+        # Plot the stream
+        q = ax.streamplot(X, Y, U, V, density=my_density)
+        
+        # Plot the attractor
+        ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+        ax.add_artist(ellipse)
+        
+        # Plot the reference point
+        ellipse = mpatches.Ellipse([ref_point[num-6][0],ref_point[num-6][1]], 0.3, 0.3, facecolor='cyan', edgecolor="white", zorder=5)
+        ax.add_artist(ellipse)
+        
+        # Set axis limits and display result
+        min_x = np.min(entry[:,0])
+        max_x = np.max(entry[:,0])
+        min_y = np.min(entry[:,1])
+        max_y = np.max(entry[:,1])
+        
+        ax.set_xlim(min_x, max_x)
+        ax.set_ylim(min_y, max_y)
+        #ax.set_xlim(300, 390)
+        #ax.set_ylim(280, 370)
+        ax.set_aspect("equal")
+        plt.show()
+        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".png", dpi=300)
+        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".eps", format='eps')
+
+from matplotlib.colors import BoundaryNorm
+from matplotlib.ticker import MaxNLocator
+
+def get_D_T(X,Y,n_size,a_x,a_y,h):
+    resolution = X[0][1]-X[0][0]
+    
+    T_matrix = np.zeros([n_size,n_size])
+    D_matrix = np.zeros([n_size,n_size])
+    
+    for i in range(n_size):
+        print(str(i)+"/"+str(n_size))
+        for j in range(n_size):
+            x = X[i][j]
+            y = Y[i][j]
+            T = 0
+            D = 0
+            
+            max_T = 400
+            while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
+                i_x = int(np.floor((x - X[0][0])/resolution))
+                i_y = int(np.floor((y - Y[0][0])/resolution))
+                
+                v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
+                v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
+                
+                x += v_x * h
+                y += v_y * h
+                T += h
+                D += np.sqrt(np.power(v_x * h,2)+np.power(v_y * h,2))
+                
+                if (v_x==0) and (v_y==0): T = max_T
+    
+            T_matrix[i,j] = T
+            if T>=400:
+                D_matrix[i,j] = -42
+            else:
+                D_matrix[i,j] = D
+        
+    D_matrix[D_matrix==(-42)] = D_matrix.max()
+    
+    return D_matrix, T_matrix
+    
+def disp_metrics(): 
+    """
+    Plot a stream field to display the velocity flow in the workspace
+    Each line is formatted as follows "x_pos, y_pos, x_vel, y_vel"
+    Use the streamplot function of Matplotlib
+    """
+    
+    a_x = 2
+    a_y = 5
+    
+    h = 0.1
+    margin = 0.5
+    my_density = 3
+    
+    num = 0
+    names = glob.glob("./stream_data_bor*.txt")
+    names_normal = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_normal.txt")
+    names_bezier = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_bezier.txt")
+    names_classic = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_classic.txt")
+    names_bor = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_obs.txt")
+    names_cells = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_cells.txt")
+    
+    print("### Starting normal ###")
     # Get data and put in the the correct format
-    for name in names_classic:
+    for name in names_normal:
+        entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        n_size = int(len(entry[:,0])**0.5)
+        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+        
+    U = np.nan_to_num(U)
+    V = np.nan_to_num(V)
+    resolution = X[0][1]-X[0][0]
+    
+    T_matrix = np.zeros([n_size,n_size])
+    D_matrix = np.zeros([n_size,n_size])
+    
+    for i in range(n_size):
+        print(str(i)+"/"+str(n_size))
+        for j in range(n_size):
+            x = X[i][j]
+            y = Y[i][j]
+            T = 0
+            D = 0
+            
+            #list_x = [x]
+            #list_y = [y]
+            
+            max_T = 1000
+            i_loop = 0
+            while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
+                i_loop += 1
+                
+                i_x = int(np.floor((x - X[0][0])/resolution))
+                i_y = int(np.floor((y - Y[0][0])/resolution))
+                
+                v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
+                v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
+                
+                if (np.isnan(v_x)): v_x = 0
+                x += v_x * h
+                y += v_y * h
+                T += h
+                D += np.sqrt(np.power(v_x * h,2)+np.power(v_y * h,2))
+                #list_x.append(x)
+                #list_y.append(y)
+                
+                if (v_x==0) and (v_y==0): T = max_T
+                
+                if np.isnan(D):
+                    a = 1
+    
+            T_matrix[i,j] = T
+            if (T>=400) and (i_loop<=5):
+                D_matrix[i,j] = -42
+            elif (T>=400):
+                D_matrix[i,j] = -43
+            else:
+                D_matrix[i,j] = D
+            
+        # Create figure and get axes handle
+        #fig, ax = plt.subplots()
+        
+        # Plot the stream
+        #q = ax.streamplot(X, Y, U, V, density=my_density)
+        #ax.plot_surface(X, Y, Z)
+        
+        # Plot the reference point
+        # for k in range(len(list_x)):
+        #     ellipse = mpatches.Ellipse([list_y[k],list_x[k]], 0.2, 0.2, facecolor='cyan', zorder=5)
+        #     ax.add_artist(ellipse)
+        
+        #plt.plot(list_x,list_y,"x",linewidth=3)
+        #plt.title("Time for completion: " + str(T))
+        #plt.show()
+        
+    #D_matrix[D_matrix==(-42)] = np.nanmax(D_matrix)
+    
+    
+    np.save("/home/leziart/Documents/Metrics/normal_D_"+str(num)+".npy", D_matrix)
+    np.save("/home/leziart/Documents/Metrics/normal_T_"+str(num)+".npy", T_matrix)
+    
+    print("### Starting bezier ###")
+    # Get data and put in the the correct format
+    for name in names_bezier:
         entry = np.loadtxt(open(name, "rb"), delimiter=",")
         n_size = int(len(entry[:,0])**0.5)
         X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
@@ -631,77 +903,160 @@ def disp6ter():
         U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
         V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
     
-    # Create figure and get axes handle
-    fig, ax = plt.subplots()
+    U = np.nan_to_num(U)
+    V = np.nan_to_num(V)
+    resolution = X[0][1]-X[0][0]
     
-    # Plot occupied cells
-    for name_cells in names_cells:
-        obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
-        for i_row in range(0,obstacles.shape[0]):
-            rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
-            ax.add_artist(rectangle)
+    T_matrix = np.zeros([n_size,n_size])
+    D_matrix = np.zeros([n_size,n_size])
+    
+    for i in range(n_size):
+        print(str(i)+"/"+str(n_size))
+        for j in range(n_size):
+            x = X[i][j]
+            y = Y[i][j]
+            T = 0
+            D = 0
+            
+            max_T = 1000
+            while (T<max_T) and (np.sqrt(np.power(x-a_x,2)+np.power(y-a_y,2)) > 0.3) : 
+                i_x = int(np.floor((x - X[0][0])/resolution))
+                i_y = int(np.floor((y - Y[0][0])/resolution))
                 
-    # Plot the borders of obstacles in range
-    borders = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
-    for i_row in range(0,borders.shape[0]):
-        if borders[i_row,2] == 1:
-            if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
-                plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
-            elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
-                plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
-            elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
-                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3)
-            elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
-                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3)
+                v_x = np.mean(V[i_x:i_x+2,i_y:i_y+2])
+                v_y = np.mean(U[i_x:i_x+2,i_y:i_y+2])
+                
+                x += v_x * h
+                y += v_y * h
+                T += h
+                D += np.sqrt(np.power(v_x * h,2)+np.power(v_y * h,2))
+
+                
+                if (v_x==0) and (v_y==0): T = max_T
+    
+            T_matrix[i,j] = T
+            if (T>=400) and (i_loop<=5):
+                D_matrix[i,j] = -42
+            elif (T>=400):
+                D_matrix[i,j] = -43
             else:
-                print("Should not happen")
-        elif borders[i_row,2] == 2:
-            if borders[i_row,4] == 0:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
-            elif borders[i_row,4] == 1:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
-            elif borders[i_row,4] == 2:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
-            elif borders[i_row,4] == 3:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
-            ax.add_artist(arc)
-        elif borders[i_row,2] == 3:
-            if borders[i_row,4] == 0:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
-            elif borders[i_row,4] == 1:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
-            elif borders[i_row,4] == 2:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
-            elif borders[i_row,4] == 3:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
-            ax.add_artist(arc)
+                D_matrix[i,j] = D
+            
+        
+    # D_matrix[D_matrix==(-42)] = np.nanmax(D_matrix)
+    np.save("/home/leziart/Documents/Metrics/bezier_D_"+str(num)+".npy", D_matrix)
+    np.save("/home/leziart/Documents/Metrics/bezier_T_"+str(num)+".npy", T_matrix)
     
-    # Plot the stream
-    q = ax.streamplot(X, Y, U, V, density=6)
-    
-    # Plot the attractor
-    ellipse = mpatches.Ellipse([5,0], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
-    ax.add_artist(ellipse)
-    
-    # Plot the reference point
-    ellipse = mpatches.Ellipse([4.5,7.5], 0.3, 0.3, facecolor='cyan', edgecolor="white", zorder=5)
-    ax.add_artist(ellipse)
-     
-    # Set axis limits and display result
-    min_x = np.min(entry[:,0])
-    max_x = np.max(entry[:,0])
-    min_y = np.min(entry[:,1])
-    max_y = np.max(entry[:,1])
-    
-    ax.set_xlim(min_x, max_x)
-    ax.set_ylim(min_y, max_y)
-    #ax.set_xlim(300, 390)
-    #ax.set_ylim(280, 370)
-    ax.set_aspect("equal")
-    plt.show()
-    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".png")
+    print("### Files saved ###")
+    # fig, (ax0, ax1) = plt.subplots(nrows=2)
+    # 
+    # levels = MaxNLocator(nbins=30).tick_values(T_matrix.min(), T_matrix.max()) 
+    # cmap = plt.get_cmap('PiYG')
+    # norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+    # im = ax0.pcolormesh(Y, X, T_matrix, cmap=cmap, norm=norm)
+    # fig.colorbar(im, ax=ax0)
+    # ax0.set_title('Time for completion')
+    # 
+    # levels = MaxNLocator(nbins=30).tick_values(D.min(), D.max()) 
+    # cmap = plt.get_cmap('PiYG')
+    # norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+    # im = ax1.pcolormesh(Y, X, D_matrix, cmap=cmap, norm=norm)
+    # fig.colorbar(im, ax=ax1)
+    # ax1.set_title('Distance for completion')
+    # 
+    # # fig, ax = plt.subplots()
+    # # ax.plot_surface(X, Y, T)
+    # # plt.title("Time for completion")
+    # # plt.show()
+    # # 
+    # # fig, ax = plt.subplots()
+    # # ax.plot_surface(X, Y, D)
+    # # plt.title("Distance for completion")
+    # 
+    # fig.tight_layout()
+    # plt.show()
 
+def disp_metrics_plots():
+    
+    for num in range(1):
+        names = glob.glob("./stream_data_bor*.txt")
+        names_normal = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_normal.txt")
+        names_bezier = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_bezier.txt")
+        names_classic = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_classic.txt")
+        names_bor = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_obs.txt")
+        names_cells = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_cells.txt")
+        
+        # Get data and put in the the correct format
+        for name in names_normal:
+            entry = np.loadtxt(open(name, "rb"), delimiter=",")
+            n_size = int(len(entry[:,0])**0.5)
+            X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+            Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+            U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+            V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+            
+        D_normal = np.load("/home/leziart/Documents/Metrics/normal_D_"+str(num)+".npy")
+        T_normal = np.load("/home/leziart/Documents/Metrics/normal_T_"+str(num)+".npy")
 
+        D_bezier = np.load("/home/leziart/Documents/Metrics/bezier_D_"+str(num)+".npy")
+        T_bezier = np.load("/home/leziart/Documents/Metrics/bezier_T_"+str(num)+".npy")
+             
+                
+        fig, (ax0, ax1) = plt.subplots(nrows=2)
+        
+        levels = MaxNLocator(nbins=30).tick_values(np.min([np.min(T_normal),np.min(T_bezier)]), np.max([np.max(T_normal),np.max(T_bezier)])) 
+        #levels = np.linspace(np.min([np.min(T_normal),np.min(T_bezier)]), np.max([np.max(T_normal),np.max(T_bezier)]), 15)
+        cmap = plt.get_cmap('PiYG')
+        norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+             
+        im = ax0.pcolormesh(Y, X, T_normal, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax0)
+        ax0.set_title('Time for completion normal')
+        
+        resolution = X[0][1]-X[0][0]
+        I_D = np.argwhere(D_normal==(-42))
+        D_normal[D_normal==(-42)] = np.nanmax(D_normal)
+        D_normal[D_normal==(-43)] = np.nanmax(D_normal)
+        for i in range(I_D.shape[0]):
+            rectangle = mpatches.Rectangle([X[I_D[i,1],I_D[i,0]]-resolution*0.5,Y[I_D[i,1],I_D[i,0]]-resolution*0.5], resolution, resolution, color='k')
+            ax0.add_artist(rectangle)
+                
+        im = ax1.pcolormesh(Y, X, T_bezier, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax1)
+        ax1.set_title('Time for completion bezier')
+        
+        resolution = X[0][1]-X[0][0]
+        I_D = np.argwhere(D_bezier==(-42))
+        D_bezier[D_bezier==(-42)] = np.nanmax(D_bezier)
+        D_bezier[D_bezier==(-43)] = np.nanmax(D_bezier)
+        for i in range(I_D.shape[0]):
+            rectangle = mpatches.Rectangle([X[I_D[i,1],I_D[i,0]]-resolution*0.5,Y[I_D[i,1],I_D[i,0]]-resolution*0.5], resolution, resolution, color='k')
+            ax1.add_artist(rectangle)
+            
+        fig.tight_layout()
+        plt.show()
+        
+        
+        fig, (ax0, ax1) = plt.subplots(nrows=2)
+        
+        levels = MaxNLocator(nbins=30).tick_values(np.min([D_normal.min(),D_bezier.min()]), np.max([D_normal.max(),D_bezier.max()])) 
+        #levels = np.linspace(np.min(np.min(D_normal),np.min(D_bezier)), np.max(np.max(D_normal),np.max(D_bezier)), 15)
+        cmap = plt.get_cmap('PiYG')
+        norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+             
+        im = ax0.pcolormesh(Y, X, D_normal, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax0)
+        ax0.set_title('Distance for completion normal')
+        
+        im = ax1.pcolormesh(Y, X, D_bezier, cmap=cmap, norm=norm)
+        fig.colorbar(im, ax=ax1)
+        ax1.set_title('Distance for completion bezier')
+        
+        fig.tight_layout()
+        plt.show()
+    
+    
+    
 def disp7(): # Create an animated gif displaying the movement of points/obstacles over time FOR BORDER
     """
     Display the trajectories of robots avoiding an obstacle composed of cells
@@ -1129,7 +1484,8 @@ def disp_debug_occupancy():
     
 #disp9()
 #disp6()
-disp6ter()
+#disp6ter()
+#disp_metrics()
 #disp_debug()
 #disp_debug_occupancy()
 #disp10()

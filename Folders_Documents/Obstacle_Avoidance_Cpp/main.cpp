@@ -10,6 +10,8 @@
 #include "ObstacleAvoidance.h"
 #include "ObstacleReconstruction.h"
 
+#include <chrono>
+#include <ctime>
 
 #include <cstdlib>
 
@@ -30,6 +32,240 @@ void test_draw_circle()
     Grid occupancy = Grid::Zero(14,16);
     draw_circle(occupancy, 7, 7, 5);
     cout << occupancy << endl;
+}
+
+void quiver_bezier()
+
+{
+    float size_cell = 1;
+    // Num 0
+    /*Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(4) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(5) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(6) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 1
+    /*Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(4) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(5) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(6) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 2
+    /*Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(3) << 0,0,0,1,0,0,0,1,0,0,0;
+    occupancy.row(4) << 0,0,0,1,0,0,0,0,0,0,0;
+    occupancy.row(5) << 0,0,0,1,0,0,0,0,0,0,0;
+    occupancy.row(6) << 0,0,0,1,0,0,0,0,0,0,0;
+    occupancy.row(7) << 0,0,0,1,0,0,0,1,0,0,0;
+    occupancy.row(8) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 3
+    /*Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,1,0,0,0,1,0,0;
+    occupancy.row(2) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(3) << 0,0,1,1,0,0,0,1,1,0,0;
+    occupancy.row(4) << 0,0,0,1,0,0,0,0,1,0,0;
+    occupancy.row(5) << 0,0,0,1,1,0,0,0,0,0,0;
+    occupancy.row(6) << 0,0,0,0,1,0,0,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,1,0,0,1,0,0,0;
+    occupancy.row(8) << 0,0,0,1,1,1,1,1,1,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,1,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 4
+    /*Grid occupancy = Grid::Zero(21,21);
+    occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2)  << 0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3)  << 0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(4)  << 0,0,0,1,0,0,1,0,0,1,0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(5)  << 0,0,0,1,0,0,1,0,0,1,0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(6)  << 0,0,0,1,0,0,1,0,0,1,0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(7)  << 0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(8)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(11) << 0,0,0,0,0,0,1,1,0,0,0,1,1,0,0,1,1,1,0,0,0;
+    occupancy.row(12) << 0,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,1,0,0,0;
+    occupancy.row(13) << 0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0,1,0,0,0;
+    occupancy.row(14) << 0,0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0,1,0,0,0;
+    occupancy.row(15) << 0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0;
+    occupancy.row(16) << 0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,0,0,0;
+    occupancy.row(17) << 0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0;
+    occupancy.row(18) << 0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 5 : num 2 with attractor at (5,5)
+    // Num 6 : num 0 with also classic
+    // Num 7
+    /*Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,1,1,0,0;
+    occupancy.row(3) << 0,0,0,0,0,0,0,1,1,0,0;
+    occupancy.row(4) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(5) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(6) << 0,0,1,1,0,0,0,1,1,0,0;
+    occupancy.row(7) << 0,0,1,1,0,0,0,1,1,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 8
+    /*Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,1,1,0,0;
+    occupancy.row(3) << 0,0,0,0,0,0,0,1,1,0,0;
+    occupancy.row(4) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(5) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(6) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(7) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 9
+    Grid occupancy = Grid::Zero(21,21);
+    occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(4)  << 0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(5)  << 0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0;
+    occupancy.row(6)  << 0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0;
+    occupancy.row(7)  << 0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0;
+    occupancy.row(8)  << 0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0;
+    occupancy.row(9)  << 0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0;
+    occupancy.row(10) << 0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0;
+    occupancy.row(11) << 0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0;
+    occupancy.row(12) << 0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0;
+    occupancy.row(13) << 0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0;
+    occupancy.row(14) << 0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0;
+    occupancy.row(15) << 0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0;
+    occupancy.row(16) << 0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(17) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(18) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    // Num 10
+    /*Grid occupancy = Grid::Zero(21,21);
+    occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(4)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(5)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(6)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(7)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(8)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(11) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(12) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(13) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(14) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(15) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(16) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(17) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(18) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
+
+    occupancy *= 100;
+
+    int num = 9;
+
+    // State of the robot
+    State state_robot; state_robot << 0.0, 0.0, 0;
+
+    // Detect expanded obstacles
+    std::vector<Border> storage;
+    storage = detect_borders( occupancy, state_robot);
+
+    std::ofstream mycells;
+    mycells.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_cells.txt");
+    for (int i=0; i<occupancy.rows(); i++)
+    {
+        for (int j=0; j<occupancy.cols(); j++)
+        {
+            if (occupancy(i,j)==100) {mycells << i << "," << j << "\n";}
+        }
+    }
+    mycells.close();
+
+    std::ofstream myobs;
+    myobs.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_obs.txt");
+    for (int iter=0; iter<storage.size(); iter++)
+    {
+        Border border_out = storage[iter];
+        for (int i=0; i<border_out.rows(); i++)
+        {
+            myobs << border_out(i,0) << "," << border_out(i,1) << "," << border_out(i,2) << "," << border_out(i,3) << "," << border_out(i,4) << "," << iter << "\n";
+        }
+    }
+    myobs.close();
+
+    std::ofstream mystream, mystream_bezier, mystream_classic;
+    mystream.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_normal.txt");
+    mystream_bezier.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_bezier.txt");
+    mystream_classic.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_classic.txt");
+
+    // Position of the attractor
+    State state_attractor;
+    state_attractor << 16, 4, 0;
+
+    State state_reference;
+    //state_reference << 5, 4.5, 0; // Num 6
+    //state_reference << 4.5, 7.5, 0; // Num 7 & Num 8
+    state_reference << 10, 10, 0; // Num 9
+    // Limits of stream
+    Eigen::Matrix<float, 5, 1> limits;
+    limits << -2.02, 22.02, -2.02, 22.02, 0.1;
+
+    for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
+    {
+        if ((x-std::round(x))<0.1) {std::cout << " ### x = " << x << " ###" << std::endl;}
+
+        for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
+        {
+            // Position of the point
+            State state_point;
+            state_point << x, y, 0;
+
+            // Compute velocity command
+            State next_eps;
+            next_eps = next_step_special_weighted( state_point, state_attractor, storage, size_cell);
+            mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+
+            next_eps = test_next_step_special_weighted( state_point, state_attractor, storage, size_cell);
+            mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+
+            Eigen::Matrix<float, 4, 1> output;
+            output = next_step_classic( state_point, state_attractor, state_reference, storage[0]);
+            mystream_classic << x << "," << y << "," << output(0,0) << "," << output(1,0) << "\n"; // write result in text file
+        }
+    }
+
+    mystream.close();
+
+    std::cout << " ###### File closed ###### " << std::endl;
 }
 
 void test_bezier()
@@ -247,6 +483,17 @@ void test_various_functions()
     float size_cell = 1;
 
     Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,0,1,1,1,1,1,1,0,0,0;
+    occupancy.row(4) << 0,0,1,1,1,1,1,1,0,0,0;
+    occupancy.row(5) << 0,0,1,1,0,0,0,0,0,0,0;
+    occupancy.row(6) << 0,0,1,1,0,0,0,0,0,0,0;
+    occupancy.row(7) << 0,0,1,1,0,0,0,0,0,0,0;
+    occupancy.row(8) << 0,0,1,1,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
     /*occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,1,1,0,0,1,0,0,0;
     occupancy.row(2) << 0,0,0,1,1,0,0,1,0,0,0;
@@ -258,38 +505,70 @@ void test_various_functions()
     occupancy.row(8) << 0,0,0,0,1,1,1,1,0,0,0;
     occupancy.row(9) << 0,0,0,0,0,1,1,1,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
-    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    /*occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(3) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(4) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(5) << 0,0,0,0,1,1,1,0,0,0,0;
-    occupancy.row(6) << 0,0,0,0,1,1,1,0,0,0,0;
-    occupancy.row(7) << 0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(3) << 0,1,0,0,1,1,1,1,0,0,0;
+    occupancy.row(4) << 0,1,0,0,1,1,1,1,0,0,0;
+    occupancy.row(5) << 0,1,0,0,1,1,1,1,0,0,0;
+    occupancy.row(6) << 0,1,0,0,1,1,1,1,0,0,0;
+    occupancy.row(7) << 0,0,0,0,0,1,1,1,0,0,0;
     occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    /*occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,1,1,1,1,1,1,1,0,0,0;
+    occupancy.row(2) << 0,0,0,1,1,1,1,1,1,0,0,0,0;
+    occupancy.row(3) << 0,1,0,0,1,1,1,1,0,0,1,0,0;
+    occupancy.row(4) << 0,1,1,0,0,1,1,1,0,1,1,0,0;
+    occupancy.row(5) << 0,1,1,1,1,1,1,1,1,1,1,1,0;
+    occupancy.row(6) << 0,1,1,1,1,1,1,1,1,0,1,0,0;
+    occupancy.row(7) << 0,1,1,1,1,1,1,1,1,1,0,0,0;
+    occupancy.row(8) << 0,1,1,1,0,1,1,1,1,1,1,0,0;
+    occupancy.row(9) << 0,1,1,0,0,1,0,1,1,1,1,1,0;
+    occupancy.row(10)<< 0,0,0,0,1,1,1,0,1,1,1,0,0;
+    occupancy.row(11)<< 0,0,0,1,1,1,0,0,0,1,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,1,0,0,0,0,0,0,0,0;*/
+    /*occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,1,1,1,1,1,1,1,0,0,0;
+    occupancy.row(2) << 0,0,0,1,1,1,1,1,1,0,0,0,0;
+    occupancy.row(3) << 0,1,1,1,1,1,1,1,0,0,1,0,0;
+    occupancy.row(4) << 0,1,1,0,0,0,1,1,0,1,1,0,0;
+    occupancy.row(5) << 0,0,0,0,0,0,0,1,1,1,1,1,0;
+    occupancy.row(6) << 0,0,0,0,0,0,0,0,1,0,1,0,0;
+    occupancy.row(7) << 0,0,0,0,0,0,0,1,1,1,0,0,0;
+    occupancy.row(8) << 0,1,1,0,0,0,1,1,1,1,1,0,0;
+    occupancy.row(9) << 0,1,1,1,1,1,1,1,1,1,1,1,0;
+    occupancy.row(10)<< 0,0,0,1,1,1,1,0,1,1,1,0,0;
+    occupancy.row(11)<< 0,0,0,1,1,1,0,0,0,1,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,1,0,0,0,0,0,0,0,0;*/
     occupancy *= 100;
 
     // State of the robot
-    State state_robot; state_robot << 5, 9, 0;
+    State state_robot; state_robot << 0.01, 0.01, 0;
 
     // State of the attractor
-    State state_attractor; state_attractor << 5, 3, 0;
+    State state_attractor; state_attractor << 0, 5, 0;
 
     //* Detect expanded obstacles
     std::vector<Border> storage;
     storage = detect_borders( occupancy, state_robot);
 
-    std::cout << storage[0] << std::endl;
+    //std::cout << storage[0] << std::endl;
+    for (int iter=0; iter < storage.size(); iter++)
+    {
+        std::cout << "Border " << iter << ":"<< std::endl;
+        std::cout << storage[iter] << std::endl;
+    }
 
     // define the format you want, you only need one instance of this...
     const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
 
-    std::ofstream mystream;
+    /*std::ofstream mystream;
     mystream.open("/home/leziart/catkin_ws/StreamNode/test_to_delete.txt");
-    mystream << (storage[0]).format(CSVFormat);
-    mystream.close();
+    mystream << (storage[0]).format(CSVFormat) << "\n";
+    mystream.close();*/
+
     /*std::ofstream mystream;
     mystream.open("/home/leziart/catkin_ws/StreamNode/test_various_functions.txt");
     for (float x=0; x<11; x+=0.05)
@@ -328,23 +607,52 @@ void test_various_functions()
     }
     mystream.close();*/
 
+    /*State next_eps;
+    state_robot << 6.2, 9, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+    state_robot << 6.2, 9.98, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+    state_robot << 6.2, 9.986, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+    state_robot <<  6.2, 9.99, 0;
+    std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+    next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    std::cout << "Velocity command: " << next_eps.transpose() << std::endl;*/
+
     State next_eps;
-    state_robot << 6.2, 8, 0;
+    state_robot << 5.0f, 6.0f, 0;
     std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
     next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
-    state_robot << 6.2, 8.98, 0;
+    state_robot << 5, 6.0, 0;
     std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
     next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
-    state_robot << 6.2, 8.986, 0;
+    state_robot << 5, 4.45, 0;
     std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
     next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
-    state_robot <<  6.2, 8.99, 0;
+    state_robot << 5, 4, 0;
     std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
     next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+
+    /*State next_eps;
+    float x, y;
+    for (x = 7.9, y = 3.4; x <= 8.0; x+=0.025, y+=0.025)
+    {
+        state_robot << x, y, 0;
+        std::cout << " ###### " << state_robot(0,0) << " " << state_robot(1,0) << " ###### " << std::endl;
+        next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+        std::cout << "Velocity command: " << next_eps.transpose() << std::endl;
+    }
+
 
     extern bool logging_enabled;
     extern Eigen::MatrixXf log_matrix;
@@ -353,7 +661,7 @@ void test_various_functions()
     {
         std::cout << " ###### Log matrix ###### " << std::endl;
         std::cout << log_matrix << std::endl;
-    }
+    }*/
 
 
 }
@@ -361,7 +669,12 @@ void test_various_functions()
 
 int main()
 {
-    test_bezier();
+    //Eigen::MatrixXi storage_line = Eigen::MatrixXi::Zero(0,2);
+    //Line(1.0,1.0f,9.0f,4.0f,storage_line);
+    //std::cout << storage_line << std::endl;
+
+    quiver_bezier();
+    //test_bezier();
     //test_various_functions();
     //test_draw_circle();
     //call_morphing();

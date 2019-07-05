@@ -110,6 +110,7 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
      */
     Eigen::MatrixXf obstacle(obs.rows()+2,5);
     obstacle << obs.row(obs.rows()-1), obs, obs.row(0);
+    bool remove_last = false;
 
     for (int k=1; k<obstacle.rows()-1; k++) // First and last row are duplicate so they are not processed
     {
@@ -167,11 +168,13 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
             if ((obstacle(k-1,2) == 2) && (obstacle(k+1,2) != 2)) // Heuristic rule to make the surface smoother for a specific pattern
             {
                 if (pt_row>0) {pt_row -= 1;}
+                else {remove_last = true;}
             }
 
             if ((obstacle(k-1,2) == 1) && (obstacle(k+1,2) != 3)) // Heuristic rule to make the surface smoother for a specific pattern
             {
                 if (pt_row>0) {pt_row -= 1;}
+                else {remove_last = true;}
             }
 
             if ((obstacle(k-1,2) == 3) && (obstacle(k+1,2) == 1))
@@ -255,7 +258,7 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
         }
 
     }
-
+    if (remove_last) {pt_row -= 1;}
     result.conservativeResize(pt_row, Eigen::NoChange);
     return result;
 }
@@ -874,7 +877,16 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
         // Normalization of the speed to a default desired speed
         cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
 
-        cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+        //cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+        float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415;}
+        else if (diff_angle_2 < diff_angle_3)
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415;}
 
         // Decrease speed when the robot get close to the attractor
         float distance_stop = 0.25;
@@ -915,7 +927,16 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
             // Normalization of the speed to a default desired speed
             cmd_no_obstacle = cmd_no_obstacle / (std::sqrt(std::pow(cmd_no_obstacle(0,0),2) + std::pow(cmd_no_obstacle(1,0),2)));
 
-            cmd_no_obstacle(2,0) = std::atan2(cmd_no_obstacle(1,0),cmd_no_obstacle(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+            //cmd_no_obstacle(2,0) = std::atan2(cmd_no_obstacle(1,0),cmd_no_obstacle(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+            float diff_angle_1 = std::abs(std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) + 2*3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) - 2*3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
+           {cmd_no_obstacle(2,0) = std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) + 2*3.1415;}
+        else if (diff_angle_2 < diff_angle_3)
+           {cmd_no_obstacle(2,0) = std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0);}
+        else
+           {cmd_no_obstacle(2,0) = std::atan2(-cmd_no_obstacle(1,0),-cmd_no_obstacle(0,0)) - state_robot(2,0) - 2*3.1415;}
 
             // Decrease speed when the robot get close to the attractor
             float distance_stop = 0.25;
@@ -941,7 +962,16 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
     cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
 
     // Set the angular velocity to align the robot with the direction it moves (post process for better movement, thinner profile to go between obstacles)
-    cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    //cmd_velocity(2,0) = std::atan2(cmd_velocity(1,0),cmd_velocity(0,0)) - state_robot(2,0); // angle difference used for angular speed control (gain of 1)
+    float diff_angle_1 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415);
+        float diff_angle_2 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0)         );
+        float diff_angle_3 = std::abs(std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415);
+        if ((diff_angle_1<diff_angle_2)&&(diff_angle_1<diff_angle_3))
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) + 2*3.1415;}
+        else if (diff_angle_2 < diff_angle_3)
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0);}
+        else
+           {cmd_velocity(2,0) = std::atan2(-cmd_velocity(1,0),-cmd_velocity(0,0)) - state_robot(2,0) - 2*3.1415;}
 
     /*std::cout << state_robot << std::endl;
     std::cout << state_attractor << std::endl;

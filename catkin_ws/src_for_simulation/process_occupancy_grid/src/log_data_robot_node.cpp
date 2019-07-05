@@ -342,7 +342,7 @@ public:
             /*x_people.push_back(person_cell_x);
             y_people.push_back(person_cell_y);*/
 
-            log_matrix.row(10+nb_detected_people+i) << 0.0, 12.0, person_cell_x, person_cell_y, 0.0;
+            log_matrix.row(10+nb_detected_people+i) << 0.0, 12.0, person_cell_x, person_cell_y, static_cast<float>(i);
         }
     }
 

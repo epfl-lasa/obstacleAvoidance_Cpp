@@ -85,7 +85,7 @@ public:
 
         // Radius of the security circle around people (in meters)
         // It does not include the radius of the ridgeback ~0.6 meters (disk will be expanded)
-        float radius_around_people = 0.5;
+        float radius_around_people = 1.0;
         radius_in_cells = static_cast<int>(std::ceil(radius_around_people / size_cell)); // radius_around_people is in [m] and we need a value in [cell]
 
         // Limit distance to consider obstacles (in meters)
@@ -219,7 +219,7 @@ public:
        // PROCESSING POSITION OF THE ATTRACTOR //
        //////////////////////////////////////////
 
-       float position_goal_world_frame_x = -5.0;//-1.4;
+       float position_goal_world_frame_x = -8.0;//-1.4;
        float position_goal_world_frame_y =  0.0;//2.6;
 
        // Get the (x,y) coordinates in the world frame of the cell (0,0)

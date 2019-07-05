@@ -21,7 +21,7 @@
 #include <eigen3/Eigen/Core>
 #include "ObstacleReconstruction.h"
 #include "ObstacleAvoidance.h"
-//#include "BezierInterpolation.h"
+#include "BezierInterpolation.h"
 
 #include <fstream>  // To write data into files
 
@@ -159,7 +159,7 @@ public:
     //float position_goal_world_frame_y = -11;//-2.56;//-7.3; //5   ; // 0;
 
     int max_num_attractor = 4;
-    float position_goal_world_frame_x = -5.0;//-1.4; // -2.7
+    float position_goal_world_frame_x = -8.0;//-1.4; // -2.7
     float position_goal_world_frame_y =  0.0;// 2.6;
     /*switch (num_attractor)
     {
@@ -181,7 +181,7 @@ public:
 
     // Radius of the security circle around people (in meters)
     // It does not include the radius of the ridgeback ~0.6 meters (disk will be expanded)
-    float radius_around_people = 0.3;
+    float radius_around_people = 1.0;
     int   radius_in_cells = static_cast<int>(std::ceil(radius_around_people / size_cell)); // radius_around_people is in [m] and we need a value in [cell]
 
     // Variables used for logging when logging_enabled is set to true (in ObstacleReconstruction.cpp)
@@ -564,7 +564,7 @@ public:
     State next_eps = next_step_special( state_robot, state_attractor, storage[closest_i]); */
 
     // Compute velocity command based on the detected obstacles (new version, all obstacles within limit range)
-    State next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    State next_eps = test_next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     ROS_DEBUG("VelCmd in map frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 
     auto t_compute_vel = std::chrono::high_resolution_clock::now();
@@ -756,7 +756,7 @@ public:
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 	    //if ((static_cast<int>(key_command)!=5)&&(static_cast<int>(key_command)!=-1)) // if we press 5, the robot should not move
 	   // {
-	        //pub_.publish(output);
+	        pub_.publish(output);
 	    //}
             
 

@@ -11,7 +11,7 @@
 
 const int number_states = 3;   // States are [x, y, phi]
 const int method_weights = 2;  // 1 to consider all the obstacles, 2 to consider only the obstacles within the limit_dist range
-const float limit_dist = 6;   // limit distance for method_weights=2, set it to -1 if you use method_weights=1
+const float limit_dist = 26 ;  // limit distance for method_weights=2, set it to -1 if you use method_weights=1
 
 using State = Eigen::Matrix<float, number_states, 1>; // State is an alias to represent a column vector with three components
 using Obstacle = Eigen::Matrix<float, 10, 1>; // Obstacle is an alias to represent ellipses [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot]
@@ -24,13 +24,60 @@ State f_epsilon(State const& state_robot, State const& state_attractor); // comp
 // The reference point is always the center point of the ellipse (simplification) so this function is not used
 //float specific_radius(State state_robot, State center_point, State reference_point, Obstacle obs, int p); // compute specific radius
 
-float gamma(State const& state_robot, Obstacle const& obs, bool is_radius=false); // compute gamma(epsilon) for an obstacle
+/** Disclaimer: there may be some references to epsilon because initially I thought it was one instead of a xi */
 
-float lambda_r(State const& state_robot, Obstacle const& obs, float limit_distance=-1); // for D(epsilon) matrix
+/** Latex equation of an ellipse: \dfrac {((x-h)\cos(A)+(y-k)\sin(A))^2}{(a^2)}+\dfrac{((x-h) \sin(A)-(y-k) \cos(A))^2}{(b^2)}=1
+    where h,k and a,b are the shifts and semi-axis in the x and y directions respectively and A is the angle measured from x axis. */
 
-float lambda_e(State const& state_robot, Obstacle const& obs, float limit_distance=-1); // for D(epsilon) matrix
+/**
+ * Compute gamma(xi) for an obstacle and a given position of the robot
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot.
+ * @param obs Eigen matrix of size (10,1) containing information about the elliptic obstacle with the [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot] format
+              x_c, y_c, phi are the position and orientation
+              a1, a2 are the length of the half-axes of the ellipse
+              p1, p2 are the power in the equation of the ellipse
+              v_x, v_y, w_rot are the linear and angular velocities of the ellipse
+ * @return Value of Gamma distance from the ellipse
+ */
+float gamma(State const& state_robot, Obstacle const& obs, bool is_radius=false);
 
-Eigen::Matrix<float, number_states, number_states> D_epsilon( float const& lamb_r, float const& lamb_e); // create D(epsilon) matrix
+/**
+ * Compute lambda_r(xi) for an obstacle and a given position of the robot, used to computed D(xi) matrix
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot.
+ * @param obs Eigen matrix of size (10,1) containing information about the elliptic obstacle with the [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot] format
+              x_c, y_c, phi are the position and orientation
+              a1, a2 are the length of the half-axes of the ellipse
+              p1, p2 are the power in the equation of the ellipse
+              v_x, v_y, w_rot are the linear and angular velocities of the ellipse
+ * @param limit_distance Optionnal value when we want to consider an obstacle only when the Gamma value of the robot for this obstacle is inferior to limit_distance
+ * @return Value of the lambda_r coefficient
+ */
+float lambda_r(State const& state_robot, Obstacle const& obs, float limit_distance=-1);
+
+/**
+ * Compute lambda_e(xi) for an obstacle and a given position of the robot, used to computed D(xi) matrix
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot.
+ * @param obs Eigen matrix of size (10,1) containing information about the elliptic obstacle with the [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot] format
+              x_c, y_c, phi are the position and orientation
+              a1, a2 are the length of the half-axes of the ellipse
+              p1, p2 are the power in the equation of the ellipse
+              v_x, v_y, w_rot are the linear and angular velocities of the ellipse
+ * @param limit_distance optionnal value when we want to consider an obstacle only when the Gamma value of the robot for this obstacle is inferior to limit_distance
+ * @return Value of the lambda_e coefficient
+ */
+float lambda_e(State const& state_robot, Obstacle const& obs, float limit_distance=-1);
+
+/**
+ * Compute a D(xi) matrix as defined in the method of (Huber and al., 2019)
+ *
+ * @param lambda_r Value of the lambda_r coefficient for the considered obstacle
+ * @param lambda_e Value of the lambda_e coefficient for the considered obstacle
+ * @return D(xi) Eigen matrix of size (number_states, number_states)
+ */
+Eigen::Matrix<float, number_states, number_states> D_epsilon( float const& lamb_r, float const& lamb_e);
 
 State r_epsilon(State const& state_robot, Obstacle const& obs); // compute r(epsilon) vector for E(epsilon)
 

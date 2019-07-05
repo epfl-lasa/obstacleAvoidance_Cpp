@@ -307,13 +307,13 @@ void LaserscanMerger::pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPo
                        float personY = (people.poses[k]).position.y;
                        float personZ = (people.poses[k]).position.z;
 
-			float const radius_around_people = 0.7; // in [m]
+			float const radius_around_people = 0.8; // in [m]
 
             		// Compute horizontal distance to the person
             		float distance = std::sqrt(std::pow((x - personX), 2) + std::pow((y - personY), 2));
 
             		// Remove all points in a cylinder around the person
-            		if(distance < 0.5) { flag_in_cylinder = true;}
+            		if(distance < radius_around_people) { flag_in_cylinder = true;}
                         k++;
                 }
 		if (flag_in_cylinder) {continue;} // point discarded as it is in a cylinder
