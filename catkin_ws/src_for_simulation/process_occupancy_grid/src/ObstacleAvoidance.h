@@ -59,8 +59,8 @@ float lambda_r(State const& state_robot, Obstacle const& obs, float limit_distan
 /**
  * Compute lambda_e(xi) for an obstacle and a given position of the robot, used to computed D(xi) matrix
  *
- * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot.
- * @param obs Eigen matrix of size (10,1) containing information about the elliptic obstacle with the [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot] format
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot
+ * @param obs Eigen matrix of size (10,1) containing information about an elliptic obstacle with the [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot] format
               x_c, y_c, phi are the position and orientation
               a1, a2 are the length of the half-axes of the ellipse
               p1, p2 are the power in the equation of the ellipse
@@ -79,9 +79,27 @@ float lambda_e(State const& state_robot, Obstacle const& obs, float limit_distan
  */
 Eigen::Matrix<float, number_states, number_states> D_epsilon( float const& lamb_r, float const& lamb_e);
 
-State r_epsilon(State const& state_robot, Obstacle const& obs); // compute r(epsilon) vector for E(epsilon)
+/**
+ * Compute a r(xi) vector as defined in the method of (Huber and al., 2019) that is used to get the E(xi) matrix
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot
+ * @param obs Eigen matrix of size (10,1) containing information about an elliptic obstacle with the [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot] format
+              x_c, y_c, phi are the position and orientation
+              a1, a2 are the length of the half-axes of the ellipse
+              p1, p2 are the power in the equation of the ellipse
+              v_x, v_y, w_rot are the linear and angular velocities of the ellipse
+ * @return Eigen matrix of size (3,1) containing the (x,y,theta) data of the r(xi) vector.
+ */
+State r_epsilon(State const& state_robot, Obstacle const& obs);
 
-float distance(State const& state1, State const& state2); // compute distance between two states
+/**
+ * Compute the Gamma-distance between two Eigen matrices of size (3,1) containing the (x,y,theta) information about two points of the workspace
+ *
+ * @param state1 Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot
+ * @param state2 Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot
+ * @return Gamma-distance between the two input state vectors
+ */
+float distance(State const& state1, State const& state2);
 
 float partial_derivative(State const& state_robot, Obstacle const& obs, int const& direction); // partial finite derivative of order 4
 
@@ -124,13 +142,29 @@ Eigen::MatrixXf n_bar_matrix(Eigen::MatrixXf const& mat_kappa_bar, Eigen::Matrix
 
 // Other functions
 
-void update_obstacles(Eigen::MatrixXf & mat_obs, float const& time_step); // update the position of all obstacles based on their linear and angular speeds
+/**
+ * Update the position of elliptic obstacles based on their linear and angular velocities
+ *
+ * @param mat_obs Eigen matrix of size (N,10) containing the [x_c, y_c, phi, a1, a2, p1, p2, v_x, v_y, w_rot] information about N obstacles.
+              x_c, y_c, phi are the position and orientation
+              a1, a2 are the length of the half-axes of the ellipse
+              p1, p2 are the power in the equation of the ellipse
+              v_x, v_y, w_rot are the linear and angular velocities of the ellipse
+ * @param time_step Time step that has to be used to update the obstacles [s]
+ */
+void update_obstacles(Eigen::MatrixXf & mat_obs, float const& time_step);
 
 void compute_quiver(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, Eigen::MatrixXf const& mat_obs); // compute data to plot a quiver graph with matplotlib
 
 void compute_quiver_multiplication(Eigen::Matrix<float, 5, 1> const& limits, State const& state_attractor, Eigen::MatrixXf const& mat_obs); // quiver for direct_multiplication_2D
 
-State speed_limiter(State const& input_speed); // limit the norm of the linear and angular speeds that are sent to the real robot
+/**
+ * Return a velocity command whose linear and angular velocities have been limited for security reasons. The aim of this function is to limit the norm of the linear and angular velocities that are sent to the real robot. Limits are set in the function code.
+ *
+ * @param input_speed Eigen matrix of size (3,1) containing the (x_dot,y_dot,theta_dot) velocity command that will be sent to the robot
+ * @return Eigen matrix of size (3,1) containing the input (x_dot,y_dot,theta_dot) velocity command whose linear and angular velocities may have been reduced if they were above the limits.
+ */
+State speed_limiter(State const& input_speed);
 
 // Polygon functions -> basically the same functions than for ellipses but for polygons defined by a list of (x,y) points
 

@@ -6,7 +6,6 @@ extern bool logging_enabled; // Get from ObstacleRecontruction.cpp whether loggi
 extern Eigen::MatrixXf log_matrix; // Get from ObstacleRecontruction.cpp the logging matrix in which information is stored
 extern float current_obstacle; // Get from ObstacleRecontruction.cpp the number/ID of the current obstacle
 
-/** /!\ TODO: Changes made in the Python script have to be implemented in border_to_vertices /!\ */
 
 std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
 {
@@ -94,12 +93,13 @@ std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
     bool log_surface = false;
     if (log_surface) 
     {
+        int num = 0;
         const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
         std::ofstream my_surface;
-        mycells.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_surface_X.txt");
+        my_surface.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_surface_X.txt");
         my_surface << bezier_pts_X.format(CSVFormat) << "\n";
         my_surface.close();
-        mycells.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_surface_Y.txt");
+        my_surface.open("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+std::to_string(num)+"_surface_Y.txt");
         my_surface << bezier_pts_Y.format(CSVFormat) << "\n";
         my_surface.close();
     }
