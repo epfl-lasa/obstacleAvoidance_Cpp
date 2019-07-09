@@ -1,3 +1,11 @@
+/*
+Implementation by Pierre-Alexandre Léziart of the method described in (Huber and al., 2019)
+Generalization to non-star-shaped obstacles
+LASA laboratory, EPFL, Spring 2019
+Mail: pierre-alexandre.leziart [at] epfl [dot] ch
+Contains functions for obstacle avoidance algorithm
+*/
+
 #include "ObstacleReconstruction.h"
 
 float myRad = 0.1;
@@ -704,7 +712,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
     Grid output = Grid::Zero(grid.rows(), grid.cols()); // empty grid the size of the input occupancy grid
     output.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1) = occupancy_res.block(x_min, y_min, x_max-x_min+1, y_max-y_min+1); // copy the obstacle in the limit range
 
-    
+
 
     // Detect all obstacles that have at least one cell in the limit square around the robot
     // For instance if one half of an obstacle is within the limit distance we also want
@@ -727,7 +735,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
             }
         }
     }
-    
+
 
     // Add obstacles inside square to occupancy grid
     // TODO: maybe it could be optimized by only doing it for those are not already completely inside the square

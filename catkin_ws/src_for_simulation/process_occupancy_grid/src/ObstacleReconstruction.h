@@ -1,51 +1,127 @@
+/*
+Implementation by Pierre-Alexandre Léziart of the method described in (Huber and al., 2019)
+Generalization to non-star-shaped obstacles
+LASA laboratory, EPFL, Spring 2019
+Mail: pierre-alexandre.leziart [at] epfl [dot] ch
+Contains functions for obstacle avoidance algorithm
+*/
+
 #ifndef OBSTACLERECONSTRUCTION_H_INCLUDED
 #define OBSTACLERECONSTRUCTION_H_INCLUDED
 
-#include <iostream> // In-Out streams
-#include <fstream>  // To write data into files
-#include <eigen3/Eigen/Dense> // For Linear Algebra
-#include <cmath> // Basic math functions
-#include <string>
-#include <queue>
-#include "ObstacleAvoidance.h"
+#include <iostream>             // In-Out streams
+#include <fstream>              // To write data into files
+#include <eigen3/Eigen/Dense>   // For Linear Algebra
+#include <cmath>                // Basic math functions
+#include <string>               // Standard String type
+#include <queue>                // Standard Queue type
+#include "ObstacleAvoidance.h"  // Use some functions from ObstacleAvoidance.h
 
-// OpenCV functions
-/*#include "opencv2/opencv.hpp"
-#include "opencv2/core/core.hpp"
-#include <opencv2/core/eigen.hpp>*/
+typedef Eigen::Matrix<float, Eigen::Dynamic, 5> MatrixX5f; /**< An Eigen matrix with 5 columns and a dynamic number of rows */
 
-
-
-typedef Eigen::Matrix<float, Eigen::Dynamic, 5> MatrixX5f;
-
-using Blob   = Eigen::MatrixX2i; // [x, y]
-using Border = MatrixX5f;  // [x, y, type, charac_1, charac_2;]
-using Point  = Eigen::Matrix<int, 1, 2>;
-using Grid   = Eigen::MatrixXi;
+using Blob   = Eigen::MatrixX2i;           // Each row contains the [x, y] coordinates of a cell belonging to the blob of cells
+using Border = MatrixX5f;                  // Each row contains the [x, y, type, charac_1, charac_2] information about a cell of the surface of an obstacle
+using Point  = Eigen::Matrix<int, 1, 2>;   // [x, y] coordinates of a point
+using Grid   = Eigen::MatrixXi;            // Eigen matrix used to represent an occupancy grid (0 for free cells and 100 for occupied cells)
 using State  = Eigen::Matrix<float, 3, 1>; // State is an alias to represent a column vector with three components
 
-struct PointFill // Simple structure of a 2D point
+/** Simple structure to represent a 2D point */
+struct PointFill
 {
-    int x;
-    int y;
+    int x; /**< Coordinate of the point along the X axis */
+    int y; /**< Coordinate of the point along the Y axis */
 };
 
+/**
+ * Get the center cell of a blob of cells by averaging the X and Y coordinates of all cells
+ *
+ * @param blob Eigen matrix of size (N,2) with each row containing the [x,y] coordinates of a cell belonging to the blob
+ * @return A Point, an Eigen matrix of size (1,2) containing the [x,y] coordinates of the point in the middle of the blob
+ */
+Point get_center(Blob const& blob);
 
-Point get_center(Blob const& blob); // get the center cell of a blob of cells
+/**
+ * Get the coordinates of a random cell belonging to a given blob of cells
+ *
+ * @param blob Eigen matrix of size (N,2) with each row containing the [x,y] coordinates of a cell belonging to the blob
+ * @param limit Restrict the random choice to the first cells of the blob
+ *        If limit = 0 then any cell of the blob can be chosen randomly
+ *        If limit = K then the random choice is made among the K first cells (row 0 to K-1)
+ * @return A Point, an Eigen matrix of size (1,2) containing the [x,y] coordinates of a randomly chosen cell
+ */
+Point get_random(Blob const& blob, int const& limit=0);
 
-Point get_random(Blob const& blob, int const& limit=0); // get a random cell of a blob of cells
+/**
+ * Check if a cell belongs to a given blob of cells
+ *
+ * @param blob Eigen matrix of size (N,2) with each row containing the [x,y] coordinates of a cell belonging to the blob
+ * @param x The X coordinate of the cell that has to be checked
+ * @param y The Y coordinate of the cell that has to be checked
+ * @return True if the cell with coordinates [x,y] belongs to the input blob, False otherwise
+ */
+bool isPart(Blob const& blob, float const& x, float const& y);
 
-bool isPart(Blob const& blob, float const& x, float const& y); // check if a cell is part of a blob
+/**
+ * Check if a cell belongs to the input border. Checking starts from the first row and goes down in the matrix.
+ *
+ * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
+ * @param x The X coordinate of the cell that has to be checked
+ * @param y The Y coordinate of the cell that has to be checked
+ * @return True if the cell with coordinates [x,y] belongs to the input border, False otherwise
+ */
+bool isPartBorder(Border const& border, float const& x, float const& y);
 
-bool isPartBorder(Border const& border, float const& x, float const& y); // check if a cell belongs to the input border starting from the first row
+/**
+ * Check if a cell belongs to the input border. Checking starts from the last row and goes up in the matrix.
+ *
+ * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
+ * @param x The X coordinate of the cell that has to be checked
+ * @param y The Y coordinate of the cell that has to be checked
+ * @return True if the cell with coordinates [x,y] belongs to the input border, False otherwise
+ */
+bool isPartBorderReverse(Border const& border, float const& x, float const& y);
 
-bool isPartBorderReverse(Border const& border, float const& x, float const& y); // check if a cell belongs to the input border starting from the last row
+/**
+ * Check if the targeted cell belongs to the obstacle.
+ *
+ * @param obstacle Eigen matrix of size (N,2) with each row containing the [x,y] coordinates of a cell belonging to the input obstacle
+ * @param point A Point, an Eigen matrix of size (1,2) containing the [x,y] coordinates of the cell the iterator is on.
+ * @param direction In which direction the targeted cell is.
+ *                  Directions are:  3 2 1
+ *                                   4   0
+ *                                   5 6 7
+ *                  With positive X toward the right and positive Y toward the top
+ *                  For instance if point is at (2,2) and direction is 3 then it checks if cell (1,3) is part of the input blob "obstacle"
+ * @return True if the targeted cell belongs to the input obstacle, False otherwise
+ */
+bool check_direction(Blob const& obstacle, Point const& point, int const& direction);
 
-bool check_direction(Blob const& obstacle, Point const& point, int const& direction); // check if the targeted cell is part of the obstacle
+/**
+ * Fill the 1-cell wide gaps in an obstacle
+ * For instance . . . . . . becomes . . . . . . with . free cells and X occupied cells
+ *              . X . X X .         . X X X X .
+ *              . X . . X .         . X X X X .
+ *              . X X X X .         . X X X X .
+ *              . . . . . .         . . . . . .
+ *
+ * @param obstacle Eigen matrix of size (N,2) with each row containing the [x,y] coordinates of a cell belonging to the input obstacle
+ * @return A Blob, an Eigen matrix of size (N+M,2) containing the N cells of the obstacle and the M additional cells that have been filled
+ */
+Blob fill_gaps(Blob const& obstacle);
 
-Blob fill_gaps(Blob const& obstacle); // fill the 1-cell wide gaps in an obstacle
-
-Blob fill_gaps_with_grid(Blob const& obstacle, Grid & occupancy_grid); // fill the 1-cell wide gaps in an obstacle and update occupancy grid
+/**
+ * Fill the 1-cell wide gaps in an obstacle and directly update the input occupancy grid
+ * For instance . . . . . . becomes . . . . . . with . free cells and X occupied cells
+ *              . X . X X .         . X X X X .
+ *              . X . . X .         . X X X X .
+ *              . X X X X .         . X X X X .
+ *              . . . . . .         . . . . . .
+ *
+ * @param obstacle Eigen matrix of size (N,2) with each row containing the [x,y] coordinates of a cell belonging to the input obstacle
+ * @param occupancy_grid Eigen matrix that represents the occupancy grid the obstacle is in.
+ * @return A Blob, an Eigen matrix of size (N+M,2) containing the N cells of the obstacle and the M additional cells that have been filled
+ */
+Blob fill_gaps_with_grid(Blob const& obstacle, Grid & occupancy_grid);
 
 void update_border(Border & border, Point const& position, int const& previous_direction, int const& next_direction); // add elements to the border to follow the sides of the obstacles depending on the direction taken
 
