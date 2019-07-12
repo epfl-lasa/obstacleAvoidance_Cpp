@@ -334,7 +334,7 @@ void update_obstacles(Eigen::MatrixXf & mat_obs, float const& time_step);
 
 /**
  * Create a grid of the workspace and compute the velocity command for each point of this grid for several elliptic obstacles with the method of (Huber and al., 2019)
- * Save data in a text file that will be opened with Python to plot a quiver graph with matplotlib
+ * Results are stored in a text file that has to be opened with Python to plot a quiver graph with matplotlib
  *
  * @param limits Eigen matrix of size (5,1) containing the [x_min, x_max, y_min, y_max, step] information that defines the grid
  * @param state_attractor Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the attractor
