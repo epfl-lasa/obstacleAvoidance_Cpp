@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+
+<!-- <sdf version="1.5">
+   <model name="qolo_ros"> -->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="QOLO">
+
+    <material name="qolo_color"><color rgba="0.15 0.15 0.15 1.0" /></material>
+
+    <xacro:macro name="QOLO" params="*origin parent:=base_link">
+    
+    <link name="link_qolo">
+      <inertial>
+        <mass value="0.1"/>
+        <origin xyz="0 0 0.03585"/>
+        <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+      </inertial>
+      <collision name="collision">
+        <origin rpy="0 0 0" xyz="0 0 0.03585"/>
+        <geometry>
+          <cylinder radius="0.0516" length="0.0717"/>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+            <!--<mesh filename="package://velodyne_description/meshes/VLP16_base_1.stl" />-->
+            <mesh filename="package://process_depth_img/model_Qolo/meshes/Qolo_T_CB_Single2.stl" />
+        </geometry>
+      <material name="qolo_color" />
+      </visual>
+      </link>
+
+    <joint name="qolo_joint" type="fixed">
+      <xacro:insert_block name="origin" /> 
+      <parent link="${parent}" />
+      <child link="link_qolo" />    
+    </joint>
+  
+    </xacro:macro>
+</robot>

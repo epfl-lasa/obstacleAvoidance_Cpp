@@ -1,0 +1,41 @@
+<!-- FOR THE RIDGEBACK PLATFORM IN GAZEBO -->
+<!-- <launch>
+    <!-- Filter manager -->
+    <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+
+    <!-- Run a passthrough filter to discard points belonging to the ground or belonging to hanging objects the Ridgeback can pass under -->
+    <node pkg="nodelet" type="nodelet" name="passthrough" args="load pcl/PassThrough pcl_manager" output="screen">
+        <remap from="~input" to="/velodyne_points" />
+        <remap from="~output" to="/cloud_for_static" />
+        <rosparam>
+            filter_field_name: z
+            filter_limit_min: -0.3
+            filter_limit_max: 0.2
+            filter_limit_negative: False
+        </rosparam>
+    </node>
+</launch> -->
+
+<!-- FOR THE REAL RIDGEBACK PLATFORM -->
+<launch>
+    <!-- Filter manager -->
+    <node pkg="nodelet" type="nodelet" name="pcl_manager" args="manager" output="screen" />
+
+    <!-- Run a passthrough filter to discard points belonging to the ground or belonging to hanging objects the Ridgeback can pass under -->
+    <node pkg="nodelet" type="nodelet" name="passthrough" args="load pcl/PassThrough pcl_manager" output="screen">
+        <remap from="~input" to="/velodyne_points" />
+        <remap from="~output" to="/cloud_for_static" />
+        <rosparam>
+            <!-- The height of the Velodyne LIDAR is roughtly 1.2 m
+                 so with a min filter limit of -1.1 m we are removing
+                 all points whose height is inferior to 10 cm.
+                 With a max limit of 0.7 m we are removing all points
+                 whose height is superior to 1.9 m. That way, the ceiling
+                 as well as hanging objects like ceiling lamps are removed. -->
+            filter_field_name: z
+            filter_limit_min: -1.1
+            filter_limit_max: 0.7
+            filter_limit_negative: False
+        </rosparam>
+    </node>
+</launch>

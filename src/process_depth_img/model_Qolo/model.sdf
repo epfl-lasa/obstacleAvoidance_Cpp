@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+
+<!-- <sdf version="1.5">
+   <model name="kinect_ros"> -->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="qolo_ros">
+    <pose>0 0 0.036 0 0 0</pose>
+    <link name="link_qolo">
+      <inertial>
+        <mass>0.1</mass>
+        <inertia>
+            <ixx>0.145833</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.145833</iyy>
+            <iyz>0</iyz>
+            <izz>0.125</izz>
+          </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.010000 0.010000 0.010000</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <!--<mesh>
+             <uri>model://kinect/meshes/kinect.dae</uri> 
+	    <uri>package://process_depth_img/model_Qolo/meshes/Qolo_T_CB_Single2.stl</uri>
+          </mesh> -->
+          <mesh filename="package://process_depth_img/model_Qolo/meshes/Qolo_T_CB_Single2.stl" />
+        </geometry>
+        <material name="black" />
+      </visual>
+
+    <joint name="qolo_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <child>link_qolo</child>
+      <parent>ridgeback::base_link</parent>
+    </joint>
+    </link>
+    </xacro:macro>
+</robot>
+<!--  </model>
+</sdf> -->

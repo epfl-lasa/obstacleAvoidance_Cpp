@@ -1,0 +1,101 @@
+########
+## Step 1 : https://github.com/intel/ros_intel_movidius_ncs
+########
+
+- Install ROS Kinetic Desktop-Full (http://wiki.ros.org/kinetic/Installation/Ubuntu)
+
+- Create a catkin workspace (http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
+
+- Install NCSDK v1.12.00 (https://github.com/movidius/ncsdk)
+-> Be careful, there is a v2 version that is not compatible yet
+
+- Install NC APP Zoo (https://github.com/movidius/ncappzoo)
+-> Just unzip the folder at a given place. I put it in ~/catkin_ws/.
+
+- NCSDK should be installed in /opt/movidius by default. Create a symbol link in /opt/movidius to NC APP Zoo. For that, use the following command.
+sudo ln -s <your-workspace>/ncappzoo /opt/movidius/ncappzoo
+
+- After that, make sure you can find graph data in /opt/movidius/ncappzoo/caffe or /opt/movidius/ncappzoo/tensorflow and image data in /opt/movidius/ncappzoo/data/images
+
+########
+## Step 2 : https://github.com/intel-ros/realsense
+########
+
+- /!\ due to an issue the the updboard "special" kernel, the Realsense SDK is not installed
+ properly if you just directly follow the instructions. You have to run:
+sudo apt-get install linux-headers-4.10.0-42-generic
+sudo ln -s /usr/src/linux-headers-4.10.0-42-generic /lib/modules/4.10.0-42-generic/build
+
+- Follow intructions "Installing the packages" to install Intel Realsense SDK
+https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md#installing-the-packages
+
+- Download the latest version of Intel Realsense ROS (for me it was version 2.2.1)
+https://github.com/intel-ros/realsense/releases  
+
+- Unzip the content of the zip in ~/catkin_ws/src
+
+- From ~/catkin_ws run:
+catkin_make clean
+catkin_make -DCATKIN_ENABLE_TESTING=False -DCMAKE_BUILD_TYPE=Release
+catkin_make install
+echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+- Run "roscore"
+- Run "roslaunch realsense2_camera rs_camera.launch" 
+- Check if you get camera topics with "rostopic list"
+
+########
+## Step 3 : Building and Installation
+########
+
+cd ~/catkin_ws/src
+git clone https://github.com/intel/object_msgs
+git clone https://github.com/intel/ros_intel_movidius_ncs.git
+cd ros_intel_movidius_ncs
+git checkout master
+cd ~/catkin_ws
+catkin_make
+# Installation
+catkin_make install
+source install/setup.bash
+# Copy label files from this project to the installation location of NCSDK
+cp ~/catkin_ws/src/ros_intel_movidius_ncs/data/labels/* /opt/movidius/ncappzoo/data/ilsvrc12/
+
+/!\ catkin_make may fail because it lacks librealsense-object-recognition-dev librealsense-persontracking-dev librealsense-slam-dev libopencv-dev
+=> get those packages with sudo apt-get librealsense-object-recognition-dev librealsense-persontracking-dev librealsense-slam-dev libopencv-dev
+
+/!\ catkin_make may fail because it lacks components of the realsense_samples_ros package
+cd ~/catkin_ws/src/
+git clone https://github.com/IntelRealSense/realsense_samples_ros
+cd ..
+catkin_make
+source devel/setup.bash
+
+/!\ If catkin_make fail because of an OpenCV dependency in realsense_ros_person
+=> open CMakeLists.txt of this package and add "find_package(OpenCV REQUIRED)" at the beginning just above "include(FindPkgConfig)"
+
+########
+## Step 4 : Check installation
+########
+
+https://github.com/intel/ros_intel_movidius_ncs/blob/master/doc/video_detection.md#tinyyolo_v1
+
+- Compile NCS graph.
+cd /opt/movidius/ncappzoo/caffe/TinyYolo
+make
+
+- Check if it works
+roscore
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=realsense
+rostopic echo /movidius_ncs_nodelet/detected_objects/objects_vector
+
+- If you want a graphical display:
+roslaunch movidius_ncs_launch ncs_stream_detection_example.launch camera_topic:="/camera/color/image_raw"
+
+########
+## Step 5 : Link with ROS
+########
+
+- Create a node with a subscriber of /movidius_ncs_nodelet/detected_objects/
+- This topic has a objects_vector field which contains parameters about the bounding boxes of detected obstacles

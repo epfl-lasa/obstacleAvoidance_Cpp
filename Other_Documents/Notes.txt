@@ -1,0 +1,19 @@
+roslaunch realsense2_camera rs_camera.launch
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=others input_topic:=/camera/color/image_raw
+cd ~/catkin_ws/src/ros_intel_movidius_ncs/movidius_ncs_launch/launch
+roslaunch my_ncs_stream_detection_example.launch camera_topic:="/camera/color/image_raw"
+
+===
+
+roscore
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=realsense
+cd ~/catkin_ws/src/ros_intel_movidius_ncs/movidius_ncs_launch/launch
+roslaunch my_ncs_stream_detection_example.launch camera_topic:="/camera/color/image_raw"
+rosrun kalman_bounding_boxes kalman_bounding_boxes_node 
+rosrun process_depth_img process_depth_img_node 
+===
+
+INSTALLED RGBD LAUNCH
+
+# Display recently modified in the folder you are in with "cd"
+find . -type f -mtime -7 -printf "%TR %TD %p\n" | sort -k2 -k1

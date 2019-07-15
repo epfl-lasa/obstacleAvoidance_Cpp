@@ -1,0 +1,59 @@
+### All-in-one files
+
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=realsense
+roslaunch worlds_and_launchers all_in_one_people.launch
+roslaunch worlds_and_launchers all_in_one_map.launch
+roslaunch worlds_and_launchers all_in_one_process.launch
+rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
+
+###
+
+roslaunch worlds_and_launchers filter_for_static.launch
+roslaunch worlds_and_launchers filter_robot_arm.launch
+rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static_no_arm
+roslaunch ira_laser_tools laserscan_multi_merger_with_removal.launch
+rosrun gmapping slam_gmapping scan:=/scan_multi _delta:=0.2 _map_update_interval:=0.1 _temporalUpdate:=0.1 _linearUpdate:=0.1 _angularUpdate:=0.1 _maxRange:=5.5 _maxUrange:=5.0 _xmin:=-30 _xmax:=30 _ymin:=-30 _ymax:=30
+
+rosrun process_occupancy_grid refresh_occupancy_grid_node
+rosrun process_occupancy_grid log_data_robot_node
+rosrun process_occupancy_grid process_occupancy_grid_node
+rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
+
+
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=realsense
+cd ~/catkin_ws/src/ros_intel_movidius_ncs/movidius_ncs_launch/launch
+roslaunch my_ncs_stream_detection_example.launch camera_topic:="/camera/color/image_raw"
+rosrun kalman_bounding_boxes kalman_bounding_boxes_node
+rosrun process_depth_img process_depth_img_node 
+rosrun tf static_transform_publisher -0.05 0.11 -0.11 -1.5707 0.7853 1.5707 velodyne_link camera_color_optical_frame 100
+rosrun kalman_2d_plane regroup_people_node 
+rosrun kalman_2d_plane kalman_2d_node 
+rosrun remove_people_pcl remove_people_pcl_node 
+rosrun process_depth_img cameras_tf_broadcaster 
+
+rostopic pub /pose_people_map geometry_msgs/PoseArray -r 10 "{header: auto, poses: [{position: [-1,0.2,0]}, {position: [4,5,6]}]}"
+rostopic pub /pose_people_velodyne geometry_msgs/PoseArray -r 10 "{header: auto, poses: [{position: [-1,0.2,0]}]}"
+rostopic pub /pose_people_velodyne geometry_msgs/PoseArray -r 10 "{header: auto, poses: []}"
+
+rosrun tf static_transform_publisher 0.1592201791561404 -0.05646253176161607 0.5543856122517523 0.014 -0.429 -3.06 velodyne_link camera_link 100
+rosrun tf static_transform_publisher 0.1592 -0.0565 0.5544 -3.06 -0.429 0.014 velodyne_link camera_link 100
+
+
+rosrun tf static_transform_publisher -0.090 -0.077 -0.567 1.4753 1.004 0.053 velodyne_link camera_link 100
+
+
+
+###
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=tinyyolo_v1 camera:=realsense
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=realsense
+rosrun kalman_bounding_boxes kalman_bounding_boxes_node
+rosrun process_depth_img process_depth_img_node 
+rosrun kalman_2d_plane regroup_people_node 
+rosrun kalman_2d_plane kalman_2d_node_simplified
+rosrun remove_people_pcl remove_people_pcl_node 
+rosrun tf static_transform_publisher -0.090 -0.077 -0.567 3.046 -0.426 0.053 velodyne_link camera_link 100
+
+rosbag record /camera/color/image_raw /filtered_boxes
+## Good demos
+
+1562242560
