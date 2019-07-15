@@ -1,10 +1,14 @@
 #include "ros/ros.h"
+
+// tf to handle frame transforms
 #include <tf/tf.h>
 #include "tf/transform_listener.h"
 #include "tf/LinearMath/Quaternion.h"
 #include "tf/LinearMath/Matrix3x3.h"
 #include "tf/LinearMath/Scalar.h"
 #include "tf/LinearMath/Vector3.h"
+
+// ROS messages used in this node
 #include "std_msgs/Float32.h"
 #include "nav_msgs/GetMap.h"
 #include "sensor_msgs/LaserScan.h"
@@ -13,7 +17,12 @@
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Vector3Stamped.h"
 #include "std_msgs/Float32MultiArray.h"
-//#include "obstacle_avoidance/GetObstacles.h"
+
+// C and C++ libraries
+#include <iostream>
+#include <fstream>
+#include <chrono>
+#include <ctime>
 #include <cstdlib>
 #include <cmath>
 
@@ -23,48 +32,35 @@
 #include "ObstacleAvoidance.h"
 #include "BezierInterpolation.h"
 
-#include <fstream>  // To write data into files
-
-// Packages to run time related functions
-#include <iostream>
-#include <chrono>
-#include <ctime>
-
-typedef Eigen::Matrix<int8_t, Eigen::Dynamic, Eigen::Dynamic> MatrixXi8; // Dynamic Eigen matrix with type int8_t since OccupancyGrid contains int8_t values
-typedef Eigen::Matrix<int8_t, 1, Eigen::Dynamic> MatrixXi8_layer;
-typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> myMap;
-
-
 class SubscribeAndPublish
 {
 public:
   SubscribeAndPublish()
   {
-    //Topic you want to publish (velocity command for the robot)
+    // Publisher that publishes the velocity command for the robot
     pub_ = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
 
-    //Topic you want to publish (velocity command for the robot)
+    // Publisher that publishes the position of the attractor
     pub_attractor = n_.advertise<geometry_msgs::PointStamped>("/attractor", 10);
 
-    //Topic you want to publish (logging clock for log_data_robot_node)
+    // Publisher that publishes the logging clock for log_data_robot_node
     pub_clock = n_.advertise<std_msgs::Float32>("/clock_logging", 10);
 
-    //Topic you want to subscribe (trigger signal)
+    // Subscriber that listens to trigger signal
     sub_ = n_.subscribe("/test", 1, &SubscribeAndPublish::callback, this);
 
-    //Another topic you want to subscribe (position of detected people)
+    // Subscriber that listens to the position of detected people
     sub_people = n_.subscribe("/pose_people_map", 2, &SubscribeAndPublish::callback_for_people, this);
 
-    //Another topic you want to subscribe (attractor control with keyboard)
+    // Subscriber that listens to the attractor control with keyboard
     sub_key = n_.subscribe("/cmd_key", 2, &SubscribeAndPublish::callback_for_key, this);
 
-    //Another topic you want to subscribe (map topic to avoid service call)
-    // sub_map = n_.subscribe("/map", 2, &SubscribeAndPublish::callback_for_map, this);
+    // Subscriber that listens to the reconstructed surfaces of obstacles in range
     sub_boundary = n_.subscribe("/boundary_cells", 1, &SubscribeAndPublish::callback_for_boundary, this);
 
-    //Another topic you want to subscribe (map_info topic)
+    // Subscriber that listens to information about the occupancy grid
     sub_map_info = n_.subscribe("/map_info", 1, &SubscribeAndPublish::callback_for_map_info, this);
-    // /map_metadata is already published by gmapping but need to adapt code for nav_msgs::Metadata
+    // /map_metadata is already published by gmapping so this subscriber could listen to it by adapting the code for nav_msgs::Metadata
 
     // Client of dynamic_map service of gmapping (to get the occupancy grid)
     client_map_ = n_.serviceClient<nav_msgs::GetMap>("dynamic_map");
@@ -279,15 +275,15 @@ public:
     {
       ROS_ERROR("%s",ex.what());
     }
-    
+
     // Get rotation information between "map" and "base_link"
     tfScalar yaw, pitch, roll;
     tf::Matrix3x3 mat(transform_.getRotation());
     mat.getRPY(roll, pitch, yaw); // Assign values to roll pitch yaw variables
 
-    //std::cout << transform_.getOrigin().getX() << " | " << x_pose << " | " << size_cell << std::endl; 
-    //std::cout << transform_.getOrigin().getY() << " | " << y_pose << " | " << size_cell << std::endl; 
-    
+    //std::cout << transform_.getOrigin().getX() << " | " << x_pose << " | " << size_cell << std::endl;
+    //std::cout << transform_.getOrigin().getY() << " | " << y_pose << " | " << size_cell << std::endl;
+
     // Create robot state vector and fill it
     state_robot << (transform_.getOrigin().getX() - x_pose)/ size_cell,
                    (transform_.getOrigin().getY() - y_pose)/ size_cell,
@@ -744,7 +740,7 @@ public:
 	    output.angular.x = 0.0;
 	    output.angular.y = 0.0;
 	    output.angular.z = next_eps(2,0);
- 
+
             // Check if there is a NaN value in the velocity command
             // Suprisingly the Ridgeback is not protected against that and just goes to its max speed...
             if ((std::isnan(output.linear.x))||(std::isnan(output.linear.y))||(std::isnan(output.angular.z)))
@@ -758,7 +754,7 @@ public:
 	   // {
 	        pub_.publish(output);
 	    //}
-            
+
 
     }
     else
@@ -996,7 +992,7 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
 {
 	int max_obs = static_cast<int>(input.layout.dim[0].size);
         int max_row = static_cast<int>(input.layout.dim[1].size);
-        
+
         // Erase old content of storage and fill it with the new content
         storage.clear();
 	for (int i=0; i<max_obs; i++)
@@ -1005,7 +1001,7 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
 
             /*int num_of_rows = 0;
             float charac1, charac2;
-            do { 
+            do {
                 charac1 = input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*num_of_rows + 3)];
                 charac2 = input.data[static_cast<int>(input.layout.data_offset + max_row*i + 5*num_of_rows + 4)];
                 num_of_rows += 1;
@@ -1014,7 +1010,7 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
 
             int num_of_rows = 0;
             float charac;
-            do { 
+            do {
                 charac = input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*num_of_rows + 2)];
                 num_of_rows += 1;
             } while ((charac!=0)&&(num_of_rows<=max_row));
@@ -1026,7 +1022,7 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
             //std::cout << static_cast<int>(input.layout.data_offset + max_row*i*5 + 0 + 0) << std::endl;
 	    for (int j=0; j<num_of_rows; j++)
             {
-                    boundary.row(j) << 
+                    boundary.row(j) <<
                     input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 0)],
                     input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 1)],
                     input.data[static_cast<int>(input.layout.data_offset + max_row*i*5 + 5*j + 2)],
@@ -1049,11 +1045,11 @@ void callback_for_boundary(const std_msgs::Float32MultiArray& input) // Callback
          /*for (int i=0; i<storage.size(); i++)
         {
           Eigen::MatrixXf coeff = Eigen::MatrixXf::Zero(1,1);
-             
+
             coeff(0,0) = (storage[i]).col(0).minCoeff();
-	    float minx = coeff(0,0);            
+	    float minx = coeff(0,0);
             coeff(0,0) = (storage[i]).col(0).maxCoeff();
-            float maxx = coeff(0,0); 
+            float maxx = coeff(0,0);
 	    coeff(0,0) = (storage[i]).col(1).minCoeff();
             float miny = coeff(0,0);
 	    coeff(0,0) = (storage[i]).col(1).maxCoeff();

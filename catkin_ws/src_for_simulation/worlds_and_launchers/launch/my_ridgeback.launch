@@ -18,8 +18,7 @@
     <!-- World with small barriers -->
     <!-- <arg name="world_name" default="$(find ridgeback_gazebo)/worlds/ridgeback_race.world" /> -->
 
-    <!-- Configuration of Ridgeback which you would like to simulate.
-         See ridgeback_description for details. -->
+    <!-- Configuration of Ridgeback which you would like to simulate. See ridgeback_description for details. -->
     <arg name="config" default="$(optenv RIDGEBACK_CONFIG dual_hokuyo_lasers)" />
     <!-- <arg name="config" default="$(find Gazebo_worlds)/my_sensors" />-->
 
@@ -35,7 +34,8 @@
 
     <!-- Load Ridgeback's default description -->
     <!-- <include file="$(find ridgeback_description)/launch/description.launch">
-         <arg name="config" value="$(arg config)" /> </include> -->
+            <arg name="config" value="$(arg config)" />
+         </include> -->
 
     <!-- Load Ridgeback's custom description -->
     <include file="$(find velodyne_description)/launch/my_description.launch">

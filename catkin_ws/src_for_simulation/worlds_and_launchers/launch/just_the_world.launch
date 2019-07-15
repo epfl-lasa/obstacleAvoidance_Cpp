@@ -1,5 +1,5 @@
 <launch>
-    <!-- Load and launch a Gazebo world described by a .world file -->
+    <!-- Load and launch a Gazebo world described by a .world file without spawning the Ridgeback platform -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="world_name" value="/home/leziart/Documents/Gazebo_worlds/box_of_walls.world" /> <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
         <arg name="paused" value="false"/>

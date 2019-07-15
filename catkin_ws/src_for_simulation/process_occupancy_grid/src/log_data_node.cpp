@@ -32,6 +32,15 @@ geometry_msgs/Twist[] twist
     float64 z
 */
 
+/**
+ * This node is not used to perform experiments with the real Ridgeback
+ * The goal of this node is to log the position and velocity of the Ridgeback during a simulation in Gazebo (/gazebo/link_states topic)
+ * It logs the velocity commands that are sent to it as well (/cmd_vel topic)
+ * It also logs people's position in the map (/pose_people_map topic)
+ * Logs are saved in .txt file that have to be opened with Python to get relevant plots with matplotlib
+ * I used this node when I was doing tests about pedestrian avoidance in simulation
+ */
+
 class SubscribeAndPublish
 {
 public:
@@ -48,7 +57,7 @@ public:
         //Topic you want to subscribe
         sub_3 = n_.subscribe("/pose_people_map", 1, &SubscribeAndPublish::callback3, this);
 
-
+        // Opening and closing text files to clear their content
         std::ofstream mypos, myvel, mycmd;
         mypos.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Log_Data/data_position.txt");
 	    myvel.open("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Log_Data/data_velocity.txt");
@@ -81,7 +90,6 @@ public:
 	    if (myvel.fail()) {throw std::ios_base::failure(std::strerror(errno));}
         if (mycmd.fail()) {throw std::ios_base::failure(std::strerror(errno));}
 
-
 	    //make sure write fails with exception if something is wrong
         mypos.exceptions(mypos.exceptions() | std::ios::failbit | std::ifstream::badbit);
 	    myvel.exceptions(myvel.exceptions() | std::ios::failbit | std::ifstream::badbit);
@@ -94,7 +102,6 @@ public:
 
             if (input.name[i]=="ridgeback::base_link")
             {
-
                 // Convert quaternion to roll pitch yaw
                 tf::Quaternion q(
                 (input.pose[i]).orientation.x,
@@ -106,11 +113,8 @@ public:
                 m.getRPY(roll, pitch, yaw);
 
                 ros::Time timo = (ros::Time::now());
-                //double t = timo.toSec();
                 uint64_t  t_n = timo.toNSec();
                 t = static_cast<float>(t_n) * 0.000000001;
-                //std::cout << t << " and " << static_cast<float>(t_n) * 0.000000001 << std::endl;
-                //unsigned long t_nano = (ros::Time::now()).toNsec();
                 /*
                 mypos << std::setprecision(6) << static_cast<float>(t) << "," << std::setprecision(2) << (input.pose[i]).position.x << "," << std::setprecision(2) << (input.pose[i]).position.y << "," << std::setprecision(2) << yaw << "\n";
                 myvel << std::setprecision(6) << static_cast<float>(t) << "," << std::setprecision(2) << (input.twist[i]).linear.x << "," << std::setprecision(2) << (input.twist[i]).linear.y << "," << std::setprecision(2) << (input.twist[i]).angular.z << "\n";
@@ -136,9 +140,6 @@ public:
             myperson << t << "," << round3(x_people[k]) << "," << round3(y_people[k]) << "\n";
             myperson.close();
         }
-
-
-
     }
 
     void callback2(const geometry_msgs::Twist& input)
@@ -172,7 +173,7 @@ public:
 
 private:
     ros::NodeHandle n_;
-    ros::Subscriber sub_1, sub_2, sub_3; // To listen to a topic (to be defined)
+    ros::Subscriber sub_1, sub_2, sub_3; // Subscribers
     float cmd_x, cmd_y, cmd_theta, time_previous;
     std::vector<float> x_people, y_people;
 };

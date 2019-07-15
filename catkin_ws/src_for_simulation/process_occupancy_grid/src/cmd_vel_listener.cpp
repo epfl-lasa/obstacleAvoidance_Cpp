@@ -2,6 +2,13 @@
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/TwistStamped.h"
 
+/**
+ * The goal of this node is to listen to the /cmd_vel which contains unstamped geometry_msgs::Twist messages
+ * to emit them on the /cmd_vel_stamped with a timestamp as geometry_msgs::TwistStamped messages.
+ * This timestamp is needed if you want to visualize the velocity command sent to the robot as vectors and Rviz
+ * by adding a jsk_rviz_plugin/TwistStamped display in the left column of Rviz.
+ */
+
 class SubscribeAndPublish
 {
 public:

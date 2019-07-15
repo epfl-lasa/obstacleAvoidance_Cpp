@@ -123,10 +123,10 @@ catkin_package(
 #  LIBRARIES obstacle_avoidance
    CATKIN_DEPENDS roscpp rospy std_msgs tf geometry_msgs rosbag
 #  DEPENDS system_lib
-   CATKIN_DEPENDS message_runtime 
+   CATKIN_DEPENDS message_runtime
    DEPENDS EIGEN3
 )
-link_directories(/home/leziart/Documents) 
+link_directories(/home/leziart/Documents)
 ###########
 ## Build ##
 ###########
@@ -216,13 +216,8 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-
-
 find_package (Eigen3 REQUIRED)
 
-
-# Listener node to retrieve LaserScan data
-#find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
 add_executable(process_occupancy_grid_node src/process_occupancy_grid_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp src/BezierInterpolation.cpp)
 target_link_libraries(process_occupancy_grid_node ${catkin_LIBRARIES})
 
@@ -231,7 +226,6 @@ target_link_libraries(cmd_vel_listener ${catkin_LIBRARIES})
 
 add_executable(vector_to_posearray_node src/vector_to_posearray_node.cpp)
 target_link_libraries(vector_to_posearray_node ${catkin_LIBRARIES})
-
 
 add_executable(log_data_node src/log_data_node.cpp)
 target_link_libraries(log_data_node ${catkin_LIBRARIES})

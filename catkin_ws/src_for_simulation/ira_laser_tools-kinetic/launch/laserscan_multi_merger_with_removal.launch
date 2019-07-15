@@ -9,7 +9,9 @@ DESCRITPION
 		<param name="cloud_destination_topic" value="/merged_cloud"/>
 		<param name="scan_destination_topic" value="/scan_multi"/>
         <param name="laserscan_topics" value ="/scan /front/scan /rear/scan" /> <!-- LIST OF THE LASER SCAN TOPICS TO SUBSCRIBE -->
-
+        <!-- /scan is the 3D point cloud of the LIDAR transformed into a LaserScan message
+             /front/scan is the LaserScan topic of the front Hokuyo laser rangefinder
+             /rear/scan is the LaserScan topic of the rear Hokuyo laser rangefinder -->
         <param name="angle_min" value="-3.14"/>
         <param name="angle_max" value="3.14"/>
         <param name="angle_increment" value="0.0232"/> <!-- 0.0058 -->

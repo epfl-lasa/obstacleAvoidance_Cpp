@@ -9,7 +9,7 @@
 #include <pcl/io/pcd_io.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/point_cloud_conversion.h> 
+#include <sensor_msgs/point_cloud_conversion.h>
 #include "sensor_msgs/LaserScan.h"
 #include "pcl_ros/point_cloud.h"
 #include <Eigen/Dense>
@@ -25,11 +25,11 @@ class LaserscanMerger
 {
 public:
     LaserscanMerger();
-    void callback_poses(const geometry_msgs::PoseArray& input);
+    void callback_poses(const geometry_msgs::PoseArray& input); // Callback triggered when an array containing people's position in velodyne frame is received
     void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan, std::string topic);
     void pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPointCloud2 *merged_cloud);
     void reconfigureCallback(laserscan_multi_mergerConfig &config, uint32_t level);
-    
+
 private:
     ros::NodeHandle node_;
     laser_geometry::LaserProjection projector_;
@@ -57,11 +57,12 @@ private:
     string cloud_destination_topic;
     string scan_destination_topic;
     string laserscan_topics;
-  
-    ros::Subscriber posearray_subscriber;
-    geometry_msgs::PoseArray people;
-    tf::TransformListener listener_; // To listen to transforms
-    tf::StampedTransform transform_; // Transform object
+
+    // Additional variables to remove people from the input scans
+    ros::Subscriber posearray_subscriber; // Subscriber to listen to people's position in velodyne frame
+    geometry_msgs::PoseArray people;      // Variable in which people's position in velodyne frame are stored
+    tf::TransformListener listener_;      // To listen to transforms
+    tf::StampedTransform transform_;      // Transform object
 };
 
 void LaserscanMerger::reconfigureCallback(laserscan_multi_mergerConfig &config, uint32_t level)
@@ -149,21 +150,24 @@ LaserscanMerger::LaserscanMerger()
     ROS_INFO("cloud_destination_topic is %s", cloud_destination_topic.c_str());
     this->laserscan_topic_parser();
 
-        posearray_subscriber = node_.subscribe("/pose_people_velodyne_filtered", 2, &LaserscanMerger::callback_poses, this);
+    posearray_subscriber = node_.subscribe("/pose_people_velodyne_filtered", 2, &LaserscanMerger::callback_poses, this); // Subscriber to listen to people's position in velodyne frame
 	point_cloud_publisher_ = node_.advertise<sensor_msgs::PointCloud2> (cloud_destination_topic.c_str(), 1, false);
 	laser_scan_publisher_ = node_.advertise<sensor_msgs::LaserScan> (scan_destination_topic.c_str(), 1, false);
 
 }
 
+/**
+ * Callback function that is triggered when the node receives an array containing detected people's position in velodyne_link frame (topic /pose_people_velodyne_filtered)
+ * Store people's position in "people" variable after transforming them from velodyne_link frame to base_link frame
+ */
 void LaserscanMerger::callback_poses(const geometry_msgs::PoseArray& input)
 {
-        
+
         ros::Time now = ros::Time::now();
         bool can_transform_to_baselink = false;
         try
         {
             listener_.waitForTransform("base_link", "velodyne_link", now, ros::Duration(2.0));
-            //listener_.lookupTransform("base_link", "velodyne_link", ros::Time::now(), transform_);
             can_transform_to_baselink = true;
         }
         catch (tf::TransformException &ex)
@@ -172,7 +176,7 @@ void LaserscanMerger::callback_poses(const geometry_msgs::PoseArray& input)
         }
 
         if (can_transform_to_baselink)
-        {   
+        {
             people.poses.clear(); // Remove previous poses
 
             for (int i=0; i<(input.poses).size(); i++) // For each person detected
@@ -196,9 +200,12 @@ void LaserscanMerger::callback_poses(const geometry_msgs::PoseArray& input)
         }
 }
 
+/**
+ * Callback function that merges sensor_msgs::LaserScan messages into a single 3D point cloud of type pcl::PCLPointCloud2
+ */
 void LaserscanMerger::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan, std::string topic)
 {
-        
+
 	sensor_msgs::PointCloud tmpCloud1,tmpCloud2;
 	sensor_msgs::PointCloud2 tmpCloud3;
 
@@ -218,7 +225,7 @@ void LaserscanMerger::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan,
 			pcl_conversions::toPCL(tmpCloud3, clouds[i]);
 			clouds_modified[i] = true;
 		}
-	}	
+	}
 
     // Count how many scans we have
 	int totalClouds = 0;
@@ -237,7 +244,7 @@ void LaserscanMerger::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan,
 			pcl::concatenatePointCloud(merged_cloud, clouds[i], merged_cloud);
 			clouds_modified[i] = false;
 		}
-	
+
 		point_cloud_publisher_.publish(merged_cloud);
 
 		Eigen::MatrixXf points;
@@ -247,6 +254,9 @@ void LaserscanMerger::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan,
 	}
 }
 
+/**
+ * Callback function that transforms the merged 3D point cloud of type pcl::PCLPointCloud2 into a single sensor_msgs::LaserScan message after discarding unwanted points
+ */
 void LaserscanMerger::pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPointCloud2 *merged_cloud)
 {
 	sensor_msgs::LaserScanPtr output(new sensor_msgs::LaserScan());
@@ -270,12 +280,14 @@ void LaserscanMerger::pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPo
 		const float &y = points(1,i);
 		const float &z = points(2,i);
 
+		// Discard points if they have a Not A Number value
 		if ( std::isnan(x) || std::isnan(y) || std::isnan(z) )
 		{
 			ROS_DEBUG("rejected for nan in point(%f, %f, %f)\n", x, y, z);
 			continue;
 		}
 
+		// Discard points if they are too close from the robot
 		double range_sq = y*y+x*x;
 		double range_min_sq_ = output->range_min * output->range_min;
 		if (range_sq < range_min_sq_) {
@@ -283,6 +295,7 @@ void LaserscanMerger::pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPo
 			continue;
 		}
 
+		// Discard points if they are too far from the robot
 		double angle = atan2(y, x);
 		if (angle < output->angle_min || angle > output->angle_max)
 		{
@@ -290,35 +303,40 @@ void LaserscanMerger::pointcloud_to_laserscan(Eigen::MatrixXf points, pcl::PCLPo
 			continue;
 		}
 
+        // Discard points belonging to the UR5 arm if it is deployed (discard every points in a box centered on the Ridgeback)
+        float const min_x = -0.5;
+        float const min_y = -0.5;
+        float const max_x =  0.5;
+        float const max_y =  0.5;
+        if ((x>min_x)&&(x<max_x)&&(y>min_y)&&(y<max_y))
+        {
+            continue;
+        }
 
-                // Remove points belonging to the UR5 arm if it is deployed (discard every points in a box)
-                float const min_x = -0.5;
-                float const min_y = -0.5;
-                float const max_x =  0.5;
-                float const max_y =  0.5;
-                if ((x>min_x)&&(x<max_x)&&(y>min_y)&&(y<max_y)) {continue;}
+        // Discard points belonging to detected people (points in a cylinder around people's estimated positions)
+        bool flag_in_cylinder = false;
+        int k = 0;
+        while ((k<people.poses.size()) && !(flag_in_cylinder))
+        {
+            float personX = (people.poses[k]).position.x;
+            float personY = (people.poses[k]).position.y;
+            float personZ = (people.poses[k]).position.z;
 
-                // Remove points belonging to detected people
-                bool flag_in_cylinder = false;
-                int k = 0;
-                while ((k<people.poses.size()) && !(flag_in_cylinder))
-                {
-                       float personX = (people.poses[k]).position.x;
-                       float personY = (people.poses[k]).position.y;
-                       float personZ = (people.poses[k]).position.z;
+            float const radius_around_people = 0.8; // in [m]
 
-			float const radius_around_people = 0.8; // in [m]
+            // Compute horizontal distance to the person
+            float distance = std::sqrt(std::pow((x - personX), 2) + std::pow((y - personY), 2));
 
-            		// Compute horizontal distance to the person
-            		float distance = std::sqrt(std::pow((x - personX), 2) + std::pow((y - personY), 2));
-
-            		// Remove all points in a cylinder around the person
-            		if(distance < radius_around_people) { flag_in_cylinder = true;}
-                        k++;
-                }
+            // Remove all points in a cylinder around the person
+            if(distance < radius_around_people)
+            {
+                flag_in_cylinder = true;
+            }
+            k++;
+        }
 		if (flag_in_cylinder) {continue;} // point discarded as it is in a cylinder
- 
-                // If point has not been discarded
+
+        // If point has not been discarded
 		int index = (angle - output->angle_min) / output->angle_increment;
 
 		if (output->ranges[index] * output->ranges[index] > range_sq)
