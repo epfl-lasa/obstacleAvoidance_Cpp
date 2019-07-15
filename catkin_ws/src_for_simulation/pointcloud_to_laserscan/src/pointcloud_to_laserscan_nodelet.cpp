@@ -151,7 +151,7 @@ namespace pointcloud_to_laserscan
     output.angle_max = angle_max_;
     output.angle_increment = angle_increment_;
     output.time_increment = 0.0;
-    output.scan_time = ros::Time::now().toSec();//scan_time_;
+    output.scan_time = scan_time_;
     output.range_min = range_min_;
     output.range_max = range_max_;
 

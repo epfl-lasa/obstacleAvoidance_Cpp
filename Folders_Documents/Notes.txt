@@ -15,3 +15,5 @@ rosrun process_depth_img process_depth_img_node
 
 INSTALLED RGBD LAUNCH
 
+# Display recently modified in the folder you are in with "cd"
+find . -type f -mtime -7 -printf "%TR %TD %p\n" | sort -k2 -k1
