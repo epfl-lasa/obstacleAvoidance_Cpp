@@ -1,0 +1,168 @@
+##############################
+## Install Ubuntu 16.04 LTS ## 
+##############################
+
+Install Ubuntu 16.04 LTS with a bootable USB key
+In "Sofware & Updates" set "Automatically check for updates" to never in the "Updates" tab to be sure that it does not break the install
+
+#######################
+## Update everything ## 
+#######################
+
+sudo apt-get update & sudo apt-get dist-upgrade
+Reboot to finish the update
+
+##############################
+## Installation ROS Kinetic ## 
+##############################
+
+Guide: http://wiki.ros.org/kinetic/Installation/Ubuntu
+
+Chose the Desktop-Full Install
+No need to install rosinstall in section 1.7 Dependencies
+
+############################
+## Create a ROS Workspace ##
+############################
+
+Guide: http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment
+
+#################
+## Install git ##
+#################
+
+sudo apt install git
+
+##########
+## Note ##
+##########
+
+From there, we will follow the procedure of https://github.com/intel/ros_intel_movidius_ncs
+
+########################################
+## Update pip that will be used later ##
+########################################
+
+Not sure if it is needed. If you don't do it NCSDK will use an old version of pip. 
+I did my install with the old version and it seems ok.
+
+pip3 install --upgrade pip
+pip3 --version
+
+############################
+## Install NCSDK v1.12.00 ##
+############################
+
+Guide: https://github.com/movidius/ncsdk
+
+cd ~/Documents/
+git clone https://github.com/movidius/ncsdk.git
+cd ncsdk/
+make install
+
+########################
+## Install NC APP Zoo ##
+########################
+
+Guide: https://github.com/movidius/ncappzoo
+
+Download the version for NCSDK v1:
+cd ~/catkin_ws/
+git clone https://github.com/movidius/ncappzoo.git
+
+NCSDK should be installed in /opt/movidius by default. Create a symbol link in /opt/movidius to NC APP Zoo.
+sudo ln -s ~/catkin_ws/ncappzoo /opt/movidius/ncappzoo
+
+After that, make sure you can find graph data in /opt/movidius/ncappzoo/caffe or /opt/movidius/ncappzoo/tensorflow and image data in /opt/movidius/ncappzoo/data/images
+
+#######################################
+## Install Intel® RealSense™ SDK 2.0 ##
+#######################################
+
+On ROS Intel Movidius NCS github, there is "Install Intel® RealSense™ SDK 2.0 (tag v2.9.1)" with a link to the v2.9.1 branch "Install from package". But the Intel server and the public key registration did not work for me so I just went for the master branch installation:
+
+https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md
+
+Install the optionnal dev and dbg packages.
+
+You can check the installaton with:
+modinfo uvcvideo | grep "version:"
+
+The output should have the realsense string like "version 1.1.2.realsense-1.3.5"
+
+Note of ROS Intel Movidius NCS github: Create a symbol link from libusb.a to libusb-1.0.a, otherwise "libusb.a" is probably not to be found by librealsense.
+sudo ln -s /usr/lib/x86_64-linux-gnu/libusb-1.0.a /usr/lib/libusb.a
+
+###################################
+## Install Intel® RealSense™ ROS ##
+###################################
+
+Guide: https://github.com/IntelRealSense/realsense-ros
+Again I am installing the latest version and not the version 2.0.2 ROS Intel Movidius NCS is talking about.
+
+cd ~/catkin_ws/src/
+git clone https://github.com/IntelRealSense/realsense-ros.git
+cd realsense-ros/
+git checkout `git tag | sort -V | grep -P "^\d+\.\d+\.\d+" | tail -1`
+cd ..
+git clone -b kinetic-devel https://github.com/pal-robotics/ddynamic_reconfigure.git
+cd ..
+catkin_make clean
+catkin_make -DCATKIN_ENABLE_TESTING=False -DCMAKE_BUILD_TYPE=Release
+catkin_make install
+echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+In the guide there is some commands if you want to test the camera.
+
+####################################
+## Install ros_intel_movidius_ncs ##
+####################################
+
+Guide: https://github.com/intel/ros_intel_movidius_ncs section 4. Building and Installation
+
+# Building
+cd ~/catkin_ws/src
+git clone https://github.com/intel/object_msgs
+git clone https://github.com/intel/ros_intel_movidius_ncs.git
+cd ros_intel_movidius_ncs
+git checkout master
+cd ~/catkin_ws
+catkin_make
+# Installation
+catkin_make install
+source install/setup.bash
+# Copy label files from this project to the installation location of NCSDK
+cp ~/catkin_ws/src/ros_intel_movidius_ncs/data/labels/* /opt/movidius/ncappzoo/data/ilsvrc12/
+
+#######################
+## Test installation ##
+#######################
+
+Modify /home/qolo/catkin_ws/src/ros_intel_movidius_ncs/movidius_ncs_launch/launch/ncs_camera.launch
+Replace all "realsense_ros_camera" by "realsense2_camera"
+Because realsense_ros_camera is the previous name of realsense2_camera and ROS Intel Movidius package has not been updated for this change of name
+There should be a single line to change:
+<include file="$(find realsense_ros_camera)/launch/rs_camera.launch"> modified into
+<include file="$(find realsense2_camera)/launch/rs_camera.launch">
+
+For TinyYolo_V1
+
+Compile NCS graph.
+cd /opt/movidius/ncappzoo/caffe/TinyYolo
+make
+
+Launch video streaming nodelet.
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=tinyyolo_v1 camera:=realsense
+
+Launch image viewer to show the classification result on another console.
+roslaunch movidius_ncs_launch ncs_stream_detection_example.launch camera_topic:="/camera/color/image_raw"
+
+################
+## Conclusion ##
+################
+
+At the end of the installation, you will have four packages in your catkin_ws/src:
+ddynamic_reconfigure, object_msgs, realsense-ros and ros_intel_movidius_ncs
+
+
