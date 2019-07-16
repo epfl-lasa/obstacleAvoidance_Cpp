@@ -1,0 +1,8 @@
+**/build
+**/devel
+**/install
+**/ncappzoo
+**/.catkin_workspace
+**/src/CMakeLists.txt
+**/src/process_occupancy_grid/src/Logging
+**/src/process_occupancy_grid/src/Bagfiles
