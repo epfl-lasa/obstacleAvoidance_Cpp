@@ -11,7 +11,7 @@ roslaunch movidius_ncs_launch ncs_stream_detection_example.launch camera_topic:=
 
 # If you want to run the node again, the first command does not work
 # Launch the realsense camera, the output topic is /camera/color/image_raw
-roslaunch realsense2_camera rs_camera.launch
+roslaunch realsense2_camera rs_camera.launch OR roslaunch realsense2_camera rs_rgbd.launch
 
 # Launch the movidius node for a specific input topic (/camera/color/image_raw)
 roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=mobilenetssd camera:=others input_topic:=/camera/color/image_raw
@@ -21,7 +21,7 @@ roslaunch movidius_ncs_launch ncs_stream_detection_example.launch camera_topic:=
 
 # Note that the alternative method does not work directly, you have to run the classic command at least once.
 
-# Basically he classic commands work the first time, only once, then you have to use the alternative commands which do not work for the first time...
+# Basically the classic commands work the first time, only once, then you have to use the alternative commands which do not work for the first time...
 
 
 

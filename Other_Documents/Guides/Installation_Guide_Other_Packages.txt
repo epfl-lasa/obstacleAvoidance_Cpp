@@ -1,0 +1,53 @@
+#######################
+## Download packages ##
+#######################
+
+You can get all packages on the github of LASA. 
+Download the Branch_July branch, it also contains packages required to use the realsense camera but you still need to follow the other guide to install NCSDK or Ncappzoo.
+
+#########################
+## Install GSL library ##
+#########################
+
+process_depth_img package requires the gsl module that you can get with the following command:
+sudo apt-get install libgsl0-dev
+
+##################################
+## Make config files executable ##
+##################################
+
+If you do not do that you will have a "Permission denied" error with catkin_make
+
+sudo chmod +x /home/qolo/catkin_ws/src/ira_laser_tools-kinetic/cfg/laserscan_multi_merger.cfg
+sudo chmod +x /home/qolo/catkin_ws/src/ira_laser_tools-kinetic/cfg/laserscan_virtualizer.cfg
+
+###############################
+## catkin_make the workspace ##
+###############################
+
+cd ~/catkin_ws/
+catkin_make
+
+##########################################################################
+## Install terminator to have a terminal you can split in sub-terminals ##
+##########################################################################
+
+sudo add-apt-repository ppa:gnome-terminator
+sudo apt-get update
+sudo apt-get install terminator
+
+#####################################################
+## Install chrony and ntpdate to sync time with the Ridgeback ##
+#####################################################
+
+sudo apt-get install chrony ntpdate
+
+Modify chrony config:
+sudo gedit /etc/chrony.conf
+
+Comment the following line:
+pool 2.debian.pool.ntp.org offline iburst
+
+Add the following line:
+server 192.168.131.1 minpoll 0 maxpoll 5 maxdelay .05
+

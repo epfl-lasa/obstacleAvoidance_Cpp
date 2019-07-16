@@ -1,0 +1,157 @@
+#######################################################
+## Connect Ridgeback and Upboard with Ethernet cable ##
+#######################################################
+
+Connect the white ethernet cable that goes out of the Ridgeback to the Upboard.
+Use the Ethernet port that is the closest to the floor when the fan points upwards.
+
+#######################################
+## Connect to the Ridgeback platform ##
+#######################################
+
+ssh -X administrator@192.168.0.20 and input the password
+
+###########################################
+## Launch ROS master and sensor handling ##
+###########################################
+
+roslaunch cpr_bringup cpr_bringup.launch sim:=false
+
+Wait a few seconds and when it just keeps printing "Waiting for sensor connection" use Ctrl+C.
+You will have red lines because the UR5 robotic arm is not turned on.
+
+###############################
+## Open additional terminals ##
+###############################
+
+xterm & xterm & xterm & xterm & xterm &
+
+To paste something in xterm you have to click on the middle mouse button.
+
+In the first four terminals you can respectively copy and paste the following commands:
+
+roslaunch worlds_and_launchers filter_for_static.launch
+roslaunch worlds_and_launchers filter_robot_arm.launch
+rosrun pointcloud_to_laserscan pointcloud_to_laserscan_node cloud_in:=/cloud_for_static_no_arm
+roslaunch ira_laser_tools laserscan_multi_merger_with_removal.launch
+
+No need to touch these four terminals again for a standard experiment.
+
+In the fifth terminal you can run:
+rosrun gmapping slam_gmapping scan:=/scan_multi _delta:=0.2 _map_update_interval:=0.1 _temporalUpdate:=0.1 _linearUpdate:=0.1 _angularUpdate:=0.1 _maxRange:=5.5 _maxUrange:=5.0 _xmin:=-30 _xmax:=30 _ymin:=-30 _ymax:=30
+
+This runs the SLAM algorithm so you will regularly stop it to launch it again when you want to reset the occupancy grid. Read ~/catkin_ws/Other_Documents/Guides/Documentation_Gmapping to have more details about all available parameters. If the robot has a strange behaviour or if Gmapping crashed you may try to increase the size of the map because the robot is likely on the edge of the area defined by xmin xmax ymin ymax.
+
+rostopic echo /odometry/filtered/ to get an estimation of the position of the robot to know in which direction you have to increase the area.
+
+Run gmapping and stop it after a few second just to publish the "map" frame over the network.
+
+############################
+## Connect to the Upboard ##
+############################
+
+ssh -X qolo@192.168.0.100 or ssh -X qolo@192.168.0.101 and input the password
+
+#####################
+## Check timestamp ##
+#####################
+
+You can check by typing "date" in a terminal connected to Upboard and "date" in a terminal connected to Ridgeback. The timezone should also be the same.
+
+If there is a time difference, synchronize with the Ridgeback:
+ntpdate 192.168.131.1
+
+Restart chrony synchronisation:
+service chrony restart
+
+Check again with date, time should be synchronized.
+
+###############################
+## Check the ~/.bashrc file ##
+###############################
+
+sudo nano ~/.bashrc
+
+At the end you should have:
+
+# Use Ridgeback as ROS master (comment with # if not needed)
+export ROS_MASTER_URI=http://192.168.131.1:11311
+export ROS_IP=192.168.131.42
+
+If you had to uncomment the two last lines, open a new terminal to take into account the change.
+That way the Upboard use the ros master of the Ridgeback and they use the same ROS network.
+
+You can check that the connection is working with "rostopic echo".
+
+#####################
+## Open terminator ##
+#####################
+
+cd ~/catkin_ws/
+terminator -l myLayout & terminator -l myLayout (myLayout is a layout I made with Right Click in terminator > Preferences > Layout)
+
+Two terminals with 8 sub-terminal should be opened now. Now run in 5 differents sub-terminals:
+
+rosrun tf static_transform_publisher -0.090 -0.077 -0.567 3.046 -0.426 0.053 velodyne_link camera_link 100
+roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=tinyyolo_v1 camera:=realsense
+rosrun kalman_bounding_boxes kalman_bounding_boxes_node
+rosrun process_depth_img process_depth_img_node 
+rosrun kalman_2d_plane regroup_people_node 
+
+You do not have to touch these terminals anymore so you can switch to the other terminator terminal.
+
+#######################################
+## What to do before each experiment ##
+#######################################
+
+Get the following command ready in several sub terminals without running them:
+
+rosrun kalman_2d_plane kalman_2d_node_simplified
+This command runs the kalman filter that tracks people in the horizontal plane so at the start of each experiment you will have to Ctrl+C and launch it again.
+
+rosrun process_occupancy_grid refresh_occupancy_grid_node
+rosrun process_occupancy_grid log_data_robot_node
+rosrun process_occupancy_grid process_occupancy_grid_node
+rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
+
+#####################
+## Launch sequence ##
+#####################
+
+Run gmapping in Ridgeback windows
+Run rosrun kalman_2d_plane kalman_2d_node_simplified
+Run rosrun process_occupancy_grid refresh_occupancy_grid_node
+Run rosrun process_occupancy_grid log_data_robot_node
+Run rosrun process_occupancy_grid process_occupancy_grid_node
+Run rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]' 
+
+############################
+## To stop the experiment ##
+############################
+
+Stop rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]' 
+Stop rosrun process_occupancy_grid process_occupancy_grid_node
+Stop rosrun process_occupancy_grid log_data_robot_node
+Stop rosrun process_occupancy_grid refresh_occupancy_grid_node
+Stop rosrun kalman_2d_plane kalman_2d_node_simplified
+Stop gmapping in Ridgeback windows
+
+It's basically the reverse launch sequence.
+
+##################################################
+## To see the output of the Realsense detection ##
+##################################################
+
+cd ~/catkin_ws/src/ros_intel_movidius_ncs/movidius_ncs_launch/launch
+roslaunch my_ncs_stream_detection_example.launch camera_topic:="/camera/color/image_raw"
+
+############################################
+## ROSBAG video stream and bounding boxes ##
+############################################
+
+Before the start of the experiment:
+
+rosbag record /camera/color/image_raw /filtered_boxes
+
+
+

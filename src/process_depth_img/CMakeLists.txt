@@ -226,12 +226,12 @@ find_package (Eigen3 REQUIRED)
 
 # Listener node to retrieve LaserScan data
 #find_library(mylib_LIBRARIES Core /home/leziart/Documents/eigen-v337/Eigen/src/Core)
-add_executable(process_depth_img_node src/process_depth_img_node.cpp src/ObstacleAvoidance.cpp src/ObstacleReconstruction.cpp src/gmm.cpp)
+add_executable(process_depth_img_node src/process_depth_img_node.cpp src/gmm.cpp)
 target_link_libraries(process_depth_img_node ${catkin_LIBRARIES})
 target_link_libraries(process_depth_img_node ${gsl_LIBRARIES})
 
-add_executable(cameras_tf_broadcaster src/cameras_tf_broadcaster.cpp)
-target_link_libraries(cameras_tf_broadcaster ${catkin_LIBRARIES})
+#add_executable(cameras_tf_broadcaster src/cameras_tf_broadcaster.cpp)
+#target_link_libraries(cameras_tf_broadcaster ${catkin_LIBRARIES})
 
 install(TARGETS process_depth_img_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

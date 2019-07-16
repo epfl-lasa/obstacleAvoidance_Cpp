@@ -76,7 +76,7 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
  *
  * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot. Theta is not used.
  * @param state_attractor Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the attractor. Theta is not used.
- * @param borders Vector of Eigen matrices of size (Ni,2) containing information about the Ni surface cells of obstacle number i with [x, y, type, charac1, charac2] format
+ * @param borders Vector of Eigen matrices of size (Ni,5) containing information about the Ni surface cells of obstacle number i with [x, y, type, charac1, charac2] format
  *        x and y are the coordinates of the cell in the occupancy grid
  *        type is 1 for a straight cell, 2 for an outer corner, 3 for an inner corner (see report)
  *        charac1 and charac2 contain information specific to each type of cell (see report)
@@ -90,7 +90,7 @@ State test_next_step_special_weighted(State const& state_robot, State const& sta
  * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot. Theta is not used.
  * @param state_attractor Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the attractor. Theta is not used.
  * @param state_reference Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the reference point. Theta is not used.
- * @param border Eigen matrixe of size (N,2) containing information about the N surface cells of an obstacle with [x, y, type, charac1, charac2] format
+ * @param border Eigen matrix of size (N,5) containing information about the N surface cells of an obstacle with [x, y, type, charac1, charac2] format
  *        x and y are the coordinates of the cell in the occupancy grid
  *        type is 1 for a straight cell, 2 for an outer corner, 3 for an inner corner (see report)
  *        charac1 and charac2 contain information specific to each type of cell (see report)

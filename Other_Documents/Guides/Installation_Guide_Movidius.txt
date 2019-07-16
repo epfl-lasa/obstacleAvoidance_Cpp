@@ -166,3 +166,4 @@ At the end of the installation, you will have four packages in your catkin_ws/sr
 ddynamic_reconfigure, object_msgs, realsense-ros and ros_intel_movidius_ncs
 
 
+
