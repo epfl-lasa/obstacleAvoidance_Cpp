@@ -49,5 +49,5 @@ Comment the following line:
 pool 2.debian.pool.ntp.org offline iburst
 
 Add the following line:
-server 192.168.131.1 minpoll 0 maxpoll 5 maxdelay .05
+server 192.168.131.1 iburst
 
