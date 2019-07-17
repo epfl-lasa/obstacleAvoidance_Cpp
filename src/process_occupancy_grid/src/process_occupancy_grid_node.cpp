@@ -752,7 +752,7 @@ public:
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 	    //if ((static_cast<int>(key_command)!=5)&&(static_cast<int>(key_command)!=-1)) // if we press 5, the robot should not move
 	   // {
-	        pub_.publish(output);
+	        //pub_.publish(output);
 	    //}
 
 

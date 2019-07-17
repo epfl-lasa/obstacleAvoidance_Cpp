@@ -36,9 +36,9 @@ sudo add-apt-repository ppa:gnome-terminator
 sudo apt-get update
 sudo apt-get install terminator
 
-#####################################################
+################################################################
 ## Install chrony and ntpdate to sync time with the Ridgeback ##
-#####################################################
+################################################################
 
 sudo apt-get install chrony ntpdate
 
@@ -50,4 +50,44 @@ pool 2.debian.pool.ntp.org offline iburst
 
 Add the following line:
 server 192.168.131.1 iburst
+
+#################
+## Install SSH ##
+#################
+
+sudo apt-get install openssh-server
+
+Check that ssh is running:
+sudo service ssh status
+
+#########################
+## Install rgbd_launch ## Already done in Branch_July
+#########################
+
+To get the 3D point cloud of the camera, we need to launch movidius with rs_rgbd.launch of realsense2_camera package instead of rs_camera.launch
+
+Modify /home/qolo/catkin_ws/src/ros_intel_movidius_ncs/movidius_ncs_launch/launch/ncs_camera.launch
+
+Comment the code that calls rs_camera.launch and call rs_rgbd instead: 
+
+  <!-- launch realsense camera with the relevant parameters if any -->
+  <group if="$(eval camera == 'realsense')">
+    <arg name="color_width" default="640" />
+    <arg name="color_height" default="480" />
+
+    <!-- To have the 3D point cloud (P-Alex) -->
+    <include file="$(find realsense2_camera)/launch/rs_rgbd.launch">
+    </include>
+    <!--
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+        <arg name="color_width" value="$(arg color_width)" />
+        <arg name="color_height" value="$(arg color_height)" /> 
+        <arg name="filters" value="pointcloud" /> 
+    </include>
+    -->
+  </group>
+
+Calling rs_rgbd.launch requires the rgbd_launch package.
+Clone the jade branch of rgbd_launch and put the package in catkin_ws/src:
+git clone -b jade-devel https://github.com/ros-drivers/rgbd_launch.git
 

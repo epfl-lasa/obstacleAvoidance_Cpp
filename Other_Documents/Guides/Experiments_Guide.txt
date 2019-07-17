@@ -50,7 +50,7 @@ Run gmapping and stop it after a few second just to publish the "map" frame over
 ## Connect to the Upboard ##
 ############################
 
-ssh -X qolo@192.168.0.100 or ssh -X qolo@192.168.0.101 and input the password
+ssh -X qolo@192.168.0.100 or 101 or 102 and input the password
 
 #####################
 ## Check timestamp ##
