@@ -88,7 +88,11 @@ You can check that the connection is working with "rostopic echo".
 #####################
 
 cd ~/catkin_ws/
-terminator -l myLayout & terminator -l myLayout (myLayout is a layout I made with Right Click in terminator > Preferences > Layout)
+sudo terminator -l myLayout & sudo terminator -l myLayout (myLayout is a layout I made with Right Click in terminator > Preferences > Layout)
+
+If you do not use sudo to open terminator it does not work. From what I read online it's because dbus daemon belongs to the sudo account and not the qolo account. 
+It seems there is a way to assign it to qolo account but just using sudo is easier.
+See: https://askubuntu.com/questions/135573/gconf-error-no-d-bus-daemon-running-how-to-reinstall-or-fix/202481 to change the ownership of dbus if you want to try it
 
 Two terminals with 8 sub-terminal should be opened now. Now run in 5 differents sub-terminals:
 

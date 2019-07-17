@@ -2,7 +2,7 @@
 ## Install Ubuntu 16.04 LTS ## 
 ##############################
 
-Install Ubuntu 16.04 LTS with a bootable USB key
+Install Ubuntu 16.04 LTS with a bootable USB key with New-York timezone.
 In "Sofware & Updates" set "Automatically check for updates" to never in the "Updates" tab to be sure that it does not break the install
 
 #######################
@@ -11,6 +11,15 @@ In "Sofware & Updates" set "Automatically check for updates" to never in the "Up
 
 sudo apt-get update & sudo apt-get dist-upgrade
 Reboot to finish the update
+
+################################
+## Install language libraries ## 
+################################
+
+If your desktop computer has additional languages installed, you need to install them on the upsquared
+or you will get a message about the C library not having your language when you ssh to the upsquared
+Open "Language Support" application.
+With "Install/Remove languages" button install for instance French and Deutsch.
 
 ##############################
 ## Installation ROS Kinetic ## 
