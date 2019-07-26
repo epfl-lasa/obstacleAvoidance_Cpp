@@ -485,16 +485,19 @@ def disp6ter():
     attractor.append([5,0])
     attractor.append([16,4])
     
-    margin = 0.5
+    margin = 0.25
+    limit_dist = 3
+    margin_limit = (limit_dist - 1)**0.5
     my_density = 3
+    save_figs = False
     
-    num = 9
+    num = 4
     names = glob.glob("./stream_data_bor*.txt")
-    names_normal = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_normal.txt")
-    names_bezier = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_bezier.txt")
-    names_classic = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_classic.txt")
-    names_bor = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_obs.txt")
-    names_cells = glob.glob("/home/leziart/Documents/Project_25_06/StreamData/stream_data_"+str(num)+"_cells.txt")
+    names_normal = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_normal.txt")
+    names_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_bezier.txt")
+    names_classic = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_classic.txt")
+    names_bor = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_obs.txt")
+    names_cells = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_cells.txt")
     
     # Get data and put in the the correct format
     for name in names_normal:
@@ -541,15 +544,50 @@ def disp6ter():
             ax.add_artist(arc)
         elif borders[i_row,2] == 3:
             if borders[i_row,4] == 0:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 0, 90, LineWidth=3, color="r")
             elif borders[i_row,4] == 1:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 90, 180, LineWidth=3, color="r")
             elif borders[i_row,4] == 2:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 180, 270, LineWidth=3, color="r")
             elif borders[i_row,4] == 3:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 270, 360, LineWidth=3, color="r")
             ax.add_artist(arc)
     
+    # Plot the limits of the area of influence of the obstacle
+    # margin = margin_limit
+    # for i_row in range(0,borders.shape[0]):
+    #     if borders[i_row,2] == 1:
+    #         if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         else:
+    #             print("Should not happen")
+    #     elif borders[i_row,2] == 2:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         ax.add_artist(arc)
+    #     elif borders[i_row,2] == 3:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 0, 90, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 90, 180, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 180, 270, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 270, 360, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         ax.add_artist(arc)
+            
     # Plot the stream
     q = ax.streamplot(X, Y, U, V, density=my_density)
     
@@ -569,9 +607,10 @@ def disp6ter():
     #ax.set_ylim(280, 370)
     ax.set_aspect("equal")
     plt.show()
-    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png", dpi=300)
-    #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".svg", format='svg', dpi=600)
-    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".eps", format='eps')
+    if save_figs:
+        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png", dpi=300)
+        #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".svg", format='svg', dpi=600)
+        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".eps", format='eps')
     
     # Get data and put in the the correct format
     for name in names_bezier:
@@ -656,9 +695,10 @@ def disp6ter():
     ax.set_aspect("equal")
     
     plt.show()
-    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".png", dpi=300)
-    #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".svg", format='svg', dpi=600)
-    fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".eps", format='eps')
+    if save_figs:
+        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".png", dpi=300)
+        #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".svg", format='svg', dpi=600)
+        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".eps", format='eps')
     
     if (num >= 6):
         ref_point = []
@@ -744,8 +784,9 @@ def disp6ter():
         #ax.set_ylim(280, 370)
         ax.set_aspect("equal")
         plt.show()
-        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".png", dpi=300)
-        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".eps", format='eps')
+        if save_figs:
+            fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".png", dpi=300)
+            fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/classic_"+str(num)+".eps", format='eps')
 
 from matplotlib.colors import BoundaryNorm
 from matplotlib.ticker import MaxNLocator

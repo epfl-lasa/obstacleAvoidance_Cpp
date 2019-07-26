@@ -2268,7 +2268,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
     // Special case if all obstacles are too far away from the robot so none of them is considered
     if ((mat_weights.size()==0) || (mat_weights.maxCoeff() == 0))
     {
-        std::cout << "No obstacle considered" << std::endl;
+        // std::cout << "No obstacle considered" << std::endl;
         //std::cout << "R/A: " << state_robot.transpose() << " | "  << state_attractor.transpose() << std::endl;
         // No obstacle in range so the robot just goes toward the attractor
         State cmd_velocity = state_attractor - state_robot;
@@ -2345,7 +2345,8 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
             cmd_no_obstacle = speed_limiter(cmd_no_obstacle);
 
             // Transition equation
-            State cmd_tempo = ((end_of_transition_weight - mat_weights_not_normalized(0,0))/end_of_transition_weight) * cmd_no_obstacle + (mat_weights_not_normalized(0,0)/end_of_transition_weight) * (speed_limiter(weighted_mag * weighted_direction));
+            // Not needed anymore with interpolation between deformation area and non deformation area (22/07/19)
+            State cmd_tempo = speed_limiter(weighted_mag * weighted_direction);//((end_of_transition_weight - mat_weights_not_normalized(0,0))/end_of_transition_weight) * cmd_no_obstacle + (mat_weights_not_normalized(0,0)/end_of_transition_weight) * (speed_limiter(weighted_mag * weighted_direction));
 
             // Normalization
             //cmd_velocity = cmd_velocity / (std::sqrt(std::pow(cmd_velocity(0,0),2) + std::pow(cmd_velocity(1,0),2)));
@@ -2491,6 +2492,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
 
     float speed_reverse = 1000; // speed to get out of an obstacle (will be limited by speed_limiter, basically the robot will go at max speed)
 
+    bool no_reverse = true;
     if (((closest(0,2)==1)||(closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0)) // if true it means the robot is inside obstacle
     {
         // If inside an obstacle, avoid display by returning NaN
@@ -2501,7 +2503,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
-        //output << 0.0, 0.0, 0, 1;
+        if (no_reverse) {output << 0.0, 0.0, 0, 1;}
         return output;
     }
     else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
@@ -2514,9 +2516,17 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1;
         my_circle_space << 1000 << "," << 1000 << "\n";   // write position of the point in the circle space (for matplotlib)
-        //output << 0.0, 0.0, 0, 1;
+        if (no_reverse) {output << 0.0, 0.0, 0, 1;}
         return output;
     }
+
+    // Non-deformed DS in the initial space
+    State f_initial = state_attractor - state_robot;
+
+    // Component along normal vector
+    /*float normal_component = f_initial.dot(robot_vec.colwise().normalized());
+    if (normal_component < 0)
+    {*/
 
     // Get minimal distance along surface (either by following the surface clockwise or counter-clockwise)
     // Distance between the projected point of the robot and the projected point of the attractor
@@ -2556,6 +2566,22 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
 
     // Normalization of the speed to a default desired speed
     f_eps = f_eps / (std::sqrt(std::pow(f_eps(0,0),2) + std::pow(f_eps(1,0),2)));
+
+    /*
+    // Component along normal vector in circle space
+    float normal_component_circle = f_eps.dot(robot_circle_frame.colwise().normalized());
+
+    State f_eps_normal;
+    f_eps_normal = normal_component_circle * robot_circle_frame.colwise().normalized();
+
+    // Component along tangent vector to the unit disk
+    State f_eps_normal, vec_tangent;
+    vec_tangent << - robot_circle_frame(1,0), robot_circle_frame(0,0), 0;
+    f_eps_tangent = f_eps.dot(vec_tangent.colwise().normalized()) * vec_tangent.colwise().normalized();
+
+    // Only deforms the normal if it goes toward the unit circle
+    f_eps = f_eps_normal;
+    */
 
     // Several steps to get D(epsilon) matrix
     lamb_r = 1 - (1/gamma_circle_frame);
@@ -2600,6 +2626,11 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * f_eps.block(0,0,2,1);
     }*/
 
+    // Linear interpolation between non deformed DS and deformed DS near the obstacle
+    float interpolation_coeff = (gamma_norm_proj(0,0)-1)/(limit_dist-1);
+    velocity_shape_space.block(0,0,2,1) = (1-interpolation_coeff) * velocity_shape_space.block(0,0,2,1) + interpolation_coeff * f_initial.block(0,0,2,1);
+
+
     if (closest(0,2)==3)
     {
         r_eps_vector = (-1) * r_eps_vector;
@@ -2628,6 +2659,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
         std::cout << circle_tranform.row(1) << "        " << shape_tranform.row(1) << std::endl;
         std::cout << "Vel shape frame:          "  << velocity_shape_space.block(0,0,2,1).transpose() << std::endl;
     }
+
     if (logging_enabled)
     {
         // std::cout << "Logging inside next_step_special" << std::endl;
@@ -2663,6 +2695,12 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     //Eigen::Matrix<float, 1, 1> norm = velocity_shape_space.colwise().norm();
     //velocity_shape_space = velocity_shape_space / std::sqrt(std::pow(velocity_shape_space(0,0),2)+std::pow(velocity_shape_space(1,0),2));
 
+    /*}
+    else
+    {
+        // No deformation if the velocity command does not go toward the unit circle
+        velocity_shape_space.block(0,0,2,1) = f_initial.block(0,0,2,1);
+    }*/
     Eigen::Matrix<float, 4, 1> output;
     output.block(0,0,3,1) = velocity_shape_space;
     output(3,0) = gamma_norm_proj(0,0);
