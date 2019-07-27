@@ -34,6 +34,173 @@ void test_draw_circle()
     cout << occupancy << endl;
 }
 
+void trajectory_comparison()
+{
+    float size_cell = 1;
+    // Num 0
+    Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(4) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(5) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(6) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(7) << 0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
+
+    occupancy *= 100;
+
+    int num = 0;
+
+    // State of the robot
+    State state_robot; state_robot << 5.1, 8.0, 0;
+
+    // Detect expanded obstacles
+    std::vector<Border> storage;
+    storage = detect_borders( occupancy, state_robot);
+
+    std::ofstream mycells;
+    mycells.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_cells.txt");
+    for (int i=0; i<occupancy.rows(); i++)
+    {
+        for (int j=0; j<occupancy.cols(); j++)
+        {
+            if (occupancy(i,j)==100) {mycells << i << "," << j << "\n";}
+        }
+    }
+    mycells.close();
+
+    std::ofstream myobs;
+    myobs.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_obs.txt");
+    for (int iter=0; iter<storage.size(); iter++)
+    {
+        Border border_out = storage[iter];
+        for (int i=0; i<border_out.rows(); i++)
+        {
+            myobs << border_out(i,0) << "," << border_out(i,1) << "," << border_out(i,2) << "," << border_out(i,3) << "," << border_out(i,4) << "," << iter << "\n";
+        }
+    }
+    myobs.close();
+
+    std::ofstream mystream, mystream_bezier, mystream_classic;
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_circle.txt");
+    mystream.close();
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_corrected.txt");
+    mystream.close();
+
+    // Position of the attractor
+    State state_attractor;
+    state_attractor << 5, 0, 0;
+
+    int N_steps = 3000;
+    float time_step = 0.03; // time_step
+    State robot_initial; robot_initial = state_robot;
+
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_normal.txt");
+
+    for (int i=0; i<N_steps; i++)
+    {
+        if (std::remainder(i,100)==0) {std::cout << i << std::endl;}
+        State next_eps = next_step_special_weighted( robot_initial, state_attractor, storage, size_cell); // compute special velocity with transform in circle space
+        mystream << robot_initial(0,0) << "," << robot_initial(1,0) << "\n"; // write position of the point in the initial space
+        robot_initial += next_eps * time_step;
+    }
+
+    mystream.close();
+
+    std::cout << " ###### END OF STEP 1 - STARTING STEP 2 ###### " << std::endl;
+
+    robot_initial = state_robot;
+
+    //mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_corrected.txt");
+
+    for (int i=0; i<N_steps; i++)
+    {
+        if (std::remainder(i,100)==0) {std::cout << i << std::endl;}
+        State next_eps = next_step_special_weighted( robot_initial, state_attractor, storage, size_cell, true); // compute special velocity with transform in circle space
+        //mystream << robot_initial(0,0) << "," << robot_initial(1,0) << "\n"; // write position of the point in the initial space
+        robot_initial += next_eps * time_step;
+    }
+
+    //mystream.close();
+
+    std::cout << " ###### END OF STEP 2 - STARTING STEP 3 ###### " << std::endl;
+
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_only_circle.txt");
+
+    // Initialization
+    Eigen::MatrixXf closest(1,6);
+    Eigen::MatrixXf closest_attractor(1,6);
+    Eigen::Matrix<float, 6, 1> gamma_norm_proj;
+    Eigen::Matrix<float, 6, 1> gamma_norm_proj_attractor;
+    State robot_vec;
+    State normal_vec;
+
+    Eigen::Matrix<float, 1, 2> robot = state_robot.block(0,0,2,1).transpose();
+    Eigen::Matrix<float, 1, 2> attractor = state_attractor.block(0,0,2,1).transpose();
+
+    Border border = storage[0];
+
+    // Get closest cell for the robot
+    closest = find_closest_point(robot, border);
+
+    // Get gamma distance + normal vector + point projected on border for the robot
+    gamma_norm_proj = gamma_normal_projection( robot, closest);
+
+    // Get closest cell for the attractor
+    closest_attractor = find_closest_point(attractor, border);
+
+    // Get gamma distance + normal vector + point projected on border for the attractor
+    gamma_norm_proj_attractor = gamma_normal_projection( attractor, closest_attractor);
+
+    // To return NaN for points inside obstacle
+    robot_vec << (robot(0,0)-gamma_norm_proj(4,0)),(robot(0,1)-gamma_norm_proj(5,0)),0;
+    normal_vec << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
+
+    // Get minimal distance along surface (either by following the surface clockwise or counter-clockwise)
+    // Distance between the projected point of the robot and the projected point of the attractor
+    Eigen::Matrix<float, 1, 2> proj_robot;     proj_robot     << gamma_norm_proj(4,0), gamma_norm_proj(5,0);
+    Eigen::Matrix<float, 1, 2> proj_attractor; proj_attractor << gamma_norm_proj_attractor(4,0), gamma_norm_proj_attractor(5,0);
+
+    // Get information about the position of the project point on the boundary of the obstacle
+    Eigen::Matrix<float, 1, 3> distances_surface = get_distances_surface(proj_robot, proj_attractor, border);
+
+    // Get the maximum gamma distance in the initial space for the robot
+    float max_gamma_robot = get_max_gamma_distance( proj_robot, gamma_norm_proj.block(1,0,2,1).transpose(), border);
+
+    // Get the maximum gamma distance in the initial space for the attractor
+    float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
+
+    // Get the position of the robot in the circle space
+    Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
+
+    State robot_circle = point_circle_space.block(1,0,3,1);
+
+    std::cout << "In circle space, attractor is at position (" << point_circle_space(4,0) << " , " << point_circle_space(5,0) << ")" << std::endl;
+
+    N_steps = 9000;
+    for (int i=0; i<N_steps; i++)
+    {
+        if (std::remainder(i,100)==0) {std::cout << i << std::endl;}
+        Eigen::Matrix<float, 4, 1> output_circle = next_step_special_only_circle(point_circle_space);
+
+        State next_eps; next_eps = output_circle.block(0,0,3,1);
+        mystream << robot_circle(0,0) << "," << robot_circle(1,0) << "\n"; // write position of the point in the circle space
+        robot_circle += next_eps * time_step;
+
+        point_circle_space(0,0) = 1 + std::pow(std::sqrt(std::pow(robot_circle(0,0),2)+std::pow(robot_circle(1,0),2))-1,2);
+        point_circle_space.block(1,0,3,1) = robot_circle;
+        point_circle_space.block(7,0,3,1) = robot_circle.colwise().normalized();
+    }
+
+    mystream.close();
+
+    std::cout << " ###### File closed ###### " << std::endl;
+}
+
 void quiver_bezier()
 
 {
@@ -674,7 +841,8 @@ int main()
     //Line(1.0,1.0f,9.0f,4.0f,storage_line);
     //std::cout << storage_line << std::endl;
 
-    quiver_bezier();
+    trajectory_comparison();
+    //quiver_bezier();
     //test_bezier();
     //test_various_functions();
     //test_draw_circle();

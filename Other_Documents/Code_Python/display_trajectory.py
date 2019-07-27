@@ -1673,7 +1673,140 @@ def disp_debug_occupancy():
     ax.set_xlim(-1, obstacles.shape[0] + 1)
     ax.set_ylim(-1, obstacles.shape[1] + 1)
     plt.show()
+
+def disp_trajectory_comparison(): 
+    """
+    Plot the trajectory of the robot in circle space considering the initial space
+    as well as the trajectory of the robot in the circle space entirely
+    """
+    import matplotlib.patches as mpatches
+    import matplotlib.lines as mlines
     
+    attractor = [0,5]
+    
+    margin = 0.25
+    limit_dist = 3
+    margin_limit = (limit_dist - 1)**0.5
+    my_density = 3
+    save_figs = False
+    
+    num = 0
+    names = glob.glob("./stream_data_bor*.txt")
+    names_normal = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+str(num)+"_normal.txt")
+    names_corrected = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+str(num)+"_corrected.txt")
+    names_circle = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+str(num)+"_circle.txt")
+    names_only_circle = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+str(num)+"_only_circle.txt")
+    names_bor = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+str(num)+"_obs.txt")
+    names_cells = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+str(num)+"_cells.txt")
+    
+    entry_normal = np.loadtxt(open(names_normal[0], "rb"), delimiter=",")
+    entry_corrected = np.loadtxt(open(names_corrected[0], "rb"), delimiter=",")
+    entry_circle = np.loadtxt(open(names_circle[0], "rb"), delimiter=",")
+    entry_only_circle = np.loadtxt(open(names_only_circle[0], "rb"), delimiter=",")
+    
+    fig = plt.figure()
+    ax = plt.gca()
+    plt.show()
+    
+    ax.plot(entry_circle[:,0], entry_circle[:,1], Linewidth=2, Linestyle="--",color='darkorange')
+    ax.plot(entry_only_circle[:,0], entry_only_circle[:,1], Linewidth=2, Linestyle="--",color='darkgreen')
+    ax.plot(entry_corrected[:,0], entry_corrected[:,1], Linewidth=2, Linestyle="-",color='darkblue')
+     
+    circle = mpatches.Ellipse([0,0], 2, 2)
+    ax.add_artist(circle)
+        
+    # # Set axis limits and display result
+    min_x = np.min([np.min(entry_circle [:,0]),np.min(entry_only_circle [:,0])])
+    max_x = np.max([np.max(entry_circle [:,0]),np.max(entry_only_circle [:,0])])
+    min_y = np.min([np.min(entry_circle [:,1]),np.min(entry_only_circle [:,1])])
+    max_y = np.max([np.max(entry_circle [:,1]),np.max(entry_only_circle [:,1])])
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    ax.legend(["Trajectory of the robot in circle space", "Theorical trajectory in circle space starting from the given initial position", "Corrected trajectory"])
+   
+    
+    # # Get data and put in the the correct format
+    # for name in names_normal:
+    #     entry = np.loadtxt(open(name, "rb"), delimiter=",")
+    #     n_size = int(len(entry[:,0])**0.5)
+    #     X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+    #     Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+    #     U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+    #     V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+    # 
+    # # Create figure and get axes handle
+    # fig, ax = plt.subplots()
+    # 
+    # # Plot occupied cells
+    # for name_cells in names_cells:
+    #     obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
+    #     for i_row in range(0,obstacles.shape[0]):
+    #         rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
+    #         ax.add_artist(rectangle)
+    #             
+    # # Plot the borders of obstacles in range
+    # borders = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
+    # for i_row in range(0,borders.shape[0]):
+    #     if borders[i_row,2] == 1:
+    #         if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+    #         elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3)
+    #         else:
+    #             print("Should not happen")
+    #     elif borders[i_row,2] == 2:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+    #         ax.add_artist(arc)
+    #     elif borders[i_row,2] == 3:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 0, 90, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 90, 180, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 180, 270, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 270, 360, LineWidth=3, color="r")
+    #         ax.add_artist(arc)
+    # 
+    #         
+    # # Plot the stream
+    # q = ax.streamplot(X, Y, U, V, density=my_density)
+    # 
+    # # Plot the attractor
+    # ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+    # ax.add_artist(ellipse)
+    #  
+    # # Set axis limits and display result
+    # min_x = np.min(entry[:,0])
+    # max_x = np.max(entry[:,0])
+    # min_y = np.min(entry[:,1])
+    # max_y = np.max(entry[:,1])
+    # 
+    # ax.set_xlim(min_x, max_x)
+    # ax.set_ylim(min_y, max_y)
+    # #ax.set_xlim(300, 390)
+    # #ax.set_ylim(280, 370)
+    # ax.set_aspect("equal")
+    # plt.show()
+    # if save_figs:
+    #     fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png", dpi=300)
+    #     #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".svg", format='svg', dpi=600)
+    #     fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".eps", format='eps')
+    
+    
+    
+        
 #disp9()
 #disp6()
 #disp6ter()

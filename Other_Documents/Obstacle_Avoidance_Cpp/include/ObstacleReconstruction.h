@@ -152,7 +152,7 @@ void add_to_border(Border & border, int const& x, int const& y, int const& type,
  * Update the position of a point after a step in a given direction
  *
  * @param current_position A Point, an Eigen matrix of size (1,2) containing the [x,y] coordinates of the cell the iterator is on
-                           At the end of the function, coordinates have been updated to the new position of the iterator
+ *                          At the end of the function, coordinates have been updated to the new position of the iterator
  * @param direction The direction taken by the iterator to follow the surface of the obstacle
  */
 void update_position(Point & current_position, int const& direction);
@@ -386,7 +386,7 @@ int other_side_obstacle(Border const& border, int const& row, int const& col);
  * Exploration starts from one cell and a recursive function gradually explores nearby cells and checks if they are occupied (i.e part of the obstacle)
  *
  * @param obstacle Eigen matrix of size (N,2) with each row containing the [x,y] coordinates of a cell belonging to the blob.
-                   Initially it only contains the coordinate of the starting cell and is filled as the function gradually explores the obstacle
+ *               Initially it only contains the coordinate of the starting cell and is filled as the function gradually explores the obstacle
  * @param occupancy_grid Eigen matrix that represents the occupancy grid the obstacle is in.
  * @param row Row of the starting cell
  * @param col Column of the starting cell
@@ -417,7 +417,7 @@ Eigen::MatrixXf weights_special(State const& state_robot, Eigen::MatrixXf const&
  * @param size_of_cells Size of the cells of the occupancy grid in meters
  * @return Eigen matrix of size (3,1) containing [vel cmd for x, vel cmd for y, vel cmd for theta]
  */
-State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells);
+State next_step_special_weighted(State const& state_robot, State const& state_attractor, std::vector<Border> const& borders, float const& size_of_cells, bool const& corrected_velocity=false);
 
 /**
  * Compute the velocity command of the robot depending on its relative position to single obsacle (version with limit distance to consider obstacles)
@@ -428,7 +428,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
  * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
  * @return Eigen matrix of size (4,1) containing [vel cmd for x, vel cmd for y, vel cmd for theta, gamma distance] for the considered obstacle
  */
-Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State const& state_attractor, Border const& border);
+Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State const& state_attractor, Border const& border, bool const& corrected_velocity=false);
 
 /**
  * Compute the Gamma distance of the robot for a given obstacle, the projection of the robot on the reconstructed surface as well as the normal vector to the surface
@@ -471,9 +471,9 @@ float get_max_gamma_distance(Eigen::Matrix<float, 1, 2> const& proj_robot, Eigen
  * @param gamma_attractor Gamma distance of the attractor for the considered obstacle
  * @param gamma_max_attractor Maximum Gamma distance that can be reached before crossing a discontinuity by following the normal vector to the surface where the projection of the attractor is
  * @param direction Direction to follow for the minimum distance along the surface between the projection of the robot and the projection of the attractor on the reconstructed surface
-                    clockwise is 1 and counter-clockwise is -1 by convention
+ *                   clockwise is 1 and counter-clockwise is -1 by convention
  * @return Eigen matrix of size (10,1) containing [ gamma distance of the robot in circle space, (x,y,theta) position of the robot in circle space, (x,y,theta) position of the attractor in circle space,
-           (x,y,theta) of the reference vector in circle space] with theta always being 0
+ *          (x,y,theta) of the reference vector in circle space] with theta always being 0
  */
 Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, float const& distance_tot, float const& gamma_robot, float const& gamma_max, float const& gamma_attractor, float const& gamma_max_attractor, int direction);
 
@@ -530,5 +530,14 @@ Eigen::MatrixXi Line( float x1, float y1, float x2, float y2);
  * @return True if the line crossed the surface, false otherwise
  */
 bool check_if_on_way(Eigen::MatrixXi const& line, Border const& border);
+
+/**
+ * Compute the velocity command in circle space for a given position in circle space
+ *
+ * @param point_circle_space Eigen matrix of size (10,1) containing [ gamma distance of the robot in circle space, (x,y,theta) position of the robot in circle space, (x,y,theta) position of the attractor in circle space,
+ *          (x,y,theta) of the reference vector in circle space] with theta always being 0
+ * @return Eigen matrix of size (4,1) containing [vel cmd for x, vel cmd for y, vel cmd for theta, gamma distance] in circle space
+ */
+Eigen::Matrix<float, 4, 1> next_step_special_only_circle(Eigen::Matrix<float, 10, 1> point_circle_space);
 
 #endif // OBSTACLERECONSTRUCTION_H_INCLUDED

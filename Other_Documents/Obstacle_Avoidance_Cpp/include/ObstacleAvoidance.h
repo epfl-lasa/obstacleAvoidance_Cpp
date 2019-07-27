@@ -15,7 +15,7 @@ Contains functions for obstacle avoidance algorithm
 
 const int number_states = 3;   // States are [x, y, phi]
 const int method_weights = 2;  // 1 to consider all the obstacles, 2 to consider only the obstacles within the limit_dist range
-const float limit_dist = 2;
+const float limit_dist = 26;
 /* limit gamma distance for method_weights=2, set it to -1 if you use method_weights=1
  * Gamma_distance = 1 + euclidian_distance^2 so euclidian_distance = sqrt(Gamma_distance - 1)
  * If the gamma limit is set to 26 then the euclidian limit will be sqrt(26-1) = 5
