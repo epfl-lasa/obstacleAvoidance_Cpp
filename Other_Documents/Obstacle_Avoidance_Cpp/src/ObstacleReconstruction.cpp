@@ -1101,7 +1101,7 @@ Eigen::Matrix<float, 4, 1> gamma_and_ref_vector(Eigen::Matrix<float,1,2>  robot,
 
    //std::cout << "Projected: " << projected << std::endl;
    //mypoints << projected(0,0)  << "," << projected(0,1) << "\n";
-   output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + euclidian_distance^2
+   output(0,0) = 1 + std::sqrt(std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2)); // gamma function that is used is 1 + euclidian_distance^2
    // TODO: Add call to a Gamma() function to centralize the computation of gamma at a single place
    // That way if we want to change gamma we do it at a single place without the need to change stuff everywhere
 
@@ -2822,7 +2822,7 @@ Eigen::Matrix<float, 6, 1> gamma_normal_projection(Eigen::Matrix<float,1,2> cons
 
     //std::cout << "Projected: " << projected << std::endl;
 
-    output(0,0) = 1 + std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2); // gamma function that is used is 1 + euclidian_distance^2
+    output(0,0) = 1 + std::sqrt(std::pow(robot(0,0)-projected(0,0),2) + std::pow(robot(0,1)-projected(0,1),2)); // gamma function that is used is 1 + euclidian_distance^2
     // TODO: Call a general function that compute the gamma function
 
 
@@ -3197,7 +3197,7 @@ float get_max_gamma_distance(Eigen::Matrix<float, 1, 2> const& proj_robot, Eigen
     // if (current_step < min_step) it means that the current point has reached a limit before switching to another closest cell
     // for instance if the current point is within a U-shaped object this limit is the vertical axis that cuts the U into two parts
 
-    return (1 + std::pow(current_point(0,0)-proj_robot(0,0),2) + std::pow(current_point(0,1)-proj_robot(0,1),2));
+    return (1 + std::sqrt(std::pow(current_point(0,0)-proj_robot(0,0),2) + std::pow(current_point(0,1)-proj_robot(0,1),2)));
     // TODO: Call a more general function that will compute gamma
 }
 
@@ -3279,8 +3279,8 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    // gamma = 1 + dist^2 so dist = sqrt(gamma - 1) and the link between the distance and K is dist = K - 1 since the
    // reference vector has a norm equal to 1
 
-   float coefficient_robot     = std::sqrt(gamma_circle_space_robot     - 1) + 1;
-   float coefficient_attractor = std::sqrt(gamma_circle_space_attractor - 1) + 1;
+   float coefficient_robot     = gamma_circle_space_robot;// std::sqrt(gamma_circle_space_robot     - 1) + 1;
+   float coefficient_attractor = gamma_circle_space_attractor;//std::sqrt(gamma_circle_space_attractor - 1) + 1;
 
    Eigen::Matrix<float, 10, 1> output;
    output(0,0) = gamma_circle_space_robot;

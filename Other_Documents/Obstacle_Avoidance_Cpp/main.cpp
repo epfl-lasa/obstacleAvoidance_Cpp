@@ -95,7 +95,7 @@ void trajectory_comparison()
     State state_attractor;
     state_attractor << 5, 0, 0;
 
-    int N_steps = 3000;
+    int N_steps = 1000;
     float time_step = 0.03; // time_step
     State robot_initial; robot_initial = state_robot;
 

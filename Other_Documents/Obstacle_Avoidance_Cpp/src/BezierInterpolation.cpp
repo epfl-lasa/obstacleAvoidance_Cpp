@@ -91,7 +91,7 @@ std::vector<Eigen::MatrixXf> compute_bezier(Eigen::MatrixXf const& XY)
     std::cout << "bezier_pts_Y:" << std::endl << bezier_pts_Y << std::endl;*/
 
     bool log_surface = false;
-    if (log_surface) 
+    if (log_surface)
     {
         int num = 0;
         const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
@@ -506,7 +506,7 @@ float get_max_gamma_distance_bezier(Eigen::Matrix<float, 1, 2> const& proj_robot
     // if (current_step < min_step) it means that the current point has reached a limit before switching to another closest cell
     // for instance if the current point is within a U-shaped object this limit is the vertical axis that cuts the U into two parts
 
-    return (1 + std::pow(current_point(0,0)-proj_robot(0,0),2) + std::pow(current_point(0,1)-proj_robot(0,1),2));
+    return (1 + std::sqrt(std::pow(current_point(0,0)-proj_robot(0,0),2) + std::pow(current_point(0,1)-proj_robot(0,1),2)));
     // TODO: Call a more general function that will compute gamma
 }
 
@@ -679,8 +679,8 @@ Eigen::Matrix<float, 4, 1> test_next_step_special(State const& state_robot, Stat
 
     max_gamma_attractor = get_max_gamma_distance_bezier( proj_attractor, normal_attractor, pts_bezier);
 
-    float gamma_robot = (1 + std::pow(state_robot(0,0)-proj_robot(0,0),2) + std::pow(state_robot(1,0)-proj_robot(0,1),2));
-    float gamma_attractor = (1 + std::pow(state_attractor(0,0)-proj_attractor(0,0),2) + std::pow(state_attractor(1,0)-proj_attractor(0,1),2));
+    float gamma_robot = (1 + std::sqrt(std::pow(state_robot(0,0)-proj_robot(0,0),2) + std::pow(state_robot(1,0)-proj_robot(0,1),2)));
+    float gamma_attractor = (1 + std::sqrt(std::pow(state_attractor(0,0)-proj_attractor(0,0),2) + std::pow(state_attractor(1,0)-proj_attractor(0,1),2)));
 
     gamma_norm_proj << gamma_robot, normal_robot(0,0), normal_robot(0,1), 0.0, proj_robot(0,0), proj_robot(0,1);
     gamma_norm_proj_attractor << gamma_attractor, normal_attractor(0,0), normal_attractor(0,1), 0.0, proj_attractor(0,0), proj_attractor(0,1);
