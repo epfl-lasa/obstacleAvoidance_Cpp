@@ -38,7 +38,7 @@ void trajectory_comparison()
 {
     float size_cell = 1;
     // Num 0
-    Grid occupancy = Grid::Zero(11,11);
+    /*Grid occupancy = Grid::Zero(11,11);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
@@ -49,14 +49,27 @@ void trajectory_comparison()
     occupancy.row(7) << 0,0,0,0,1,1,0,0,0,0,0;
     occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 1
+    Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,1,1,1,1,1,1,1,1,1,0;
+    occupancy.row(4) << 0,1,0,0,0,1,0,0,0,1,0;
+    occupancy.row(5) << 0,1,0,0,0,1,0,0,0,1,0;
+    occupancy.row(6) << 0,1,0,0,0,1,0,0,0,1,0;
+    occupancy.row(7) << 0,1,0,0,0,1,0,0,0,1,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
 
     occupancy *= 100;
 
-    int num = 0;
+    int num = 1;
 
     // State of the robot
-    State state_robot; state_robot << 5.1, 8.0, 0;
+    State state_robot; state_robot << 5.1, 10.0, 0;
 
     // Detect expanded obstacles
     std::vector<Border> storage;
@@ -88,15 +101,19 @@ void trajectory_comparison()
     std::ofstream mystream, mystream_bezier, mystream_classic;
     mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_circle.txt");
     mystream.close();
-    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_corrected.txt");
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_corrected_circle.txt");
+    mystream.close();
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_params.txt");
+    mystream.close();
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_corrected_circle_formula.txt");
     mystream.close();
 
     // Position of the attractor
     State state_attractor;
     state_attractor << 5, 0, 0;
 
-    int N_steps = 1000;
-    float time_step = 0.03; // time_step
+    int N_steps = 5000;
+    float time_step = 0.005; // time_step
     State robot_initial; robot_initial = state_robot;
 
     mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_normal.txt");
@@ -115,17 +132,17 @@ void trajectory_comparison()
 
     robot_initial = state_robot;
 
-    //mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_corrected.txt");
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_"+std::to_string(num)+"_corrected.txt");
 
     for (int i=0; i<N_steps; i++)
     {
         if (std::remainder(i,100)==0) {std::cout << i << std::endl;}
         State next_eps = next_step_special_weighted( robot_initial, state_attractor, storage, size_cell, true); // compute special velocity with transform in circle space
-        //mystream << robot_initial(0,0) << "," << robot_initial(1,0) << "\n"; // write position of the point in the initial space
+        mystream << robot_initial(0,0) << "," << robot_initial(1,0) << "\n"; // write position of the point in the initial space
         robot_initial += next_eps * time_step;
     }
 
-    //mystream.close();
+    mystream.close();
 
     std::cout << " ###### END OF STEP 2 - STARTING STEP 3 ###### " << std::endl;
 
@@ -181,7 +198,7 @@ void trajectory_comparison()
 
     std::cout << "In circle space, attractor is at position (" << point_circle_space(4,0) << " , " << point_circle_space(5,0) << ")" << std::endl;
 
-    N_steps = 9000;
+    N_steps = 32000;
     for (int i=0; i<N_steps; i++)
     {
         if (std::remainder(i,100)==0) {std::cout << i << std::endl;}
@@ -191,7 +208,7 @@ void trajectory_comparison()
         mystream << robot_circle(0,0) << "," << robot_circle(1,0) << "\n"; // write position of the point in the circle space
         robot_circle += next_eps * time_step;
 
-        point_circle_space(0,0) = 1 + std::pow(std::sqrt(std::pow(robot_circle(0,0),2)+std::pow(robot_circle(1,0),2))-1,2);
+        point_circle_space(0,0) = std::sqrt(std::pow(robot_circle(0,0),2)+std::pow(robot_circle(1,0),2));
         point_circle_space.block(1,0,3,1) = robot_circle;
         point_circle_space.block(7,0,3,1) = robot_circle.colwise().normalized();
     }
@@ -258,7 +275,7 @@ void quiver_bezier()
     occupancy.row(9) << 0,0,0,0,0,0,0,0,1,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 4
-    Grid occupancy = Grid::Zero(21,21);
+    /*Grid occupancy = Grid::Zero(21,21);
     occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2)  << 0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0;
@@ -279,7 +296,7 @@ void quiver_bezier()
     occupancy.row(17) << 0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0;
     occupancy.row(18) << 0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,0,0,0,0,0;
     occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 5 : num 2 with attractor at (5,5)
     // Num 6 : num 0 with also classic
     // Num 7
@@ -354,10 +371,26 @@ void quiver_bezier()
     occupancy.row(18) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
+    // Num 11
+    Grid occupancy = Grid::Zero(13,13);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(4) << 0,0,1,1,1,1,1,1,1,1,1,0,0;
+    occupancy.row(5) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
+    occupancy.row(6) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
+    occupancy.row(7) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
+    occupancy.row(8) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(11)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+
 
     occupancy *= 100;
 
-    int num = 4;
+    int num = 11;
 
     // State of the robot
     State state_robot; state_robot << 0.0, 0.0, 0;
@@ -396,7 +429,7 @@ void quiver_bezier()
 
     // Position of the attractor
     State state_attractor;
-    state_attractor << 5, 0, 0;
+    state_attractor << 7.2, -1.5, 0;
 
     State state_reference;
     state_reference << 5, 4.5, 0; // Num 6
@@ -404,12 +437,20 @@ void quiver_bezier()
     //state_reference << 10, 10, 0; // Num 9
     // Limits of stream
     Eigen::Matrix<float, 5, 1> limits;
-    limits << -2.02, 22.02, -2.02, 22.02, 0.5;
+    limits << -2.02, 14.02, -2.02, 14.02, 0.25;
+
+    for (float x=2; x<9; x+=0.5)
+    {
+        State next_eps;
+        state_robot << x, 11, 0;
+        std::cout << " ### x = " << x << std::endl;
+        next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
+    }
 
     for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
     {
         // if ((x-std::round(x))<0.1) {std::cout << " ### x = " << x << " ###" << std::endl;}
-        std::cout << " ### x = " << x << std::endl;
+        //std::cout << " ### x = " << x << std::endl;
         for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
         {
 
@@ -419,8 +460,8 @@ void quiver_bezier()
 
             // Compute velocity command
             State next_eps;
-            next_eps = next_step_special_weighted( state_point, state_attractor, storage, size_cell);
-            mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+            //next_eps = next_step_special_weighted( state_point, state_attractor, storage, size_cell, true);
+            //mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
 
             /*next_eps = test_next_step_special_weighted( state_point, state_attractor, storage, size_cell);
             mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
@@ -841,7 +882,43 @@ int main()
     //Line(1.0,1.0f,9.0f,4.0f,storage_line);
     //std::cout << storage_line << std::endl;
 
-    trajectory_comparison();
+    // Num 11
+    Grid occupancy = Grid::Zero(13,13);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,1,1,1,1,1,1,0,0,0,0,0;
+    occupancy.row(3) << 0,0,1,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(4) << 0,0,1,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(5) << 0,0,1,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(6) << 0,0,1,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(7) << 0,0,1,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(8) << 0,0,1,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(9) << 0,0,1,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,1,1,1,1,1,1,0,0,0,0,0;
+    occupancy.row(11)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+
+
+    occupancy *= 100;
+
+    int num = 11;
+
+    // State of the robot
+    State state_robot; state_robot << 0.0, 0.0, 0;
+
+    // Detect expanded obstacles
+    std::vector<Border> storage;
+    storage = detect_borders( occupancy, state_robot);
+
+    std::cout << storage[0] << std::endl;
+
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    std::ofstream mystream;
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/Article/Figures_EPS/nonstarshaped_obstacle.txt");
+    mystream << (storage[0]).format(CSVFormat) << "\n";
+    mystream.close();
+
+    //trajectory_comparison();
     //quiver_bezier();
     //test_bezier();
     //test_various_functions();

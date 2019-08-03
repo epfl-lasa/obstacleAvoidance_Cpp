@@ -540,4 +540,27 @@ bool check_if_on_way(Eigen::MatrixXi const& line, Border const& border);
  */
 Eigen::Matrix<float, 4, 1> next_step_special_only_circle(Eigen::Matrix<float, 10, 1> point_circle_space);
 
+/**
+ * Compute the projection of a point in circle space for a given position in the initial space
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot. Theta is not used.
+ * @param state_attractor Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the attractor. Theta is not used.
+ * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
+ * @return Eigen matrix of size (10,1) containing [ gamma distance of the robot in circle space, (x,y,theta) position of the robot in circle space, (x,y,theta) position of the attractor in circle space,
+ *          (x,y,theta) of the reference vector in circle space] with theta always being 0
+ */
+Eigen::Matrix<float, 10, 1> point_from_initial_to_circle(State const& state_robot, State const& state_attractor, Border const& border);
+
+/**
+ * Compute a numerical approximation of the d X^c / d X^i matrix for a given position in the initial space
+ * c means circle space, i means initial space
+ * d X^c / d X^i = [ dxc/dxi  dxc/dyi
+ *                   dyc/dxi  dyc/dyi ]
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot. Theta is not used.
+ * @param state_attractor Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the attractor. Theta is not used.
+ * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
+ * @return Eigen matrix of size (2,2) containing an estimation of the variation of the circle space depending on the variation in the initial space
+ */
+Eigen::Matrix<double, 2, 2> get_derivation_matrix(State const& state_robot, State const& state_attractor, Border const& border);
 #endif // OBSTACLERECONSTRUCTION_H_INCLUDED
