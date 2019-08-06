@@ -216,7 +216,7 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
                 }
                 pt_row += 1;
             }
-        }
+
         else if ((obstacle(k-1,2) == 3) || (obstacle(k+1,2) == 1) || ((obstacle(k-1,2) == 1) && (obstacle(k+1,2) != 3)))
         {
             // Put c||ner cell
@@ -266,6 +266,7 @@ Eigen::MatrixXf border_to_vertices(Border const& obs)
                 throw std::invalid_argument("Should not happen.");
             }
             pt_row += 1;
+        }
         }
         else
         {
