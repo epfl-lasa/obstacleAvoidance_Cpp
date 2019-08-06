@@ -211,7 +211,7 @@ import glob
 import matplotlib.patches as mpatches
 
 
-names = glob.glob("/home/leziart/catkin_ws/StreamNode/test_to_delete.txt")
+names = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_42_obs.txt")
 names.sort()
 data = np.loadtxt(open(names[0], "rb"), delimiter=",")
 

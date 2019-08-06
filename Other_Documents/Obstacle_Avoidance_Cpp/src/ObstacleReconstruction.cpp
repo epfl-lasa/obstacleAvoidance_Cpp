@@ -2490,7 +2490,7 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
     robot_vec << (robot(0,0)-gamma_norm_proj(4,0)),(robot(0,1)-gamma_norm_proj(5,0)),0;
     normal_vec << gamma_norm_proj(1,0),gamma_norm_proj(2,0),0;
 
-    if (true)
+    if (false)
     {
         std::cout << "Closest         " << closest << std::endl;
         std::cout << "Projected robot " << gamma_norm_proj(4,0) << " " << gamma_norm_proj(5,0) << std::endl;
@@ -2563,7 +2563,6 @@ Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State con
 
     // Get the maximum gamma distance in the initial space for the attractor
     float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
-
 
     // Get the position of the robot in the circle space
     Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
@@ -3302,21 +3301,26 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
     }
 
     float gamma_circle_space_attractor = 0;
-    if (gamma_max_attractor > limit_dist)
+    float gamma_attractor_filtered = gamma_attractor;
+    if (gamma_attractor > limit_dist) // FOR PROJECTION METHOD 3
     {
-        float denom_a = (limit_dist - gamma_attractor);
+        gamma_attractor_filtered = limit_dist;
+    }
+    if (gamma_max_attractor >= limit_dist)
+    {
+        float denom_a = (limit_dist - gamma_attractor_filtered);
         if (denom_a < 0.0001)
         {
             gamma_circle_space_attractor = (limit_dist - 1)*10000;   // Avoid division by 0 resulting in NaN
         }
         else
         {
-            gamma_circle_space_attractor = (limit_dist - 1)/(limit_dist - gamma_attractor) ;
+            gamma_circle_space_attractor = (limit_dist - 1)/(limit_dist - gamma_attractor_filtered) ;
         }
     }
     else
     {
-        gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor);
+        gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor_filtered);
     } // End of "Another test, projection to infinity [...]"
 
    // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results

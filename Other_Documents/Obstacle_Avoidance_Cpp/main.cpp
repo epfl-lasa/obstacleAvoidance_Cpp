@@ -249,7 +249,7 @@ void quiver_bezier()
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 2
-    /*Grid occupancy = Grid::Zero(11,11);
+    Grid occupancy = Grid::Zero(11,11);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,1,1,1,1,1,0,0,0;
@@ -260,7 +260,7 @@ void quiver_bezier()
     occupancy.row(7) << 0,0,0,1,0,0,0,1,0,0,0;
     occupancy.row(8) << 0,0,0,1,1,1,1,1,0,0,0;
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
     // Num 3
     /*Grid occupancy = Grid::Zero(11,11);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
@@ -372,7 +372,7 @@ void quiver_bezier()
     occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 11
-    Grid occupancy = Grid::Zero(13,13);
+    /*Grid occupancy = Grid::Zero(13,13);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
@@ -385,12 +385,12 @@ void quiver_bezier()
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(11)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;*/
 
 
     occupancy *= 100;
 
-    int num = 11;
+    int num = 42;
 
     // State of the robot
     State state_robot; state_robot << 0.0, 0.0, 0;
@@ -422,14 +422,25 @@ void quiver_bezier()
     }
     myobs.close();
 
+    Eigen::MatrixXf res_bez = border_to_vertices(storage[0]);
+    std::vector<Eigen::MatrixXf> pts_bezier = compute_bezier(res_bez);
+    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    std::ofstream my_bezier_border;
+    my_bezier_border.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_border_bezier.txt");
+    for (int i=0; i<pts_bezier.size(); i++)
+    {
+        my_bezier_border << (pts_bezier[i]).format(CSVFormat) << "\n";
+    }
+    my_bezier_border.close();
+
     std::ofstream mystream, mystream_bezier, mystream_classic;
-    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_normal.txt");
+    /*mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_normal.txt");
     mystream_bezier.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_bezier.txt");
-    mystream_classic.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_classic.txt");
+    mystream_classic.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_classic.txt");*/
 
     // Position of the attractor
     State state_attractor;
-    state_attractor << 7.2, -1.5, 0;
+    state_attractor << 11,5,0;//7.2, -1.5, 0;
 
     State state_reference;
     state_reference << 5, 4.5, 0; // Num 6
@@ -437,19 +448,30 @@ void quiver_bezier()
     //state_reference << 10, 10, 0; // Num 9
     // Limits of stream
     Eigen::Matrix<float, 5, 1> limits;
-    limits << -2.02, 14.02, -2.02, 14.02, 0.25;
-
-    for (float x=2; x<9; x+=0.5)
+    //limits << -2.02, 14.02, -2.02, 14.02, 0.25;
+    limits << -0.02, 11.02, -0.02, 11.02, 0.2;
+    /*for (float x=2; x<9; x+=0.5)
     {
         State next_eps;
         state_robot << x, 11, 0;
         std::cout << " ### x = " << x << std::endl;
         next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
-    }
+    }*/
 
+    {
+
+        State next_eps;
+        state_robot << 4.5, 4.7, 0;
+        next_eps = get_next_velocity_command_weighted( state_robot, state_attractor, storage, size_cell, true, true);
+
+        state_robot << 5.4, 4.65, 0;
+        next_eps = get_next_velocity_command_weighted( state_robot, state_attractor, storage, size_cell, true, true);
+
+
+    }
     for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
     {
-        // if ((x-std::round(x))<0.1) {std::cout << " ### x = " << x << " ###" << std::endl;}
+        //if ((x-std::floor(x))<0.4) {std::cout << " ### x = " << x << " ###" << std::endl;}
         //std::cout << " ### x = " << x << std::endl;
         for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
         {
@@ -459,21 +481,22 @@ void quiver_bezier()
             state_point << x, y, 0;
 
             // Compute velocity command
-            State next_eps;
-            //next_eps = next_step_special_weighted( state_point, state_attractor, storage, size_cell, true);
-            //mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+            /*State next_eps;
+            next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, false);
+            mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
 
-            /*next_eps = test_next_step_special_weighted( state_point, state_attractor, storage, size_cell);
-            mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
-
+            next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, true);
+            mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file*/
+            /*
             Eigen::Matrix<float, 4, 1> output;
             output = next_step_classic( state_point, state_attractor, state_reference, storage[0]);
             mystream_classic << x << "," << y << "," << output(0,0) << "," << output(1,0) << "\n"; // write result in text file*/
         }
     }
 
-    mystream.close();
-
+    /*mystream.close();
+    mystream_bezier.close();
+    mystream_classic.close();*/
     std::cout << " ###### File closed ###### " << std::endl;
 }
 
@@ -883,7 +906,7 @@ int main()
     //std::cout << storage_line << std::endl;
 
     // Num 11
-    Grid occupancy = Grid::Zero(13,13);
+    /*Grid occupancy = Grid::Zero(13,13);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,1,1,1,1,1,1,0,0,0,0,0;
@@ -896,30 +919,55 @@ int main()
     occupancy.row(9) << 0,0,1,0,0,0,0,1,0,0,0,0,0;
     occupancy.row(10)<< 0,0,1,1,1,1,1,1,0,0,0,0,0;
     occupancy.row(11)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;*/
 
-
+    Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(3) << 0,0,0,1,0,0,0,1,0,0,0;
+    occupancy.row(4) << 0,0,0,1,0,0,0,0,0,0,0;
+    occupancy.row(5) << 0,0,0,1,0,0,0,0,0,0,0;
+    occupancy.row(6) << 0,0,0,1,0,0,0,0,0,0,0;
+    occupancy.row(7) << 0,0,0,1,0,0,0,1,0,0,0;
+    occupancy.row(8) << 0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(2) << 0,0,0,0,0,0,0,1,1,0,0;
+    occupancy.row(3) << 0,0,0,0,0,0,0,1,1,0,0;
+    occupancy.row(4) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(5) << 0,0,1,1,1,1,1,1,1,0,0;
+    occupancy.row(6) << 0,0,1,1,0,0,0,1,1,0,0;
+    occupancy.row(7) << 0,0,1,1,0,0,0,1,1,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
     occupancy *= 100;
 
-    int num = 11;
+    /*int num = 11;
 
     // State of the robot
-    State state_robot; state_robot << 0.0, 0.0, 0;
+    State state_robot; state_robot << 6.1,5.0,0;//3.7, 5.0, 0;
+    State state_attractor; state_attractor << 4.0, 1.0, 0;
 
     // Detect expanded obstacles
     std::vector<Border> storage;
     storage = detect_borders( occupancy, state_robot);
 
-    std::cout << storage[0] << std::endl;
+    State next_eps;
+    next_eps = test_next_step_special_weighted( state_robot, state_attractor, storage, 1.0);
+    std::cout << "Vel cmd: " << next_eps(0,0) << "," << next_eps(1,0) << std::endl;*/
 
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+    /*const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
     std::ofstream mystream;
     mystream.open("D:/Mes documents/Devoirs/MasterThesis/Article/Figures_EPS/nonstarshaped_obstacle.txt");
     mystream << (storage[0]).format(CSVFormat) << "\n";
-    mystream.close();
+    mystream.close();*/
 
     //trajectory_comparison();
-    //quiver_bezier();
+    quiver_bezier();
     //test_bezier();
     //test_various_functions();
     //test_draw_circle();

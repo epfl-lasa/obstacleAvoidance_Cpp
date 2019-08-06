@@ -493,7 +493,7 @@ def disp6ter():
     my_density = 3
     save_figs = False
     
-    num = 11
+    num = 42
     names = glob.glob("./stream_data_bor*.txt")
     names_normal = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_normal.txt")
     names_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_bezier.txt")
@@ -591,15 +591,15 @@ def disp6ter():
             ax.add_artist(arc)
     
     # Add circle around attractor (hand tuned)
-    ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 2*5.25, 2*5.25, fill=False, edgecolor="forestgreen", LineWidth=3, zorder=3)
-    ax.add_artist(ellipse)
+    #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 2*5.25, 2*5.25, fill=False, edgecolor="forestgreen", LineWidth=3, zorder=3)
+    #ax.add_artist(ellipse)
     
     # Plot the stream
     q = ax.streamplot(X, Y, U, V, density=my_density)
     
     # Plot the attractor
-    ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.3, 0.3, facecolor='forestgreen', edgecolor="k", zorder=5)
-    ax.add_artist(ellipse)
+    #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.3, 0.3, facecolor='forestgreen', edgecolor="k", zorder=5)
+    #ax.add_artist(ellipse)
      
     # Set axis limits and display result
     min_x = np.min(entry[:,0])
@@ -659,7 +659,7 @@ def disp6ter():
                 c = c.reshape((len(c),1))
                 d = d.reshape((len(d),1))
                 bez= s3*a.transpose() + s2t * b.transpose() + t2s*c.transpose() + t3*d.transpose()
-                plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
+                #plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
     else:
         output_data = border_to_vertices(data)
         output_data = np.array(output_data)
@@ -679,14 +679,21 @@ def disp6ter():
             c = c.reshape((len(c),1))
             d = d.reshape((len(d),1))
             bez= s3*a.transpose() + s2t * b.transpose() + t2s*c.transpose() + t3*d.transpose()
-            plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
+            #plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
     
+    names_pts_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_border_bezier.txt")
+    border_bezier = np.loadtxt(open(names_pts_bezier[0], "rb"), delimiter=",")
+    
+    N = int(border_bezier.shape[0] / 2)
+    for i in range(border_bezier.shape[1]):
+        plt.plot(border_bezier[0:100,i],border_bezier[100:,i],linewidth=4, color='red')
+        
     # Plot the stream
     q = ax.streamplot(X, Y, U, V, density=my_density)
     
     # Plot the attractor
-    ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
-    ax.add_artist(ellipse)
+    #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
+    #ax.add_artist(ellipse)
      
     # Set axis limits and display result
     min_x = np.min(entry[:,0])

@@ -430,6 +430,7 @@ State next_step_special_weighted(State const& state_robot, State const& state_at
  */
 Eigen::Matrix<float, 4, 1> next_step_special(State const& state_robot, State const& state_attractor, Border const& border, bool const& corrected_velocity=false);
 
+
 /**
  * Compute the Gamma distance of the robot for a given obstacle, the projection of the robot on the reconstructed surface as well as the normal vector to the surface
  *
