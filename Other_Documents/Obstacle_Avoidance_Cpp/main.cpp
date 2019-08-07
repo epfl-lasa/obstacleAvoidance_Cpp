@@ -434,9 +434,9 @@ void quiver_bezier()
     my_bezier_border.close();
 
     std::ofstream mystream, mystream_bezier, mystream_classic;
-    /*mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_normal.txt");
+    mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_normal.txt");
     mystream_bezier.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_bezier.txt");
-    mystream_classic.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_classic.txt");*/
+    mystream_classic.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_classic.txt");
 
     // Position of the attractor
     State state_attractor;
@@ -449,7 +449,7 @@ void quiver_bezier()
     // Limits of stream
     Eigen::Matrix<float, 5, 1> limits;
     //limits << -2.02, 14.02, -2.02, 14.02, 0.25;
-    limits << -0.02, 11.02, -0.02, 11.02, 0.2;
+    limits << -0.02, 12.02, -0.02, 12.02, 0.2;
     /*for (float x=2; x<9; x+=0.5)
     {
         State next_eps;
@@ -458,7 +458,7 @@ void quiver_bezier()
         next_eps = next_step_special_weighted( state_robot, state_attractor, storage, size_cell);
     }*/
 
-    {
+    /*{
 
         State next_eps;
         state_robot << 4.5, 4.7, 0;
@@ -468,11 +468,11 @@ void quiver_bezier()
         next_eps = get_next_velocity_command_weighted( state_robot, state_attractor, storage, size_cell, true, true);
 
 
-    }
+    }*/
     for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
     {
         //if ((x-std::floor(x))<0.4) {std::cout << " ### x = " << x << " ###" << std::endl;}
-        //std::cout << " ### x = " << x << std::endl;
+        std::cout << " ### x = " << x << std::endl;
         for (float y=limits(2,0); y <= limits(3,0); y += limits(4,0)) // y direction of the grid
         {
 
@@ -481,12 +481,12 @@ void quiver_bezier()
             state_point << x, y, 0;
 
             // Compute velocity command
-            /*State next_eps;
-            next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, false);
-            mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+            State next_eps;
+            //next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, false);
+            //mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
 
             next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, true);
-            mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file*/
+            mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
             /*
             Eigen::Matrix<float, 4, 1> output;
             output = next_step_classic( state_point, state_attractor, state_reference, storage[0]);
@@ -494,9 +494,9 @@ void quiver_bezier()
         }
     }
 
-    /*mystream.close();
+    mystream.close();
     mystream_bezier.close();
-    mystream_classic.close();*/
+    mystream_classic.close();
     std::cout << " ###### File closed ###### " << std::endl;
 }
 

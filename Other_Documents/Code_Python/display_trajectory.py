@@ -501,123 +501,123 @@ def disp6ter():
     names_bor = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_obs.txt")
     names_cells = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_cells.txt")
     
-    # Get data and put in the the correct format
-    for name in names_normal:
-        entry = np.loadtxt(open(name, "rb"), delimiter=",")
-        n_size = int(len(entry[:,0])**0.5)
-        X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
-        Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
-        U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
-        V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
-    
-    # Create figure and get axes handle
-    fig, ax = plt.subplots()
-    
-    # Plot occupied cells
-    for name_cells in names_cells:
-        obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
-        for i_row in range(0,obstacles.shape[0]):
-            rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
-            ax.add_artist(rectangle)
-                
-    # Plot the borders of obstacles in range
-    borders = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
-    for i_row in range(0,borders.shape[0]):
-        if borders[i_row,2] == 1:
-            if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
-                plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
-            elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
-                plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
-            elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
-                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3)
-            elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
-                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3)
-            else:
-                print("Should not happen")
-        elif borders[i_row,2] == 2:
-            if borders[i_row,4] == 0:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
-            elif borders[i_row,4] == 1:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
-            elif borders[i_row,4] == 2:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
-            elif borders[i_row,4] == 3:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
-            ax.add_artist(arc)
-        elif borders[i_row,2] == 3:
-            if borders[i_row,4] == 0:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 0, 90, LineWidth=3, color="r")
-            elif borders[i_row,4] == 1:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 90, 180, LineWidth=3, color="r")
-            elif borders[i_row,4] == 2:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 180, 270, LineWidth=3, color="r")
-            elif borders[i_row,4] == 3:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 270, 360, LineWidth=3, color="r")
-            ax.add_artist(arc)
-    
-    # Plot the limits of the area of influence of the obstacle
-    margin = margin_limit + margin
-    for i_row in range(0,borders.shape[0]):
-        if borders[i_row,2] == 1:
-            if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
-                plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3, LineStyle="--", zorder=2)
-            elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
-                plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3, LineStyle="--", zorder=2)
-            elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
-                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3, LineStyle="--", zorder=2)
-            elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
-                plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3, LineStyle="--", zorder=2)
-            else:
-                print("Should not happen")
-        elif borders[i_row,2] == 2:
-            if borders[i_row,4] == 0:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            elif borders[i_row,4] == 1:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            elif borders[i_row,4] == 2:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            elif borders[i_row,4] == 3:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            ax.add_artist(arc)
-        elif borders[i_row,2] == 3:
-            if borders[i_row,4] == 0:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 0, 90, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            elif borders[i_row,4] == 1:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 90, 180, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            elif borders[i_row,4] == 2:
-                arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 180, 270, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            elif borders[i_row,4] == 3:
-                arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 270, 360, LineWidth=3, color="r", LineStyle="--", zorder=2)
-            ax.add_artist(arc)
-    
-    # Add circle around attractor (hand tuned)
-    #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 2*5.25, 2*5.25, fill=False, edgecolor="forestgreen", LineWidth=3, zorder=3)
-    #ax.add_artist(ellipse)
-    
-    # Plot the stream
-    q = ax.streamplot(X, Y, U, V, density=my_density)
-    
-    # Plot the attractor
-    #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.3, 0.3, facecolor='forestgreen', edgecolor="k", zorder=5)
-    #ax.add_artist(ellipse)
-     
-    # Set axis limits and display result
-    min_x = np.min(entry[:,0])
-    max_x = np.max(entry[:,0])
-    min_y = np.min(entry[:,1])
-    max_y = np.max(entry[:,1])
-    
-    ax.set_xlim(min_x, max_x)
-    ax.set_ylim(min_y, max_y)
-    #ax.set_xlim(300, 390)
-    #ax.set_ylim(280, 370)
-    ax.set_aspect("equal")
-    plt.show()
-    if save_figs:
-        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png", dpi=300)
-        #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".svg", format='svg', dpi=600)
-        fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".eps", format='eps')
-    
+    # # Get data and put in the the correct format
+    # for name in names_normal:
+    #     entry = np.loadtxt(open(name, "rb"), delimiter=",")
+    #     n_size = int(len(entry[:,0])**0.5)
+    #     X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
+    #     Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
+    #     U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
+    #     V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
+    # 
+    # # Create figure and get axes handle
+    # fig, ax = plt.subplots()
+    # 
+    # # Plot occupied cells
+    # for name_cells in names_cells:
+    #     obstacles = np.loadtxt(open(name_cells, "rb"), delimiter=",")
+    #     for i_row in range(0,obstacles.shape[0]):
+    #         rectangle = mpatches.Rectangle([obstacles[i_row,0]-0.5,obstacles[i_row,1]-0.5], 1, 1, color='k')
+    #         ax.add_artist(rectangle)
+    #             
+    # # Plot the borders of obstacles in range
+    # borders = np.loadtxt(open(names_bor[0], "rb"), delimiter=",")
+    # for i_row in range(0,borders.shape[0]):
+    #     if borders[i_row,2] == 1:
+    #         if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+    #         elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3)
+    #         else:
+    #             print("Should not happen")
+    #     elif borders[i_row,2] == 2:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r")
+    #         ax.add_artist(arc)
+    #     elif borders[i_row,2] == 3:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 0, 90, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 90, 180, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 180, 270, LineWidth=3, color="r")
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 270, 360, LineWidth=3, color="r")
+    #         ax.add_artist(arc)
+    # 
+    # # Plot the limits of the area of influence of the obstacle
+    # margin = margin_limit + margin
+    # for i_row in range(0,borders.shape[0]):
+    #     if borders[i_row,2] == 1:
+    #         if (borders[i_row,3] == 1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]-(0.5-margin), borders[i_row,0]-(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         elif (borders[i_row,3] == -1) and (borders[i_row,4] == 0):
+    #             plt.plot([borders[i_row,0]+(0.5-margin), borders[i_row,0]+(0.5-margin)], [borders[i_row,1]-0.5, borders[i_row,1]+0.5], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == 1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]-(0.5-margin), borders[i_row,1]-(0.5-margin)], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         elif (borders[i_row,3] == 0) and (borders[i_row,4] == -1):
+    #             plt.plot([borders[i_row,0]-0.5, borders[i_row,0]+0.5], [borders[i_row,1]+(0.5-margin), borders[i_row,1]+(0.5-margin)], color="r", LineWidth=3, LineStyle="--", zorder=2)
+    #         else:
+    #             print("Should not happen")
+    #     elif borders[i_row,2] == 2:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 0, 90, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*margin, 2*margin, 0, 90, 180, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 180, 270, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*margin, 2*margin, 0, 270, 360, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         ax.add_artist(arc)
+    #     elif borders[i_row,2] == 3:
+    #         if borders[i_row,4] == 0:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 0, 90, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 1:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]-0.5],2*(1-margin), 2*(1-margin), 0, 90, 180, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 2:
+    #             arc = mpatches.Arc([borders[i_row,0]+0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 180, 270, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         elif borders[i_row,4] == 3:
+    #             arc = mpatches.Arc([borders[i_row,0]-0.5, borders[i_row,1]+0.5],2*(1-margin), 2*(1-margin), 0, 270, 360, LineWidth=3, color="r", LineStyle="--", zorder=2)
+    #         ax.add_artist(arc)
+    # 
+    # # Add circle around attractor (hand tuned)
+    # #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 2*5.25, 2*5.25, fill=False, edgecolor="forestgreen", LineWidth=3, zorder=3)
+    # #ax.add_artist(ellipse)
+    # 
+    # # Plot the stream
+    # q = ax.streamplot(X, Y, U, V, density=my_density)
+    # 
+    # # Plot the attractor
+    # #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.3, 0.3, facecolor='forestgreen', edgecolor="k", zorder=5)
+    # #ax.add_artist(ellipse)
+    #  
+    # # Set axis limits and display result
+    # min_x = np.min(entry[:,0])
+    # max_x = np.max(entry[:,0])
+    # min_y = np.min(entry[:,1])
+    # max_y = np.max(entry[:,1])
+    # 
+    # ax.set_xlim(min_x, max_x)
+    # ax.set_ylim(min_y, max_y)
+    # #ax.set_xlim(300, 390)
+    # #ax.set_ylim(280, 370)
+    # ax.set_aspect("equal")
+    # plt.show()
+    # if save_figs:
+    #     fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".png", dpi=300)
+    #     #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".svg", format='svg', dpi=600)
+    #     fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/normal_"+str(num)+".eps", format='eps')
+    # 
     # Get data and put in the the correct format
     for name in names_bezier:
         entry = np.loadtxt(open(name, "rb"), delimiter=",")
@@ -626,7 +626,12 @@ def disp6ter():
         Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
         U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
         V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
-    
+        
+        # X = entry[:,0]
+        # Y = entry[:,1]
+        # U = entry[:,2]
+        # V = entry[:,3]
+        # M = np.hypot(U, V)
     # Create figure and get axes handle
     fig, ax = plt.subplots()
     
@@ -690,6 +695,7 @@ def disp6ter():
         
     # Plot the stream
     q = ax.streamplot(X, Y, U, V, density=my_density)
+    #q = ax.quiver(X, Y, U, V, facecolor="dodgerblue")
     
     # Plot the attractor
     #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
@@ -706,7 +712,7 @@ def disp6ter():
     #ax.set_xlim(300, 390)
     #ax.set_ylim(280, 370)
     ax.set_aspect("equal")
-    
+    fig.savefig("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/bezier_"+str(num)+".eps", format='eps', bbox_inches = 'tight', pad_inches = 0)
     plt.show()
     if save_figs:
         fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".png", dpi=300)

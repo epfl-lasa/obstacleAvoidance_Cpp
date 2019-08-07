@@ -3324,8 +3324,8 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
     } // End of "Another test, projection to infinity [...]"
 
    // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results
-   /*float gamma_circle_space_robot = gamma_robot; // /!\ TEST
-   float gamma_circle_space_attractor = gamma_attractor; // /!\ TEST*/
+   /*gamma_circle_space_robot = gamma_robot; // /!\ TEST
+   gamma_circle_space_attractor = gamma_attractor; // /!\ TEST*/
    //std::cout << gamma_attractor << std::endl;
    float angle = 3.1415 * ratio_distance * direction;
 

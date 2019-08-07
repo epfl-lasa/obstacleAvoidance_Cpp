@@ -128,4 +128,30 @@ State get_next_velocity_command_weighted(State const& state_robot, State const& 
  */
 Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, State const& state_attractor, Border const& border, bool const& corrected_velocity=false, bool const& bezier_enabled=false);
 
+/**
+ * Compute the projection of a point in circle space for a given position in the initial space
+ * Bezier interpolation version of point_from_initial_to_circle
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot. Theta is not used.
+ * @param state_attractor Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the attractor. Theta is not used.
+ * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
+ * @return Eigen matrix of size (10,1) containing [ gamma distance of the robot in circle space, (x,y,theta) position of the robot in circle space, (x,y,theta) position of the attractor in circle space,
+ *          (x,y,theta) of the reference vector in circle space] with theta always being 0
+ */
+Eigen::Matrix<float, 10, 1> point_from_initial_to_circle_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier);
+
+/**
+ * Compute a numerical approximation of the d X^c / d X^i matrix for a given position in the initial space
+ * c means circle space, i means initial space
+ * d X^c / d X^i = [ dxc/dxi  dxc/dyi
+ *                   dyc/dxi  dyc/dyi ]
+ * Bezier interpolation version of get_derivation_matrix
+ *
+ * @param state_robot Eigen matrix of size (3,1) containing the (x,y,theta) state vector of a point/robot. Theta is not used.
+ * @param state_attractor Eigen matrix of size (3,1) containing the (x,y,theta) state vector of the attractor. Theta is not used.
+ * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
+ * @return Eigen matrix of size (2,2) containing an estimation of the variation of the circle space depending on the variation in the initial space
+ */
+Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier);
+
 #endif // BEZIERINTERPOLATION_H_INCLUDED

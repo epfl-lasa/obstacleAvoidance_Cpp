@@ -1602,12 +1602,13 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
     float max_gamma_attractor = get_max_gamma_distance( proj_attractor, gamma_norm_proj_attractor.block(1,0,2,1).transpose(), border);
 
 
+    std::vector<Eigen::MatrixXf> pts_bezier; // Initialized outside of the if() because we need it later.
     if (bezier_enabled)
     {
         // CALLING BEZIER FUNCTIONS TO RECONSTRUCT THE SURFACE AND PROJECT INTO CIRCLE SPACE //
 
         Eigen::MatrixXf res_bez = border_to_vertices(border);
-        std::vector<Eigen::MatrixXf> pts_bezier = compute_bezier(res_bez);
+        pts_bezier = compute_bezier(res_bez);
 
         /*const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
         std::ofstream mystream;
@@ -1629,7 +1630,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
 
         // Test if the robot is on the wrong side of the boundary for some reason (like time discretization)
         State temp_state; temp_state << normal_robot(0,0), normal_robot(0,1), 0.0;
-        if (true)
+        if (false)
         {
             std::cout << "Closest         " << closest << std::endl;
             std::cout << "Robot           " << state_robot.transpose() << std::endl;
@@ -1785,7 +1786,16 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
 
         /* THIRD TRY */
 
-        Eigen::Matrix<double, 2, 2> derivation_matrix = get_derivation_matrix(state_robot, state_attractor, border);
+
+        Eigen::Matrix<double, 2, 2> derivation_matrix;
+        if (!bezier_enabled)
+        {
+            derivation_matrix = get_derivation_matrix(state_robot, state_attractor, border); // Normal version
+        }
+        else
+        {
+            derivation_matrix = get_derivation_matrix_bezier(state_robot, state_attractor, pts_bezier); // Bezier version
+        }
         Eigen::Matrix<double, 2, 2> inversed_matrix;
         double A =  derivation_matrix(0,0);
         double B =  derivation_matrix(0,1);
@@ -1846,7 +1856,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
         r_eps_vector = (-1) * r_eps_vector;
     }
 
-    if (true)
+    if (false)
     {
         std::cout << "Distance tot:             " << distances_surface(0,0) << " | Distance min: " << distances_surface(0,1) << std::endl;
         std::cout << "Gamma dist robot:         " << gamma_norm_proj(0,0) << std::endl;
@@ -1917,4 +1927,84 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
     return output;
 }
 
+Eigen::Matrix<float, 10, 1> point_from_initial_to_circle_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier)
+{
+    // Initialization
+    Eigen::Matrix<float, 6, 1> gamma_norm_proj;
+    Eigen::Matrix<float, 6, 1> gamma_norm_proj_attractor;
 
+    // Compute and store projection of the robot and of the attractor
+    State proj_robot_state = get_projection_on_bezier(state_robot, pts_bezier);
+    State proj_attractor_state = get_projection_on_bezier(state_attractor, pts_bezier);
+
+    Eigen::Matrix<float, 1, 2> proj_robot;
+    Eigen::Matrix<float, 1, 2> proj_attractor;
+    proj_robot.row(0) << proj_robot_state(0,0), proj_robot_state(1,0);
+    proj_attractor.row(0) << proj_attractor_state(0,0), proj_attractor_state(1,0);
+
+    // Normal vector to the surface for the robot
+    Eigen::Matrix<float, 1, 2> normal_robot;
+    normal_robot.row(0) << state_robot(0,0) - proj_robot(0,0), state_robot(1,0) - proj_robot(0,1);
+    normal_robot = normal_robot / std::sqrt(std::pow(normal_robot(0,0),2) + std::pow(normal_robot(0,1),2));
+
+    // Normal vector to the surface for the attractor
+    Eigen::Matrix<float, 1, 2> normal_attractor;
+    normal_attractor << state_attractor(0,0) - proj_attractor(0,0), state_attractor(1,0) - proj_attractor(0,1);
+    normal_attractor = normal_attractor / std::sqrt(std::pow(normal_attractor(0,0),2) + std::pow(normal_attractor(0,1),2));
+
+    // Distances along surface
+    Eigen::Matrix<float, 1, 3> distances_surface = get_distances_surface_bezier( proj_robot, proj_attractor, pts_bezier);
+
+    // Max gamma distance following the normal vector of the robot
+    float max_gamma_robot = get_max_gamma_distance_bezier( proj_robot, normal_robot, pts_bezier);
+
+    // Max gamma distance following the normal vector of the attractor
+    float max_gamma_attractor = get_max_gamma_distance_bezier( proj_attractor, normal_attractor, pts_bezier);
+
+    // Gamma distance of the robot and of the attractor
+    float gamma_robot = (1 + std::sqrt(std::pow(state_robot(0,0)-proj_robot(0,0),2) + std::pow(state_robot(1,0)-proj_robot(0,1),2)));
+    float gamma_attractor = (1 + std::sqrt(std::pow(state_attractor(0,0)-proj_attractor(0,0),2) + std::pow(state_attractor(1,0)-proj_attractor(0,1),2)));
+
+    gamma_norm_proj << gamma_robot, normal_robot(0,0), normal_robot(0,1), 0.0, proj_robot(0,0), proj_robot(0,1);
+    gamma_norm_proj_attractor << gamma_attractor, normal_attractor(0,0), normal_attractor(0,1), 0.0, proj_attractor(0,0), proj_attractor(0,1);
+
+    // Get the position of the robot in the circle space
+    Eigen::Matrix<float, 10, 1> point_circle_space = get_point_circle_frame( distances_surface(0,1), distances_surface(0,0), gamma_norm_proj(0,0), max_gamma_robot, gamma_norm_proj_attractor(0,0), max_gamma_attractor, distances_surface(0,2));
+
+    return point_circle_space;
+}
+
+Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier)
+{
+    // Space step
+    const double h = 0.02;
+
+    // Define four points around the position of the robot, one for each cardinal direction
+    State point_left, point_right, point_up, point_down;
+    point_left  = state_robot;
+    point_right = state_robot;
+    point_up    = state_robot;
+    point_down  = state_robot;
+    point_left(0,0)  -= h;
+    point_right(0,0) += h;
+    point_down(1,0)  -= h;
+    point_up(1,0)    += h;
+
+    // Get the position of these four points in the circle space
+    Eigen::Matrix<float, 10, 1> point_left_circle  = point_from_initial_to_circle_bezier(point_left , state_attractor, pts_bezier);
+    Eigen::Matrix<float, 10, 1> point_right_circle = point_from_initial_to_circle_bezier(point_right, state_attractor, pts_bezier);
+    Eigen::Matrix<float, 10, 1> point_up_circle    = point_from_initial_to_circle_bezier(point_up   , state_attractor, pts_bezier);
+    Eigen::Matrix<float, 10, 1> point_down_circle  = point_from_initial_to_circle_bezier(point_down , state_attractor, pts_bezier);
+
+    // Numerical interpolation of the derivative along the two axes
+    double dxc_dxi = (point_right_circle(1,0) - point_left_circle(1,0)) / (2*h);
+    double dyc_dxi = (point_right_circle(2,0) - point_left_circle(2,0)) / (2*h);
+    double dxc_dyi = (point_up_circle(1,0)    - point_down_circle(1,0)) / (2*h);
+    double dyc_dyi = (point_up_circle(2,0)    - point_down_circle(2,0)) / (2*h);
+
+    // Fill the output matrix
+    Eigen::Matrix<double, 2, 2> output;
+    output.row(0) << dxc_dxi, dxc_dyi;
+    output.row(1) << dyc_dxi, dyc_dyi;
+    return output;
+}
