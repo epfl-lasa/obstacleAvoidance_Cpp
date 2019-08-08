@@ -96,8 +96,14 @@ public:
         // PARAMETERS //
         ////////////////
 
+        /** Position of the attractor point */
+        n_.param<float>("/process_occupancy_grid_node/attractor_x" , attractor_x , 0.0);
+        n_.param<float>("/process_occupancy_grid_node/attractor_y" , attractor_y , 0.0);
+        ROS_INFO("Attractor set at position (%f,%f)", attractor_x, attractor_y);
+
         /** Size of gmapping cells (the one you use for delta in rosrun gmapping slam_gmapping scan:=/scan _delta:=0.2 [...] ) */
-        size_cell = 0.2;
+        n_.param<float>("/refresh_occupancy_grid_node/size_cell", size_cell, 0.2);
+        ROS_INFO("Cell size set at %f", size_cell);
 
         /** Radius of the Ridgeback */
         float radius_ridgeback = 0.6;
@@ -113,7 +119,7 @@ public:
         radius_in_cells = static_cast<int>(std::ceil(radius_around_people / size_cell)); // radius_around_people is in [m] and we need a value in [cell]
 
         /** Limit distance to consider obstacles (in meters) */
-        float limit_in_meters = 3;
+        float limit_in_meters = 3.0;
         limit_in_cells  = static_cast<int>(std::ceil(limit_in_meters/size_cell)); // limit_in_meters is in [m] and we need a value in [cell]
 
         /**
@@ -232,8 +238,8 @@ public:
         //////////////////////////////////////////
 
         // Position of the attractor compared to the starting position of the robot
-        float position_goal_world_frame_x = -8.0;//-1.4;
-        float position_goal_world_frame_y =  0.0;//2.6;
+        float position_goal_world_frame_x = attractor_x;//-8.0;//-1.4;
+        float position_goal_world_frame_y = attractor_y;//0.0;//2.6;
 
         // Get the (x,y) coordinates in the world frame of cell (0,0)
         float start_cell_x = (-1 * std::round(map_gmapping.info.origin.position.x / size_cell));
@@ -597,6 +603,8 @@ private:
     int limit_in_cells;
     float size_cell;
     int   radius_in_cells;
+    float attractor_x;
+    float attractor_y;
 
     bool init_attractor;
     float drift_odometry_x;

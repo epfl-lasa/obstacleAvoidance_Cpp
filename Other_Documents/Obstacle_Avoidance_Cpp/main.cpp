@@ -249,7 +249,7 @@ void quiver_bezier()
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 2
-    Grid occupancy = Grid::Zero(11,11);
+    /*Grid occupancy = Grid::Zero(11,11);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,1,1,1,1,1,0,0,0;
@@ -260,7 +260,7 @@ void quiver_bezier()
     occupancy.row(7) << 0,0,0,1,0,0,0,1,0,0,0;
     occupancy.row(8) << 0,0,0,1,1,1,1,1,0,0,0;
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 3
     /*Grid occupancy = Grid::Zero(11,11);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
@@ -351,46 +351,46 @@ void quiver_bezier()
     // Num 10
     /*Grid occupancy = Grid::Zero(21,21);
     occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(1)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(2)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(3)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(4)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(5)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(6)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(7)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(8)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(9)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(10) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(11) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(12) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(13) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(14) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(15) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(16) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(17) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(18) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1)  << 0,1,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0;
+    occupancy.row(2)  << 0,1,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3)  << 0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(4)  << 0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,0,0,0,0;
+    occupancy.row(5)  << 0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,0,0,0;
+    occupancy.row(6)  << 0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0;
+    occupancy.row(7)  << 0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0;
+    occupancy.row(8)  << 0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(9)  << 0,0,0,0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0;
+    occupancy.row(10) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0;
+    occupancy.row(11) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0;
+    occupancy.row(12) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0;
+    occupancy.row(13) << 0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(14) << 0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(15) << 0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0;
+    occupancy.row(16) << 0,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0;
+    occupancy.row(17) << 0,0,0,1,1,0,0,0,1,1,0,0,0,0,0,1,1,1,1,1,0;
+    occupancy.row(18) << 0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,0,0;
+    occupancy.row(19) << 0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0;
     occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 11
-    /*Grid occupancy = Grid::Zero(13,13);
+    Grid occupancy = Grid::Zero(13,13);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(3) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(4) << 0,0,1,1,1,1,1,1,1,1,1,0,0;
+    occupancy.row(3) << 0,0,1,1,1,1,1,1,1,1,1,0,0;
+    occupancy.row(4) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
     occupancy.row(5) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
     occupancy.row(6) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
-    occupancy.row(7) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
-    occupancy.row(8) << 0,0,1,0,0,0,1,0,0,0,1,0,0;
+    occupancy.row(7) << 0,0,0,0,0,0,0,0,0,0,1,0,0;
+    occupancy.row(8) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(11)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;*/
+    occupancy.row(11)<< 0,0,0,0,1,1,1,1,0,0,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
 
 
     occupancy *= 100;
 
-    int num = 42;
+    int num = 11;
 
     // State of the robot
     State state_robot; state_robot << 0.0, 0.0, 0;
@@ -422,16 +422,19 @@ void quiver_bezier()
     }
     myobs.close();
 
-    Eigen::MatrixXf res_bez = border_to_vertices(storage[0]);
-    std::vector<Eigen::MatrixXf> pts_bezier = compute_bezier(res_bez);
-    const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
-    std::ofstream my_bezier_border;
-    my_bezier_border.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_border_bezier.txt");
-    for (int i=0; i<pts_bezier.size(); i++)
+    for (int iter=0; iter<storage.size(); iter++)
     {
-        my_bezier_border << (pts_bezier[i]).format(CSVFormat) << "\n";
+        Eigen::MatrixXf res_bez = border_to_vertices(storage[iter]);
+        std::vector<Eigen::MatrixXf> pts_bezier = compute_bezier(res_bez);
+        const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
+        std::ofstream my_bezier_border;
+        my_bezier_border.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_border_bezier_"+std::to_string(iter)+".txt");
+        for (int i=0; i<pts_bezier.size(); i++)
+        {
+            my_bezier_border << (pts_bezier[i]).format(CSVFormat) << "\n";
+        }
+        my_bezier_border.close();
     }
-    my_bezier_border.close();
 
     std::ofstream mystream, mystream_bezier, mystream_classic;
     mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_normal.txt");
@@ -440,7 +443,7 @@ void quiver_bezier()
 
     // Position of the attractor
     State state_attractor;
-    state_attractor << 11,5,0;//7.2, -1.5, 0;
+    state_attractor << 0,0,0;//7.2, -1.5, 0;
 
     State state_reference;
     state_reference << 5, 4.5, 0; // Num 6
@@ -449,7 +452,7 @@ void quiver_bezier()
     // Limits of stream
     Eigen::Matrix<float, 5, 1> limits;
     //limits << -2.02, 14.02, -2.02, 14.02, 0.25;
-    limits << -0.02, 12.02, -0.02, 12.02, 0.2;
+    limits << -0.02, 14.02, -0.02, 14.02, 0.25;
     /*for (float x=2; x<9; x+=0.5)
     {
         State next_eps;
@@ -461,10 +464,10 @@ void quiver_bezier()
     /*{
 
         State next_eps;
-        state_robot << 4.5, 4.7, 0;
+        state_robot << 7.9, 7.4, 0;
         next_eps = get_next_velocity_command_weighted( state_robot, state_attractor, storage, size_cell, true, true);
 
-        state_robot << 5.4, 4.65, 0;
+        state_robot << 9.5, 7.4, 0;
         next_eps = get_next_velocity_command_weighted( state_robot, state_attractor, storage, size_cell, true, true);
 
 

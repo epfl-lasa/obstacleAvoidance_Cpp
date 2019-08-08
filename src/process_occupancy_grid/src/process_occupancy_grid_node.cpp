@@ -37,6 +37,17 @@ class SubscribeAndPublish
 public:
   SubscribeAndPublish()
   {
+    // Parameters that can be used when launching the node with for instance:
+    // rosrun process_occupancy_grid refresh_occupancy_grid_node _send_vel_cmd:=true _size_cell:=0.2 _attractor_x:=-8.0 _attractor_y:=0.0
+    n_.param<bool> ("/process_occupancy_grid_node/send_vel_cmd", send_vel_cmd, false);
+    n_.param<float>("/process_occupancy_grid_node/attractor_x" , attractor_x , 0.0);
+    n_.param<float>("/process_occupancy_grid_node/attractor_y" , attractor_y , 0.0);
+    n_.param<float>("/process_occupancy_grid_node/size_cell"   , size_cell   , 0.2);
+    ROS_INFO("Attractor set at position (%f,%f)", attractor_x, attractor_y);
+    ROS_INFO("Cell size set at %f", size_cell);
+    if (send_vel_cmd) {ROS_INFO("/!\ Velocity commands will be sent to the robot. /!\ ");}
+    else {ROS_INFO("/!\ Velocity commands will not be sent to the robot. /!\ ");}
+
     // Publisher that publishes the velocity command for the robot
     pub_ = n_.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
 
@@ -95,7 +106,7 @@ public:
     ////////////////
 
     // Size of gmapping cells (the one you use for delta in rosrun gmapping slam_gmapping scan:=/scan _delta:=0.3 _map_update_interval:=1.0)
-    size_cell = 0.2;
+    // size_cell = 0.2;
 
     // Radius of the Ridgeback
     float radius_ridgeback = 0.6;
@@ -104,6 +115,7 @@ public:
     n_expansion = static_cast<int>(std::ceil(radius_ridgeback/size_cell));
 
     // Limit distance to consider obstacles (in meters)
+    // Not used anymore since it is done in refresh_occupancy_grid_node
     float limit_in_meters = 3;
     limit_in_cells  = static_cast<int>(std::ceil(limit_in_meters/size_cell));
 
@@ -150,8 +162,8 @@ public:
      *  If you set the attractor at (-12,+11) the target is 12m forward and 11m to the right of the starting position
      *  It is inverted because the front of the robot is our "backward" due to the Realsense camera
      */
-    float position_goal_world_frame_x = -8.0;
-    float position_goal_world_frame_y =  0.0;
+    float position_goal_world_frame_x = attractor_x;//-8.0;
+    float position_goal_world_frame_y = attractor_y;//0.0;
 
     // Radius of the security circle around people (in meters)
     // It does not include the radius of the ridgeback ~0.6 meters (disk will be expanded)
@@ -423,8 +435,11 @@ public:
 
 	    //ROS_INFO("VelCmd in Ridgeback frame: %f %f %f", next_eps(0,0), next_eps(1,0), next_eps(2,0));
 
-	    // If not commented, velocity commands are sent to the robot over the ROS network
-        // pub_.publish(output);
+	    // Velocity commands are sent to the robot over the ROS network if send_vel_cmd is set to true (parameter when launching the node)
+        if (send_vel_cmd)
+        {
+            pub_.publish(output);
+        }
     }
     else
     {
@@ -753,6 +768,8 @@ private:
     int n_expansion;
     int limit_in_cells;
     float size_cell;
+    bool send_vel_cmd;
+    float attractor_x, attractor_y;
 
     bool init_attractor;
     float drift_odometry_x;

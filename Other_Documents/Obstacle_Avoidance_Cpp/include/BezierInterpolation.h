@@ -154,4 +154,5 @@ Eigen::Matrix<float, 10, 1> point_from_initial_to_circle_bezier(State const& sta
  */
 Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier);
 
+
 #endif // BEZIERINTERPOLATION_H_INCLUDED

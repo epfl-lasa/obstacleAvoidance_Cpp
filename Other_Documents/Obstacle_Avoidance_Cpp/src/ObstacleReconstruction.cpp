@@ -665,7 +665,7 @@ Grid expand_occupancy_grid(Grid const& grid, int const& n_cells, State const& st
 
     //limit_dist = limit_range; // modify the global variable set in ObstacleAvoidance.h
 
-    float offset = std::sqrt(limit_dist-1);//limit_range / size_of_cells;
+    float offset = limit_dist-1; //std::sqrt(limit_dist-1);//limit_range / size_of_cells;
     int x_min = static_cast<int>(std::round(state_robot(0,0)-offset));
     int x_max = static_cast<int>(std::round(state_robot(0,0)+offset));
     int y_min = static_cast<int>(std::round(state_robot(1,0)-offset));
@@ -3278,17 +3278,20 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
    // Another test, projection to infinity in circle space of the points at the limit distance from the obstacle
     //std::cout << "    gamma_max_robot = " << gamma_max_robot << " VS limit_dist = " << limit_dist << std::endl;
     //std::cout << "gamma_max_attractor = " << gamma_max_attractor << " VS limit_dist = " << limit_dist << std::endl;
+    float gamma_max_in_circle = 10000;
     float gamma_circle_space_robot = 0;
     if (gamma_max_robot > limit_dist)
     {
         float denom_r = (limit_dist - gamma_robot);
         if (denom_r < 0.0001)
         {
-            gamma_circle_space_robot = (limit_dist - 1)*10000;   // Avoid division by 0 resulting in NaN
+            gamma_circle_space_robot = gamma_max_in_circle;//(limit_dist - 1)*10000;   // Avoid division by 0 resulting in NaN
         }
         else
         {
-            gamma_circle_space_robot = (limit_dist - 1)/(limit_dist - gamma_robot);
+            //gamma_circle_space_robot = (limit_dist - 1)/(limit_dist - gamma_robot);
+            //gamma_circle_space_robot = ((gamma_max_in_circle-1)/(limit_dist -1))*(gamma_robot-1) + 1;
+            gamma_circle_space_robot = (gamma_max_in_circle-1)*std::pow((gamma_robot-1)/(limit_dist-1),2) + 1;
         }
     }
     else if (gamma_max_robot < gamma_robot) //  /!\ TODO: This problem happens because the algorithm which determines gamma_max is not perfect
@@ -3297,7 +3300,9 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
     }
     else
     {
-        gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot);
+        //gamma_circle_space_robot = (gamma_max_robot - 1)/(gamma_max_robot - gamma_robot);
+        //gamma_circle_space_robot = ((gamma_max_in_circle-1)/(gamma_max_robot-1))*(gamma_robot-1) + 1;
+        gamma_circle_space_robot = (gamma_max_in_circle-1)*std::pow((gamma_robot-1)/(gamma_max_robot-1),2) + 1;
     }
 
     float gamma_circle_space_attractor = 0;
@@ -3311,16 +3316,20 @@ Eigen::Matrix<float, 10, 1> get_point_circle_frame( float const& distance_proj, 
         float denom_a = (limit_dist - gamma_attractor_filtered);
         if (denom_a < 0.0001)
         {
-            gamma_circle_space_attractor = (limit_dist - 1)*10000;   // Avoid division by 0 resulting in NaN
+            gamma_circle_space_attractor = gamma_max_in_circle;//(limit_dist - 1)*10000;   // Avoid division by 0 resulting in NaN
         }
         else
         {
-            gamma_circle_space_attractor = (limit_dist - 1)/(limit_dist - gamma_attractor_filtered) ;
+            //gamma_circle_space_attractor = (limit_dist - 1)/(limit_dist - gamma_attractor_filtered) ;
+            //gamma_circle_space_attractor = ((gamma_max_in_circle-1)/(limit_dist -1))*(gamma_robot-1) + 1;
+            gamma_circle_space_attractor = (gamma_max_in_circle-1)*std::pow((gamma_attractor-1)/(limit_dist-1),2) + 1;
         }
     }
     else
     {
-        gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor_filtered);
+        //gamma_circle_space_attractor = (gamma_max_attractor - 1)/(gamma_max_attractor - gamma_attractor_filtered);
+        //gamma_circle_space_attractor = ((gamma_max_in_circle-1)/(gamma_max_attractor-1))*(gamma_attractor-1) + 1;
+        gamma_circle_space_attractor = (gamma_max_in_circle-1)*std::pow((gamma_attractor-1)/(gamma_max_attractor-1),2) + 1;
     } // End of "Another test, projection to infinity [...]"
 
    // In theory I should use the two formulas above to ensure continuity but in practice they do not lead to good results

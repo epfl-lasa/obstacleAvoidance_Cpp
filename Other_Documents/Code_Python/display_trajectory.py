@@ -493,7 +493,7 @@ def disp6ter():
     my_density = 3
     save_figs = False
     
-    num = 42
+    num = 11
     names = glob.glob("./stream_data_bor*.txt")
     names_normal = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_normal.txt")
     names_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_bezier.txt")
@@ -621,6 +621,10 @@ def disp6ter():
     # Get data and put in the the correct format
     for name in names_bezier:
         entry = np.loadtxt(open(name, "rb"), delimiter=",")
+        norm_vec = (entry[:,2]**2 + entry[:,3]**2)**0.5
+        norm_vec[norm_vec==0] = 1
+        entry[:,2] = entry[:,2] / norm_vec
+        entry[:,3] = entry[:,3] / norm_vec
         n_size = int(len(entry[:,0])**0.5)
         X = np.reshape(entry[:,0], (n_size,n_size)).transpose()
         Y = np.reshape(entry[:,1], (n_size,n_size)).transpose()
@@ -686,12 +690,14 @@ def disp6ter():
             bez= s3*a.transpose() + s2t * b.transpose() + t2s*c.transpose() + t3*d.transpose()
             #plt.plot((bez[:,0]).transpose(),(bez[:,1]).transpose(), linewidth=4, color='red')
     
-    names_pts_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_border_bezier.txt")
-    border_bezier = np.loadtxt(open(names_pts_bezier[0], "rb"), delimiter=",")
+    names_pts_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_border_bezier_*.txt")
     
-    N = int(border_bezier.shape[0] / 2)
-    for i in range(border_bezier.shape[1]):
-        plt.plot(border_bezier[0:100,i],border_bezier[100:,i],linewidth=4, color='red')
+    for name in names_pts_bezier:
+        border_bezier = np.loadtxt(open(name, "rb"), delimiter=",")
+    
+        N = int(border_bezier.shape[0] / 2)
+        for i in range(border_bezier.shape[1]):
+            plt.plot(border_bezier[0:100,i],border_bezier[100:,i],linewidth=4, color='red')
         
     # Plot the stream
     q = ax.streamplot(X, Y, U, V, density=my_density)

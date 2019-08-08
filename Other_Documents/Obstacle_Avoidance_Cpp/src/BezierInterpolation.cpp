@@ -1296,7 +1296,19 @@ State get_next_velocity_command_weighted(State const& state_robot, State const& 
 
     // Direction of the velocity command for each obstacle
     Eigen::MatrixXf mat_norm_velocities( number_states, number_obstacles);
-    mat_norm_velocities = mat_velocities.colwise().normalized();
+    for (int k=0; k<number_obstacles; k++)
+    {
+        float norm_col = std::sqrt(std::pow(mat_velocities(0,k),2)+std::pow(mat_velocities(1,k),2));
+        if (norm_col!=0)
+        {
+            mat_norm_velocities.col(k) = mat_velocities.col(k) / norm_col;
+        }
+        else
+        {
+            mat_norm_velocities.col(k) = mat_velocities.col(k);
+        }
+    }
+    //mat_norm_velocities = mat_velocities.colwise().normalized();
 
     // Relative weights of the obstacles depending on their distance from the robot
     Eigen::MatrixXf mat_weights(1, number_obstacles); // "1 x number_of_obstacles"
@@ -1416,7 +1428,7 @@ State get_next_velocity_command_weighted(State const& state_robot, State const& 
     std::cout << weighted_mag << std::endl;*/
     //std::cout << "mat_weights:    " << mat_weights << std::endl;
 
-    if (verbose)
+    if (false)
     {
         std::cout << "mat_velocities:      " << std::endl << mat_velocities << std::endl;
         std::cout << "mat_norm_velocities: " << std::endl << mat_norm_velocities << std::endl;
@@ -2008,3 +2020,4 @@ Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robo
     output.row(1) << dyc_dxi, dyc_dyi;
     return output;
 }
+

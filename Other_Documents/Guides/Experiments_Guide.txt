@@ -38,7 +38,7 @@ roslaunch ira_laser_tools laserscan_multi_merger_with_removal.launch
 No need to touch these four terminals again for a standard experiment.
 
 In the fifth terminal you can run:
-rosrun gmapping slam_gmapping scan:=/scan_multi _delta:=0.2 _map_update_interval:=0.1 _temporalUpdate:=0.1 _linearUpdate:=0.1 _angularUpdate:=0.1 _maxRange:=5.5 _maxUrange:=5.0 _xmin:=-30 _xmax:=30 _ymin:=-30 _ymax:=30
+rosrun gmapping slam_gmapping scan:=/scan_multi _delta:=0.2 _map_update_interval:=0.1 _temporalUpdate:=0.1 _linearUpdate:=0.1 _angularUpdate:=0.1 _maxRange:=5.5 _maxUrange:=5.0 _xmin:=-40 _xmax:=40 _ymin:=-40 _ymax:=40 _particles:=10
 
 This runs the SLAM algorithm so you will regularly stop it to launch it again when you want to reset the occupancy grid. Read ~/catkin_ws/Other_Documents/Guides/Documentation_Gmapping to have more details about all available parameters. If the robot has a strange behaviour or if Gmapping crashed you may try to increase the size of the map because the robot is likely on the edge of the area defined by xmin xmax ymin ymax.
 
@@ -66,9 +66,9 @@ service chrony restart
 
 Check again with date, time should be synchronized.
 
-###############################
+##############################
 ## Check the ~/.bashrc file ##
-###############################
+##############################
 
 sudo nano ~/.bashrc
 
@@ -90,7 +90,7 @@ You can check that the connection is working with "rostopic echo".
 cd ~/catkin_ws/
 sudo terminator -l myLayout & sudo terminator -l myLayout (myLayout is a layout I made with Right Click in terminator > Preferences > Layout)
 
-If you do not use sudo to open terminator it does not work. From what I read online it's because dbus daemon belongs to the sudo account and not the qolo account. 
+If you do not use sudo to open terminator it does not work. From what I read online it's because dbus daemon belongs to the sudo account and not the qolo account.
 It seems there is a way to assign it to qolo account but just using sudo is easier.
 See: https://askubuntu.com/questions/135573/gconf-error-no-d-bus-daemon-running-how-to-reinstall-or-fix/202481 to change the ownership of dbus if you want to try it
 
@@ -99,8 +99,8 @@ Two terminals with 8 sub-terminal should be opened now. Now run in 5 differents 
 rosrun tf static_transform_publisher -0.090 -0.077 -0.567 3.046 -0.426 0.053 velodyne_link camera_link 100
 roslaunch movidius_ncs_launch ncs_camera.launch cnn_type:=tinyyolo_v1 camera:=realsense
 rosrun kalman_bounding_boxes kalman_bounding_boxes_node
-rosrun process_depth_img process_depth_img_node 
-rosrun kalman_2d_plane regroup_people_node 
+rosrun process_depth_img process_depth_img_node
+rosrun kalman_2d_plane regroup_people_node
 
 You do not have to touch these terminals anymore so you can switch to the other terminator terminal.
 
@@ -124,16 +124,18 @@ rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.
 
 Run gmapping in Ridgeback windows
 Run rosrun kalman_2d_plane kalman_2d_node_simplified
-Run rosrun process_occupancy_grid refresh_occupancy_grid_node
+Run rosrun process_occupancy_grid refresh_occupancy_grid_node _size_cell:=0.2 _attractor_x:=-8.0 _attractor_y:=0.0
 Run rosrun process_occupancy_grid log_data_robot_node
-Run rosrun process_occupancy_grid process_occupancy_grid_node
-Run rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]' 
+Run rosrun process_occupancy_grid process_occupancy_grid_node _send_vel_cmd:=true _size_cell:=0.2 _attractor_x:=-8.0 _attractor_y:=0.0
+Run rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
+
+_size_cell should have the same value than the _delta parameter that you put for Gmapping
 
 ############################
 ## To stop the experiment ##
 ############################
 
-Stop rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]' 
+Stop rostopic pub /test geometry_msgs/Twist -r 10 -- '[0.0, 0.0, 0.0]' '[0.0, 0.0, 0.0]'
 Stop rosrun process_occupancy_grid process_occupancy_grid_node
 Stop rosrun process_occupancy_grid log_data_robot_node
 Stop rosrun process_occupancy_grid refresh_occupancy_grid_node
@@ -154,8 +156,14 @@ roslaunch my_ncs_stream_detection_example.launch camera_topic:="/camera/color/im
 ############################################
 
 Before the start of the experiment:
-
 rosbag record /camera/color/image_raw /filtered_boxes
 
+You can add /velodyne_points if you want the unfiltered point cloud of the LIDAR
 
+##################################################################################
+## To change the value of the limit distance for which obstacles are considered ##
+##################################################################################
 
+gedit ~/catkin_ws/src/process_occupancy_grid/src/ObstacleAvoidance.h
+At line 18, change the value of const float limit_dist
+catkin_make to take into account the change

@@ -564,4 +564,6 @@ Eigen::Matrix<float, 10, 1> point_from_initial_to_circle(State const& state_robo
  * @return Eigen matrix of size (2,2) containing an estimation of the variation of the circle space depending on the variation in the initial space
  */
 Eigen::Matrix<double, 2, 2> get_derivation_matrix(State const& state_robot, State const& state_attractor, Border const& border);
+
+
 #endif // OBSTACLERECONSTRUCTION_H_INCLUDED
