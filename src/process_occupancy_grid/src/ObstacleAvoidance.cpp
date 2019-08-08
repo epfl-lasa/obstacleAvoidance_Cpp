@@ -631,3 +631,4 @@ State speed_limiter(State const& input_speed)
     output_speed(2,0) = std::max(std::min(output_speed(2,0), limit_angular_speed), -limit_angular_speed); // to be inside [-limit, +limit]
     return output_speed;
 }
+

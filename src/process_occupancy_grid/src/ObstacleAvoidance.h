@@ -15,10 +15,10 @@ Contains functions for obstacle avoidance algorithm
 
 const int number_states = 3;   // States are [x, y, phi]
 const int method_weights = 2;  // 1 to consider all the obstacles, 2 to consider only the obstacles within the limit_dist range
-const float limit_dist = 26 ;
+const float limit_dist = 2.5;
 /* limit gamma distance for method_weights=2, set it to -1 if you use method_weights=1
- * Gamma_distance = 1 + euclidian_distance^2 so euclidian_distance = sqrt(Gamma_distance - 1)
- * If the gamma limit is set to 26 then the euclidian limit will be sqrt(26-1) = 5
+ * Gamma_distance = 1 + euclidian_distance so euclidian_distance = Gamma_distance - 1
+ * If the gamma limit is set to 6 then the euclidian limit will be (6-1) = 5
  * In an occupancy grid that means the euclidian limit will be 5 cells
  * If cells have a size of 20 cm then the real world limit distance will be 1 meter to consider obstacles
  */
@@ -368,5 +368,6 @@ void compute_quiver_multiplication(Eigen::Matrix<float, 5, 1> const& limits, Sta
  * @return Eigen matrix of size (3,1) containing the input (x_dot,y_dot,theta_dot) velocity command whose linear and angular velocities may have been reduced if they were above the limits.
  */
 State speed_limiter(State const& input_speed);
+
 
 #endif // OBSTACLEAVOIDANCE_H_INCLUDED
