@@ -31,16 +31,16 @@ limit_in_cells  = int(math.ceil(limit_in_meters))
 # names = glob.glob("/home/leziart/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_1558706176.txt")
 num = str(1560418816)
 num = str(1562242560)
-system_name = "leziart"
-names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Zip_Log_4_07/data_obstacles_"+num+".txt")
+system_name = "qolo"
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_obstacles_*.txt")
 names = np.sort(names)
 data = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Zip_Log_4_07/data_blobs_"+num+".txt")
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_blobs_*.txt")
 names = np.sort(names)
 refresh_node = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
-names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Zip_Log_4_07/data_robot_"+num+".txt")
+names = glob.glob("/home/"+system_name+"/catkin_ws/src/process_occupancy_grid/src/Logging/data_robot_*.txt")
 names = np.sort(names)
 robot = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 

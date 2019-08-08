@@ -97,8 +97,8 @@ public:
         ////////////////
 
         /** Position of the attractor point */
-        n_.param<float>("/process_occupancy_grid_node/attractor_x" , attractor_x , 0.0);
-        n_.param<float>("/process_occupancy_grid_node/attractor_y" , attractor_y , 0.0);
+        n_.param<float>("/refresh_occupancy_grid_node/attractor_x" , attractor_x , 0.0);
+        n_.param<float>("/refresh_occupancy_grid_node/attractor_y" , attractor_y , 0.0);
         ROS_INFO("Attractor set at position (%f,%f)", attractor_x, attractor_y);
 
         /** Size of gmapping cells (the one you use for delta in rosrun gmapping slam_gmapping scan:=/scan _delta:=0.2 [...] ) */
