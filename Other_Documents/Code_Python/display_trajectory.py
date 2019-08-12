@@ -493,7 +493,7 @@ def disp6ter():
     my_density = 3
     save_figs = False
     
-    num = 11
+    num = 10
     names = glob.glob("./stream_data_bor*.txt")
     names_normal = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_normal.txt")
     names_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_bezier.txt")

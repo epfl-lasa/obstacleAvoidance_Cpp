@@ -1696,7 +1696,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
     //my_circle_space << robot_circle_frame(0,0) << "," << robot_circle_frame(1,0) << "\n"; // write position of the point in the circle space (for matplotlib)
 
     // For trajectory_comparison() function to log the position of the robot in circle space during its whole movement to the attractor
-    std::ofstream mystream_circle_space;
+    /*std::ofstream mystream_circle_space;
     if (!corrected_velocity)
     {
         mystream_circle_space.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_1_circle.txt", std::ios::out | std::ios_base::app);
@@ -1708,7 +1708,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
         mystream_circle_space.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_1_corrected_circle.txt", std::ios::out | std::ios_base::app);
         mystream_circle_space << robot_circle_frame(0,0) << "," << robot_circle_frame(1,0) << "\n"; // write position of the point in the initial space
         mystream_circle_space.close();
-    }
+    }*/
 
 
     if (closest(0,2)==3) // -1 applied to r_eps_vector instead
@@ -1841,13 +1841,14 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
             velocity_shape_space.block(0,0,2,1) = shape_tranform * circle_tranform * velocity_circle_space.block(0,0,2,1);
         }
 
+        /* // For Trajectory Comparison function
         std::ofstream mystream_params;
         mystream_params.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/TrajectoryComparisonData/traj_data_1_params.txt", std::ios::out | std::ios_base::app);
         Eigen::Matrix<float, 1, 12 > params;
         params << ref_vec_circle_frame(0,0), ref_vec_circle_frame(1,0), gamma_norm_proj(1,0), gamma_norm_proj(2,0), distances_surface(0,0), max_gamma_robot, gamma_circle_frame, A, B, C, D, coeff_inversion;
         const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n");
         mystream_params << (params).format(CSVFormat) << "\n";
-        mystream_params.close();
+        mystream_params.close();*/
 
     }
 

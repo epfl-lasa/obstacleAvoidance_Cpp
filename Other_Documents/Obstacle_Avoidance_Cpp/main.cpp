@@ -349,30 +349,36 @@ void quiver_bezier()
     occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 10
-    /*Grid occupancy = Grid::Zero(21,21);
-    occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(1)  << 0,1,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0;
-    occupancy.row(2)  << 0,1,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0;
-    occupancy.row(3)  << 0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(4)  << 0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,0,0,0,0;
-    occupancy.row(5)  << 0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,0,0,1,0,0,0;
-    occupancy.row(6)  << 0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0;
-    occupancy.row(7)  << 0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0;
-    occupancy.row(8)  << 0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0;
-    occupancy.row(9)  << 0,0,0,0,0,0,0,1,1,0,0,0,0,0,1,0,0,0,0,0,0;
-    occupancy.row(10) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0;
-    occupancy.row(11) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0;
-    occupancy.row(12) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0;
-    occupancy.row(13) << 0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
-    occupancy.row(14) << 0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(15) << 0,0,0,1,1,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0;
-    occupancy.row(16) << 0,0,0,1,1,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0;
-    occupancy.row(17) << 0,0,0,1,1,0,0,0,1,1,0,0,0,0,0,1,1,1,1,1,0;
-    occupancy.row(18) << 0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,0,0;
-    occupancy.row(19) << 0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0;
-    occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
+    Grid occupancy = Grid::Zero(26,26);
+    occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1)  << 0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0;
+    occupancy.row(2)  << 0,0,0,0,1,1,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(3)  << 0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(4)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,1,1,1,0,0,0,0,0,0;
+    occupancy.row(5)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(6)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(7)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0;
+    occupancy.row(8)  << 0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0;
+    occupancy.row(9)  << 0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0;
+    occupancy.row(10) << 0,0,0,0,1,0,0,0,1,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0;
+    occupancy.row(11) << 0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(12) << 0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(13) << 0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(14) << 0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(15) << 0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(16) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(17) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(18) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(20) << 0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(21) << 0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,0,0,0;
+    occupancy.row(22) << 0,0,0,0,0,0,1,1,1,1,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0;
+    occupancy.row(23) << 0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
+    occupancy.row(24) << 0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(25) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+
     // Num 11
-    Grid occupancy = Grid::Zero(13,13);
+    /*Grid occupancy = Grid::Zero(13,13);
     occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(2) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
@@ -385,12 +391,12 @@ void quiver_bezier()
     occupancy.row(9) << 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(11)<< 0,0,0,0,1,1,1,1,0,0,0,0,0;
-    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;*/
 
 
     occupancy *= 100;
 
-    int num = 11;
+    int num = 10;
 
     // State of the robot
     State state_robot; state_robot << 0.0, 0.0, 0;
@@ -436,10 +442,10 @@ void quiver_bezier()
         my_bezier_border.close();
     }
 
-    std::ofstream mystream, mystream_bezier, mystream_classic;
+    /*std::ofstream mystream, mystream_bezier, mystream_classic;
     mystream.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_normal.txt");
     mystream_bezier.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_bezier.txt");
-    mystream_classic.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_classic.txt");
+    mystream_classic.open("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+std::to_string(num)+"_classic.txt");*/
 
     // Position of the attractor
     State state_attractor;
@@ -452,7 +458,7 @@ void quiver_bezier()
     // Limits of stream
     Eigen::Matrix<float, 5, 1> limits;
     //limits << -2.02, 14.02, -2.02, 14.02, 0.25;
-    limits << -0.02, 14.02, -0.02, 14.02, 0.25;
+    limits << -2.02, 22.02, -2.02, 22.02, 0.25;
     /*for (float x=2; x<9; x+=0.5)
     {
         State next_eps;
@@ -488,8 +494,8 @@ void quiver_bezier()
             //next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, false);
             //mystream << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
 
-            next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, true);
-            mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
+            //next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, true);
+            //mystream_bezier << x << "," << y << "," << next_eps(0,0) << "," << next_eps(1,0) << "\n"; // write result in text file
             /*
             Eigen::Matrix<float, 4, 1> output;
             output = next_step_classic( state_point, state_attractor, state_reference, storage[0]);
@@ -497,9 +503,9 @@ void quiver_bezier()
         }
     }
 
-    mystream.close();
+    /*mystream.close();
     mystream_bezier.close();
-    mystream_classic.close();
+    mystream_classic.close();*/
     std::cout << " ###### File closed ###### " << std::endl;
 }
 
