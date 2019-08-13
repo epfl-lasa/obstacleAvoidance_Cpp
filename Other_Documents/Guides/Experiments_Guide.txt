@@ -183,4 +183,5 @@ catkin_make to take into account the change
 
 gedit ~/catkin_ws/src/process_occupancy_grid/src/BezierInterpolation.cpp
 In the get_next_velocity_command_weighted function, uncomment lines 1452 and 1453 to enable a minimum speed
+You can find it by searching "// Modulation with Bezier may lead to a very small speed near the surface of obstacles"
 catkin_make to take into account the change
