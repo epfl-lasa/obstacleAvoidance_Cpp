@@ -1448,6 +1448,10 @@ State get_next_velocity_command_weighted(State const& state_robot, State const& 
     std::cout << "Coefficient: " << coeff << std::endl;
    */
 
+    // Modulation with Bezier may lead to a very small speed near the surface of obstacles
+    // float default_speed = 0.1;
+    // cmd_velocity.block(0,0,2,1) *= (default_speed / std::sqrt(std::pow(cmd_velocity(0,0),2)+std::pow(cmd_velocity(1,0),2))); // Set the norm to the default speed
+
     // Decrease speed when the robot get close to the attractor
     float distance_stop = 0.25;
     float distance_start_decreasing = 1 / size_of_cells; // numerical value is in meters, converted into the cell world
