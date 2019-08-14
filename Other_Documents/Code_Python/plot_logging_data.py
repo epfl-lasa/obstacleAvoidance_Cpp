@@ -134,6 +134,7 @@ def update(val):
     data_feat6 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==6) & (data[:,1]!=0)]
     data_feat7 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==7) & (data[:,1]!=0)]
     data_feat8 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==8) & (data[:,1]!=0)]
+    data_feat20 = data[(data[:,0]==timestamps[cursor]) & (data[:,2]==20) & (data[:,1]!=0)] # Obstacle is in an obstacle or not
     
     #plt.axis([np.min(data_feat1_all[:,3])-3,np.max(data_feat1_all[:,3])+3,np.min(data_feat1_all[:,4])-3,np.max(data_feat1_all[:,4])+3])
     
@@ -295,10 +296,18 @@ def update(val):
         arrow = mpatches.FancyArrow(data_feat5_all[0,3],data_feat5_all[0,4], K_mult*robot_feat6[0,2], K_mult*robot_feat6[0,3], length_includes_head=True, width=0.1, Linewidth=2, facecolor="orange", edgecolor="k", zorder=6)
         axes.add_artist(arrow)
 
-
-    # Update title
-    fig.canvas.set_window_title("Time [s]: " + str(round(timestamps[cursor],3)))
-    axes.set_title("Time [s]: " + str(round(timestamps[cursor],3)))
+    # Update title to display Time and if the robot is in an obstacle or not
+    if (data_feat20.shape[0] > 0):
+        if np.any(data_feat20[:,3]==1.0):
+            fig.canvas.set_window_title("Time [s]: " + str(round(timestamps[cursor],3)) + " - IN OBSTACLE")
+            axes.set_title("Time [s]: " + str(round(timestamps[cursor],3)) + " - IN OBSTACLE")
+        else:
+            fig.canvas.set_window_title("Time [s]: " + str(round(timestamps[cursor],3)) + " - NOT IN OBSTACLE")
+            axes.set_title("Time [s]: " + str(round(timestamps[cursor],3)) + " - NOT IN OBSTACLE")
+    else:
+        # Update title
+        fig.canvas.set_window_title("Time [s]: " + str(round(timestamps[cursor],3)))
+        axes.set_title("Time [s]: " + str(round(timestamps[cursor],3)))
     
     # Redraw canvas while idle
     fig.canvas.draw_idle()
