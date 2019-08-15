@@ -631,6 +631,11 @@ def disp6ter():
         U = np.reshape(entry[:,2], (n_size,n_size)).transpose()
         V = np.reshape(entry[:,3], (n_size,n_size)).transpose()
         
+        # X = X[0:30,0:30]
+        # Y = Y[0:30,0:30]
+        # U = U[0:30,0:30]
+        # V = V[0:30,0:30]
+        
         # X = entry[:,0]
         # Y = entry[:,1]
         # U = entry[:,2]
@@ -706,6 +711,8 @@ def disp6ter():
     # Plot the attractor
     #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
     #ax.add_artist(ellipse)
+    ellipse = mpatches.Ellipse([0, 0], 0.5, 0.5, facecolor='forestgreen', edgecolor="k", zorder=5)
+    ax.add_artist(ellipse)
      
     # Set axis limits and display result
     min_x = np.min(entry[:,0])
@@ -718,8 +725,13 @@ def disp6ter():
     #ax.set_xlim(300, 390)
     #ax.set_ylim(280, 370)
     ax.set_aspect("equal")
-    fig.savefig("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/bezier_"+str(num)+".eps", format='eps', bbox_inches = 'tight', pad_inches = 0)
+    #♣fig.savefig("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/bezier_"+str(num)+".eps", format='eps', bbox_inches = 'tight', pad_inches = 0)
+    
+    manager = plt.get_current_fig_manager()
+    manager.window.showMaximized()
     plt.show()
+    fig.savefig("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/bezier_flow.eps", format='eps', bbox_inches = 'tight', pad_inches = 0)
+    
     if save_figs:
         fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".png", dpi=300)
         #fig.savefig("/home/leziart/Pictures/Normal_VS_Bezier/bezier_"+str(num)+".svg", format='svg', dpi=600)

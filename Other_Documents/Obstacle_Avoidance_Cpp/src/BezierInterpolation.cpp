@@ -1580,7 +1580,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
         if (logging_enabled)
         {
             log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
-            log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1; // Default numero of obstacle
+            log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
 
             // Feature 20: is the obstacle inside an obstacle or not ?
             log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature
@@ -1601,7 +1601,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
         if (logging_enabled)
         {
             log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
-            log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1; // Default numero of obstacle
+            log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
 
             // Feature 20: is the obstacle inside an obstacle or not ?
             log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature
@@ -1685,7 +1685,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
             if (logging_enabled)
             {
                 log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
-                log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1; // Default numero of obstacle
+                log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
 
                 // Feature 20: is the obstacle inside an obstacle or not ?
                 log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature
@@ -1971,7 +1971,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
     if (logging_enabled)
     {
         log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
-        log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1; // Default numero of obstacle
+        log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
 
         // Feature 20: is the obstacle inside an obstacle or not ?
         log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature

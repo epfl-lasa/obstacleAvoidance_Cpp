@@ -349,7 +349,7 @@ void quiver_bezier()
     occupancy.row(19) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(20) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
     // Num 10
-    Grid occupancy = Grid::Zero(26,26);
+    /*Grid occupancy = Grid::Zero(26,26);
     occupancy.row(0)  << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
     occupancy.row(1)  << 0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0;
     occupancy.row(2)  << 0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0;
@@ -375,7 +375,7 @@ void quiver_bezier()
     occupancy.row(22) << 0,0,0,0,0,0,1,1,1,1,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0;
     occupancy.row(23) << 0,0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0;
     occupancy.row(24) << 0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
-    occupancy.row(25) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(25) << 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;*/
 
     // Num 11
     /*Grid occupancy = Grid::Zero(13,13);
@@ -393,10 +393,23 @@ void quiver_bezier()
     occupancy.row(11)<< 0,0,0,0,1,1,1,1,0,0,0,0,0;
     occupancy.row(12)<< 0,0,0,0,0,0,0,0,0,0,0,0,0;*/
 
+    /* Num 13 */
+    Grid occupancy = Grid::Zero(11,11);
+    occupancy.row(0) << 0,0,0,0,0,0,0,0,0,0,0;
+    occupancy.row(1) << 0,0,1,1,1,1,1,1,0,0,0;
+    occupancy.row(2) << 0,0,1,0,0,0,0,1,0,0,0;
+    occupancy.row(3) << 0,0,1,0,0,0,0,1,0,0,0;
+    occupancy.row(4) << 0,0,1,0,0,0,0,0,0,0,0;
+    occupancy.row(5) << 0,0,1,0,0,0,0,0,0,0,0;
+    occupancy.row(6) << 0,0,1,0,0,0,0,0,0,0,0;
+    occupancy.row(7) << 0,0,1,0,0,0,0,1,0,0,0;
+    occupancy.row(8) << 0,0,1,0,0,0,0,1,0,0,0;
+    occupancy.row(9) << 0,0,1,1,1,1,1,1,0,0,0;
+    occupancy.row(10)<< 0,0,0,0,0,0,0,0,0,0,0;
 
     occupancy *= 100;
 
-    int num = 10;
+    int num = 13;
 
     // State of the robot
     State state_robot; state_robot << 0.0, 0.0, 0;
@@ -449,7 +462,7 @@ void quiver_bezier()
 
     // Position of the attractor
     State state_attractor;
-    state_attractor << 0,0,0;//7.2, -1.5, 0;
+    state_attractor << 12,5,0;//7.2, -1.5, 0;
 
     State state_reference;
     state_reference << 5, 4.5, 0; // Num 6
@@ -458,7 +471,7 @@ void quiver_bezier()
     // Limits of stream
     Eigen::Matrix<float, 5, 1> limits;
     //limits << -2.02, 14.02, -2.02, 14.02, 0.25;
-    limits << -2.02, 26.02, -2.02, 26.02, 0.1;
+    limits << -1.02, 13.02, -1.02, 13.02, 0.25;
     /*for (float x=2; x<9; x+=0.5)
     {
         State next_eps;

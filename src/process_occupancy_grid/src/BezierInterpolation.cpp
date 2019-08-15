@@ -1566,7 +1566,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
 
     float speed_reverse = 1000; // speed to get out of an obstacle (will be limited by speed_limiter, basically the robot will go at max speed)
 
-    bool no_reverse = true;
+    bool no_reverse = false;
     if (((closest(0,2)==1)||(closest(0,2)==2))&&(normal_vec.dot(robot_vec.colwise().normalized()) < 0)) // if true it means the robot is inside obstacle
     {
         // If inside an obstacle, avoid display by returning NaN
@@ -1577,6 +1577,15 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1; // [v_along_x, v_along_y, v_rotation, gamma_distance]
         if (no_reverse) {output << 0.0, 0.0, 0, 1;}
+        if (logging_enabled)
+        {
+            log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
+            log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
+
+            // Feature 20: is the obstacle inside an obstacle or not ?
+            log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature
+            log_matrix.block(log_matrix.rows()-1, 2, 1, 5) << 1.0,0.0,0.0,0.0,0.0; // First field = 1 if robot inside obstacle
+        }
         return output;
     }
     else if ((closest(0,2)==3)&&(normal_vec.dot(robot_vec.colwise().normalized()) > 0)) // if true it means the robot is inside obstacle
@@ -1589,6 +1598,15 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
         float norm_vec = std::sqrt(std::pow(robot_vec(0,0),2) + std::pow(robot_vec(1,0),2));
         output << (- speed_reverse * robot_vec(0,0) / norm_vec), (- speed_reverse * robot_vec(1,0) / norm_vec), 0, 1;
         if (no_reverse) {output << 0.0, 0.0, 0, 1;}
+        if (logging_enabled)
+        {
+            log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
+            log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
+
+            // Feature 20: is the obstacle inside an obstacle or not ?
+            log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature
+            log_matrix.block(log_matrix.rows()-1, 2, 1, 5) << 1.0,0.0,0.0,0.0,0.0; // First field = 1 if robot inside obstacle
+        }
         return output;
     }
 
@@ -1664,6 +1682,15 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
             output << speed_reverse * normal_robot(0,0), speed_reverse * normal_robot(0,1), 0, 1;
             //output << 0.0, 0.0, 0, 1;
             //std::cout << "OUT HERE 3" << std::endl;
+            if (logging_enabled)
+            {
+                log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
+                log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
+
+                // Feature 20: is the obstacle inside an obstacle or not ?
+                log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature
+                log_matrix.block(log_matrix.rows()-1, 2, 1, 5) << 1.0,0.0,0.0,0.0,0.0; // First field = 1 if robot inside obstacle
+            }
             return output;
         }
 
@@ -1941,6 +1968,15 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
     Eigen::Matrix<float, 4, 1> output;
     output.block(0,0,3,1) = velocity_shape_space;
     output(3,0) = gamma_norm_proj(0,0);
+    if (logging_enabled)
+    {
+        log_matrix.conservativeResize(log_matrix.rows()+1, Eigen::NoChange); // Add 1 row to store the feature
+        log_matrix.block(log_matrix.rows()-1, 0, 1, 1) = 1 * Eigen::MatrixXf::Ones(1, 1); // Default numero of obstacle
+
+        // Feature 20: is the obstacle inside an obstacle or not ?
+        log_matrix(log_matrix.rows()-1, 1) = 20; // Numero of feature
+        log_matrix.block(log_matrix.rows()-1, 2, 1, 5) << 0.0,0.0,0.0,0.0,0.0; // First field = 0 if robot outside obstacle
+    }
     return output;
 }
 
