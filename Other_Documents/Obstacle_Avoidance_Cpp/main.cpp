@@ -462,7 +462,7 @@ void quiver_bezier()
 
     // Position of the attractor
     State state_attractor;
-    state_attractor << 12,5,0;//7.2, -1.5, 0;
+    state_attractor << 12,4.5,0;//7.2, -1.5, 0;
 
     State state_reference;
     state_reference << 5, 4.5, 0; // Num 6
@@ -471,7 +471,7 @@ void quiver_bezier()
     // Limits of stream
     Eigen::Matrix<float, 5, 1> limits;
     //limits << -2.02, 14.02, -2.02, 14.02, 0.25;
-    limits << -1.02, 13.02, -1.02, 13.02, 0.25;
+    limits << -2.98, 13.02, -3.48, 12.52, 0.25;
     /*for (float x=2; x<9; x+=0.5)
     {
         State next_eps;
@@ -491,6 +491,15 @@ void quiver_bezier()
 
 
     }*/
+
+    /*for (float x=2; x<9; x+=0.1)
+    {
+        State state_point;
+        state_point << 4, 4, 0;
+        State next_eps;
+        next_eps = get_next_velocity_command_weighted( state_point, state_attractor, storage, size_cell, true, true);
+    }*/
+
     for (float x=limits(0,0); x <= limits(1,0); x += limits(4,0)) // x direction of the grid
     {
         //if ((x-std::floor(x))<0.4) {std::cout << " ### x = " << x << " ###" << std::endl;}

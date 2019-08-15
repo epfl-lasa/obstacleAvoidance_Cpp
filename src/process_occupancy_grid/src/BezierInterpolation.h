@@ -152,7 +152,7 @@ Eigen::Matrix<float, 10, 1> point_from_initial_to_circle_bezier(State const& sta
  * @param border Eigen matrix of size (N,5) with each row containing the [x, y, type, charac_1, charac_2] information about a cell belonging to the surface of the input obstacle
  * @return Eigen matrix of size (2,2) containing an estimation of the variation of the circle space depending on the variation in the initial space
  */
-Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier);
+Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier, Eigen::Matrix<float, 10, 1> const& point_robot);
 
 
 #endif // BEZIERINTERPOLATION_H_INCLUDED

@@ -493,7 +493,7 @@ def disp6ter():
     my_density = 3
     save_figs = False
     
-    num = 10
+    num = 13
     names = glob.glob("./stream_data_bor*.txt")
     names_normal = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_normal.txt")
     names_bezier = glob.glob("D:/Mes documents/Devoirs/MasterThesis/catkin_project/StreamData/stream_data_"+str(num)+"_bezier.txt")
@@ -711,7 +711,7 @@ def disp6ter():
     # Plot the attractor
     #ellipse = mpatches.Ellipse([attractor[num][0],attractor[num][1]], 0.2, 0.2, facecolor='forestgreen', edgecolor="k", zorder=5)
     #ax.add_artist(ellipse)
-    ellipse = mpatches.Ellipse([0, 0], 0.5, 0.5, facecolor='forestgreen', edgecolor="k", zorder=5)
+    ellipse = mpatches.Ellipse([12, 4.5], 0.5, 0.5, facecolor='forestgreen', edgecolor="k", zorder=5)
     ax.add_artist(ellipse)
      
     # Set axis limits and display result

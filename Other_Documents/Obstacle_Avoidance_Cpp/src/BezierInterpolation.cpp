@@ -1837,7 +1837,7 @@ Eigen::Matrix<float, 4, 1> get_next_velocity_command(State const& state_robot, S
         }
         else
         {
-            derivation_matrix = get_derivation_matrix_bezier(state_robot, state_attractor, pts_bezier); // Bezier version
+            derivation_matrix = get_derivation_matrix_bezier(state_robot, state_attractor, pts_bezier, point_circle_space); // Bezier version
         }
         Eigen::Matrix<double, 2, 2> inversed_matrix;
         double A =  derivation_matrix(0,0);
@@ -2027,7 +2027,7 @@ Eigen::Matrix<float, 10, 1> point_from_initial_to_circle_bezier(State const& sta
     return point_circle_space;
 }
 
-Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier)
+Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robot, State const& state_attractor, std::vector<Eigen::MatrixXf> & pts_bezier, Eigen::Matrix<float, 10, 1> const& point_robot)
 {
     // Space step
     const double h = 0.02;
@@ -2044,16 +2044,22 @@ Eigen::Matrix<double, 2, 2> get_derivation_matrix_bezier(State const& state_robo
     point_up(1,0)    += h;
 
     // Get the position of these four points in the circle space
-    Eigen::Matrix<float, 10, 1> point_left_circle  = point_from_initial_to_circle_bezier(point_left , state_attractor, pts_bezier);
+    //Eigen::Matrix<float, 10, 1> point_left_circle  = point_from_initial_to_circle_bezier(point_left , state_attractor, pts_bezier);
     Eigen::Matrix<float, 10, 1> point_right_circle = point_from_initial_to_circle_bezier(point_right, state_attractor, pts_bezier);
     Eigen::Matrix<float, 10, 1> point_up_circle    = point_from_initial_to_circle_bezier(point_up   , state_attractor, pts_bezier);
-    Eigen::Matrix<float, 10, 1> point_down_circle  = point_from_initial_to_circle_bezier(point_down , state_attractor, pts_bezier);
+    //Eigen::Matrix<float, 10, 1> point_down_circle  = point_from_initial_to_circle_bezier(point_down , state_attractor, pts_bezier);
 
     // Numerical interpolation of the derivative along the two axes
-    double dxc_dxi = (point_right_circle(1,0) - point_left_circle(1,0)) / (2*h);
+   /*double dxc_dxi = (point_right_circle(1,0) - point_left_circle(1,0)) / (2*h);
     double dyc_dxi = (point_right_circle(2,0) - point_left_circle(2,0)) / (2*h);
     double dxc_dyi = (point_up_circle(1,0)    - point_down_circle(1,0)) / (2*h);
-    double dyc_dyi = (point_up_circle(2,0)    - point_down_circle(2,0)) / (2*h);
+    double dyc_dyi = (point_up_circle(2,0)    - point_down_circle(2,0)) / (2*h);*/
+
+    // Numerical interpolation of the derivative along the two axes
+    double dxc_dxi = (point_right_circle(1,0) - point_robot(1,0)) / (h);
+    double dyc_dxi = (point_right_circle(2,0) - point_robot(2,0)) / (h);
+    double dxc_dyi = (point_up_circle(1,0)    - point_robot(1,0)) / (h);
+    double dyc_dyi = (point_up_circle(2,0)    - point_robot(2,0)) / (h);
 
     // Fill the output matrix
     Eigen::Matrix<double, 2, 2> output;
