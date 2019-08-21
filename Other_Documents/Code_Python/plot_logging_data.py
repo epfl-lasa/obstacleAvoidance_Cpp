@@ -46,6 +46,7 @@ robot = np.loadtxt(open(names[-1], "rb"), delimiter=",")
 
 timestamps = np.unique(data[:,0])
 
+
 ## Updatable PatchCollection class
 
 class UpdatablePatchCollection(mcollections.PatchCollection):
@@ -313,6 +314,25 @@ def update(val):
     fig.canvas.draw_idle()
     
     # Update circle figures
+    if ((data_feat3[:,1]).shape[0] > 0):
+        N_subplots = int(np.max(data_feat3[:,1]))
+        for k_ax in range(len(circle_axes)):
+            sub_fig.delaxes(circle_axes[-1])
+            circle_axes.pop()
+        sub_fig.suptitle(str(N_subplots) + " obstacle(s) considered")
+        sub_fig.canvas.draw()
+        for k_ax in range(N_subplots):
+            ax = sub_fig.add_subplot(int("1"+str(N_subplots)+str(len(circle_axes)+1)))
+            circle_axes.append(ax)
+        sub_fig.canvas.draw()
+    else:
+        N_subplots = 0
+        for k_ax in range(len(circle_axes)):
+            sub_fig.delaxes(circle_axes[-1])
+            circle_axes.pop()
+        sub_fig.suptitle("No obstacle considered (inside obstacle or out of range)")
+        sub_fig.canvas.draw()
+        
     for i in range(len(circle_axes)): 
         axes_circle = circle_axes[i] 
         axes_circle.artists = []
@@ -330,8 +350,13 @@ def update(val):
             circle = mpatches.Ellipse([data_feat4[i,5],data_feat4[i,6]], 0.2, 0.2, facecolor="forestgreen", edgecolor="k", zorder=2)         
             axes_circle.add_artist(circle)
             
+            # Limits of the canvas
+            maxi = np.max([np.abs(data_feat5[i,5]),np.abs(data_feat5[i,6])])
+            axes_circle.set_xlim([-maxi*1.3,maxi*1.3])
+            axes_circle.set_ylim([-maxi*1.3,maxi*1.3])
+            
             # Update position of the robot in circle space for this obstacle (feature 5)
-            circle = mpatches.Ellipse([data_feat5[i,5],data_feat5[i,6]], 0.2, 0.2, facecolor="red", edgecolor="k", zorder=4)          
+            circle = mpatches.Ellipse([data_feat5[i,5],data_feat5[i,6]], 0.1*maxi, 0.1*maxi, facecolor="red", edgecolor="k", zorder=4)          
             axes_circle.add_artist(circle)
                 
             # Update position of the attractor in circle space for this obstacle (feature 6)
@@ -347,16 +372,16 @@ def update(val):
             axes_circle.add_artist(line)
             
             # Update velocity command of the robot (feature 7)
-            K_mult = 0.7
+            K_mult = maxi*0.3 # width=0.07
             norm_vec = np.sqrt(np.sum(np.power(data_feat7[i,5:7],2)))
-            arrow = mpatches.FancyArrow(data_feat5[i,5],data_feat5[i,6], K_mult*data_feat7[i,5], K_mult*data_feat7[i,6], length_includes_head=True, width=0.07, Linewidth=2, facecolor="rebeccapurple", zorder=5)
+            arrow = mpatches.FancyArrow(data_feat5[i,5],data_feat5[i,6], K_mult*data_feat7[i,5], K_mult*data_feat7[i,6], length_includes_head=True, width=maxi*0.02, Linewidth=2, facecolor="rebeccapurple", zorder=5)
             axes_circle.add_artist(arrow)
             
             # Update trajectory of the robot in initial space (since its starting position)
             data_feat5_prev = data[(data[:,0]<=timestamps[cursor]) & (data[:,2]==5) & (data[:,1]==(i+1))]
             line = mlines.Line2D(data_feat5_prev[:,5],data_feat5_prev[:,6], Linewidth=2, Linestyle="--",color='darkorange')
             axes_circle.add_artist(line)
-            
+        
             # Update title
             axes_circle.set_title("Time [s]: " + str(round(timestamps[cursor],3)) + " | Obstacle " + str(i+1) + " | Distance: " + str(data_feat8[i,4]))
     
