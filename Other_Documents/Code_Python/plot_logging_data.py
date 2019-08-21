@@ -201,7 +201,7 @@ def update(val):
         
     # Update feature 12
     for i in range(robot_feat12.shape[0]):
-        print("Feat 12: ", robot_feat12[i,2], " and ", robot_feat12[i,3])
+        #print("Feat 12: ", robot_feat12[i,2], " and ", robot_feat12[i,3])
         circle = mpatches.Ellipse([robot_feat12[i,2],robot_feat12[i,3]], 1, 1, facecolor="violet", edgecolor="k", zorder=9)        
         axes.add_artist(circle)
         
